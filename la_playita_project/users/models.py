@@ -19,13 +19,23 @@ class UsuarioManager(BaseUserManager):
         if not username:
             raise ValueError("El usuario debe tener documento")
 
+        extra_fields.setdefault('is_staff', False)
+        extra_fields.setdefault('is_superuser', False)
         user = self.model(username=username, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
     def create_superuser(self, username, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault("rol", Rol.objects.get(nombre="Administrador"))
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
         return self.create_user(username, password, **extra_fields)
 
 
@@ -67,13 +77,18 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         managed = True
         db_table = "usuario"
 
+    def save(self, *args, **kwargs):
+        if self.rol and self.rol.nombre == "Administrador":
+            self.is_superuser = True
+            self.is_staff = True
+        else:
+            self.is_superuser = False
+            self.is_staff = False
+        super().save(*args, **kwargs)
+
     @property
     def is_active(self):
         return self.estado == "activo"
-
-    @property
-    def is_staff(self):
-        return self.rol.nombre == "Administrador"
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.username})"

@@ -263,6 +263,8 @@ def reabastecimiento_recibir(request, pk):
             if reab.estado == Reabastecimiento.ESTADO_RECIBIDO:
                 return JsonResponse({'error': 'Este reabastecimiento ya ha sido recibido.'}, status=400)
 
+            productos_a_actualizar = set()
+
             for detalle_data in data.get('detalles', []):
                 detalle = get_object_or_404(ReabastecimientoDetalle, pk=detalle_data.get('id'), reabastecimiento=reab)
                 cantidad_recibida = int(detalle_data.get('cantidad_recibida'))
@@ -287,6 +289,10 @@ def reabastecimiento_recibir(request, pk):
                         producto=lote.producto, lote=lote, cantidad=cantidad_recibida, tipo_movimiento='entrada',
                         descripcion=f'Entrada por reabastecimiento #{reab.pk}', reabastecimiento_id=reab.pk
                     )
+                    productos_a_actualizar.add(detalle.producto)
+
+            for producto in productos_a_actualizar:
+                producto.actualizar_costo_promedio_y_stock()
 
             reab.estado = Reabastecimiento.ESTADO_RECIBIDO
             reab.save()

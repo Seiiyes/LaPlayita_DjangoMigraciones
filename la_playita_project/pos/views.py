@@ -69,6 +69,14 @@ def buscar_productos(request):
 def obtener_producto(request, producto_id):
     producto = get_object_or_404(Producto, pk=producto_id)
     lotes = Lote.objects.filter(producto=producto, cantidad_disponible__gt=0).order_by('fecha_caducidad')
+
+    # Comprobar y corregir inconsistencia de stock
+    if producto.stock_actual > 0 and not lotes.exists():
+        producto.actualizar_costo_promedio_y_stock()
+        # Refrescar el objeto producto y los lotes
+        producto.refresh_from_db()
+        lotes = Lote.objects.filter(producto=producto, cantidad_disponible__gt=0).order_by('fecha_caducidad')
+
     producto_data = {
         'id': producto.id,
         'nombre': producto.nombre,
@@ -115,6 +123,7 @@ def procesar_venta(request):
             estado='completado'
         )
         
+        productos_a_actualizar = set()
         for item in cart_items:
             producto = get_object_or_404(Producto, pk=item['producto_id'])
             lote = get_object_or_404(Lote, pk=item['lote_id'])
@@ -133,8 +142,10 @@ def procesar_venta(request):
             
             lote.cantidad_disponible -= cantidad
             lote.save()
-            producto.stock_actual -= cantidad
-            producto.save()
+            productos_a_actualizar.add(producto)
+
+        for producto in productos_a_actualizar:
+            producto.actualizar_costo_promedio_y_stock()
         
         # # ===== AGREGAR PUNTOS AL CLIENTE =====
         # if cliente.id != 1:  # No agregar puntos a "Consumidor Final"

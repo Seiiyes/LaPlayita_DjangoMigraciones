@@ -1,5 +1,4 @@
 from django.db import models
-from django.db.models import Sum, F, DecimalField
 from django.utils import timezone
 
 
@@ -26,18 +25,6 @@ class Producto(models.Model):
     def __str__(self):
         return self.nombre
 
-    def actualizar_costo_promedio_y_stock(self):
-        lotes = self.lote_set.all()
-        aggregates = lotes.aggregate(
-            total_stock=Sum('cantidad_disponible'),
-            total_cost=Sum(F('cantidad_disponible') * F('costo_unitario_lote'), output_field=DecimalField())
-        )
-        new_stock = aggregates['total_stock'] or 0
-        total_cost = aggregates['total_cost'] or 0
-        self.stock_actual = new_stock
-        self.costo_promedio = total_cost / new_stock if new_stock > 0 else 0
-        self.save(update_fields=['stock_actual', 'costo_promedio'])
-
     class Meta:
         db_table = 'producto'
         managed = False
@@ -45,7 +32,7 @@ class Producto(models.Model):
 
 class Lote(models.Model):
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-    reabastecimiento_detalle = models.ForeignKey('suppliers.ReabastecimientoDetalle', on_delete=models.SET_NULL, null=True, blank=True)
+    reabastecimiento_detalle = models.ForeignKey('suppliers.ReabastecimientoDetalle', on_delete=models.CASCADE, null=True, blank=True)
     numero_lote = models.CharField(max_length=50)
     cantidad_disponible = models.PositiveIntegerField()
     costo_unitario_lote = models.DecimalField(max_digits=12, decimal_places=2)

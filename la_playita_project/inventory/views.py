@@ -46,11 +46,7 @@ def producto_lotes_json(request, pk):
 
     # CORRECCIÓN DE ORM: La relación a proveedor no es directa.
     # El camino correcto es a través de reabastecimiento_detalle y reabastecimiento:
-    lotes = Lote.objects.filter(producto=producto).select_related(
-        'reabastecimiento_detalle',
-        'reabastecimiento_detalle__reabastecimiento',
-        'reabastecimiento_detalle__reabastecimiento__proveedor'
-    ).order_by('-fecha_entrada')
+    lotes = Lote.objects.filter(producto=producto).order_by('-fecha_entrada')
 
     movimientos = MovimientoInventario.objects.filter(producto=producto).order_by('-fecha_movimiento')
 

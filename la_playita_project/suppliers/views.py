@@ -268,22 +268,25 @@ def reabastecimiento_recibir(request, pk):
             for detalle_data in data.get('detalles', []):
                 detalle = get_object_or_404(ReabastecimientoDetalle, pk=detalle_data.get('id'), reabastecimiento=reab)
                 cantidad_recibida = int(detalle_data.get('cantidad_recibida'))
+                fecha_caducidad_str = detalle_data.get('fecha_caducidad')
 
                 if cantidad_recibida > detalle.cantidad:
                     raise ValueError(f'Cantidad recibida ({cantidad_recibida}) > solicitada ({detalle.cantidad}) para {detalle.producto.nombre}.')
 
                 detalle.cantidad_recibida = cantidad_recibida
+                if fecha_caducidad_str:
+                    detalle.fecha_caducidad = fecha_caducidad_str
                 detalle.save()
 
                 if cantidad_recibida > 0:
-                    if not detalle.fecha_caducidad:
-                        raise ValueError(f'El producto {detalle.producto.nombre} no tiene fecha de caducidad.')
+                    if not fecha_caducidad_str:
+                        raise ValueError(f'Debe proporcionar una fecha de caducidad para {detalle.producto.nombre}.')
 
                     numero_lote = f"R{reab.pk}-P{detalle.producto.pk}-{detalle.pk}"
                     lote = Lote.objects.create(
                         producto=detalle.producto, reabastecimiento_detalle=detalle, numero_lote=numero_lote,
                         cantidad_disponible=cantidad_recibida, costo_unitario_lote=detalle.costo_unitario,
-                        fecha_caducidad=detalle.fecha_caducidad
+                        fecha_caducidad=fecha_caducidad_str
                     )
                     MovimientoInventario.objects.create(
                         producto=lote.producto, lote=lote, cantidad=cantidad_recibida, tipo_movimiento='entrada',
@@ -292,7 +295,7 @@ def reabastecimiento_recibir(request, pk):
                     productos_a_actualizar.add(detalle.producto)
 
             for producto in productos_a_actualizar:
-                producto.actualizar_costo_promedio_y_stock()
+                producto.refresh_from_db()
 
             reab.estado = Reabastecimiento.ESTADO_RECIBIDO
             reab.save()
@@ -312,10 +315,20 @@ def reabastecimiento_eliminar(request, pk):
             if Lote.objects.filter(reabastecimiento_detalle__reabastecimiento=reab, ventadetalle__isnull=False).exists():
                 return JsonResponse({'error': 'No se puede eliminar, tiene productos vendidos.'}, status=400)
 
+            # Obtener los productos afectados ANTES de eliminar los lotes
+            productos_a_actualizar = set(
+                Producto.objects.filter(reabastecimientodetalle__reabastecimiento=reab)
+            )
+
             Lote.objects.filter(reabastecimiento_detalle__reabastecimiento=reab).delete()
             with connection.cursor() as cursor:
                 cursor.execute("DELETE FROM movimiento_inventario WHERE reabastecimiento_id = %s", [pk])
                 cursor.execute("DELETE FROM reabastecimiento WHERE id = %s", [pk])
+
+            # Actualizar los objetos Producto en Django para reflejar los cambios de la DB
+            for producto in productos_a_actualizar:
+                producto.refresh_from_db()
+
             return JsonResponse({'message': 'Reabastecimiento eliminado correctamente'})
     except Reabastecimiento.DoesNotExist:
         return JsonResponse({'error': 'Reabastecimiento no encontrado'}, status=404)

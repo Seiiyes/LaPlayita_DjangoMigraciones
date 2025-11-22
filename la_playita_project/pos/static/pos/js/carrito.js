@@ -147,7 +147,7 @@ class CarritoPOS {
 
             // Agregar el producto al carrito con cantidad 1 y el lote encontrado.
             const cantidadAAgregar = 1;
-            this.agregarAlCarrito(producto.id, producto.nombre, producto.precio, cantidadAAgregar, loteDisponible.id);
+            this.agregarAlCarrito(producto.id, producto.nombre, producto.precio, cantidadAAgregar, loteDisponible.id, loteDisponible.cantidad);
 
         } catch (error) {
             console.error('Error al obtener producto:', error);
@@ -155,19 +155,31 @@ class CarritoPOS {
         }
     }
 
-    agregarAlCarrito(productoId, nombre, precio, cantidad, loteId) {
+    agregarAlCarrito(productoId, nombre, precio, cantidad, loteId, maxStock) {
         // Verificar si el producto ya está en el carrito con el mismo lote
         const itemExistente = this.carrito.find(item => item.producto_id === productoId && item.lote_id === loteId);
 
         if (itemExistente) {
+            // Actualizar el stock máximo con la información más reciente
+            itemExistente.max_stock = maxStock;
+
+            if (itemExistente.cantidad + cantidad > itemExistente.max_stock) {
+                this.mostrarNotificacion(`No puedes agregar más. Stock máximo disponible: ${itemExistente.max_stock}`, 'warning');
+                return;
+            }
             itemExistente.cantidad += cantidad;
         } else {
+            if (cantidad > maxStock) {
+                this.mostrarNotificacion(`Stock insuficiente. Disponible: ${maxStock}`, 'warning');
+                return;
+            }
             this.carrito.push({
                 producto_id: productoId,
                 nombre: nombre,
                 precio: parseFloat(precio),
                 cantidad: cantidad,
-                lote_id: loteId
+                lote_id: loteId,
+                max_stock: maxStock
             });
         }
 
@@ -184,10 +196,19 @@ class CarritoPOS {
 
     actualizarCantidadCarrito(index, nuevaCantidad) {
         nuevaCantidad = parseInt(nuevaCantidad);
+        const item = this.carrito[index];
 
         if (nuevaCantidad <= 0) {
             this.removerDelCarrito(index);
             return;
+        }
+
+        if (item.max_stock && nuevaCantidad > item.max_stock) {
+            this.mostrarNotificacion(`Solo hay ${item.max_stock} unidades disponibles de este lote.`, 'warning');
+            nuevaCantidad = item.max_stock;
+            // Forzar actualización visual del input si el usuario escribió un número mayor
+            const input = document.querySelector(`input[data-index="${index}"]`);
+            if (input) input.value = nuevaCantidad;
         }
 
         this.carrito[index].cantidad = nuevaCantidad;
@@ -271,16 +292,16 @@ class CarritoPOS {
 
         // Obtener clientes desde la API - iniciar con opción por defecto
         let clientesHTML = '<option value="">-- Sin Cliente --</option>';
-        
+
         try {
             console.log('Obteniendo clientes...');
             const response = await fetch('/pos/api/obtener-clientes/');
             console.log('Response status:', response.status);
-            
+
             if (response.ok) {
                 const data = await response.json();
                 console.log('Datos recibidos:', data);
-                
+
                 if (data.success && data.clientes && data.clientes.length > 0) {
                     // Construir opciones de clientes
                     data.clientes.forEach(cliente => {
@@ -377,7 +398,7 @@ class CarritoPOS {
 
         // Mostrar modal
         const modal = new bootstrap.Modal(document.getElementById('modalPago'));
-        
+
         // Agregar evento al botón de confirmar
         document.getElementById('btn-confirmar-venta').addEventListener('click', () => {
             this.confirmarVenta();
@@ -426,7 +447,11 @@ class CarritoPOS {
             const datos = await response.json();
 
             if (response.ok && datos.success) {
-                this.mostrarNotificacion(datos.mensaje, 'success');
+                let mensaje = datos.mensaje;
+                if (datos.puntos_ganados && datos.puntos_ganados > 0) {
+                    mensaje += ` ¡Has ganado ${datos.puntos_ganados.toFixed(2)} puntos!`;
+                }
+                this.mostrarNotificacion(mensaje, 'success');
                 this.vaciarCarrito();
                 this.redirigirAVentaDetalle(datos.venta_id);
             } else {

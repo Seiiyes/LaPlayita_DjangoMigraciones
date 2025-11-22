@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 from django.template.loader import render_to_string
 from weasyprint import HTML
 from inventory.models import Producto, Lote
-from clients.models import Cliente
+from clients.models import Cliente, PuntosFidelizacion
 from .models import Venta, VentaDetalle, Pago
 from .forms import ProductoSearchForm, VentaForm
 from users.decorators import check_user_role
@@ -17,7 +17,9 @@ from django.core.mail import EmailMessage
 from datetime import datetime
 from django.views.decorators.csrf import csrf_exempt
 
-# Constante: 1 punto = $15.000
+# Constante: 5.5 puntos por cada $66,000 pesos
+PUNTOS_POR_COMPRA = Decimal('5.5')
+VALOR_BASE_PUNTOS = Decimal('66000')
 # VALOR_PUNTO = Decimal('15000.00')
 
 @login_required
@@ -130,7 +132,7 @@ def procesar_venta(request):
             cantidad = int(item['cantidad'])
             
             if lote.cantidad_disponible < cantidad:
-                raise Exception(f"Stock insuficiente para el lote {lote.numero_lote} de {producto.nombre}")
+                raise Exception(f"No hay suficiente stock de '{producto.nombre}'. Solicitado: {cantidad}, Disponible: {lote.cantidad_disponible} (Lote: {lote.numero_lote})")
             
             VentaDetalle.objects.create(
                 venta=nueva_venta,
@@ -145,29 +147,32 @@ def procesar_venta(request):
             productos_a_actualizar.add(producto)
 
         for producto in productos_a_actualizar:
-            producto.actualizar_costo_promedio_y_stock()
+            # producto.actualizar_costo_promedio_y_stock()  # Comentado: los triggers de BD ya actualizan esto
+            pass  # Los triggers de MySQL manejan la actualización automáticamente
         
-        # # ===== AGREGAR PUNTOS AL CLIENTE =====
-        # if cliente.id != 1:  # No agregar puntos a "Consumidor Final"
-        #     puntos_ganados = (total_venta / VALOR_PUNTO).quantize(Decimal('0.01'))
+        # ===== AGREGAR PUNTOS AL CLIENTE =====
+        puntos_ganados = Decimal('0')
+        if cliente.id != 1:  # No agregar puntos a "Consumidor Final"
+            # Calcular puntos: (total_venta / 66000) * 5.5
+            puntos_ganados = ((total_venta / VALOR_BASE_PUNTOS) * PUNTOS_POR_COMPRA).quantize(Decimal('0.01'))
             
-        #     # Actualizar puntos del cliente
-        #     cliente.puntos_totales += puntos_ganados
-        #     cliente.save()
+            # Actualizar puntos del cliente
+            cliente.puntos_totales += puntos_ganados
+            cliente.save()
             
-        #     # Registrar transacción de puntos
-        #     PuntosFidelizacion.objects.create(
-        #         cliente_id=cliente.id,
-        #         tipo=PuntosFidelizacion.TIPO_GANANCIA,
-        #         puntos=puntos_ganados,
-        #         descripcion=f'Compra de ${total_venta} - Venta #{nueva_venta.id}',
-        #         venta_id=nueva_venta.id
-        #     )
+            # Registrar transacción de puntos
+            PuntosFidelizacion.objects.create(
+                cliente=cliente,
+                tipo=PuntosFidelizacion.TIPO_GANANCIA,
+                puntos=puntos_ganados,
+                descripcion=f'Compra de ${total_venta} - Venta #{nueva_venta.id}',
+                venta_id=nueva_venta.id
+            )
         
         return JsonResponse({
             'success': True,
             'venta_id': nueva_venta.id,
-            # 'puntos_ganados': float(puntos_ganados) if cliente.id != 1 else 0, # Comentado temporalmente
+            'puntos_ganados': float(puntos_ganados) if cliente.id != 1 else 0,
             'mensaje': f'Venta #{nueva_venta.id} procesada con éxito.'
         })
     

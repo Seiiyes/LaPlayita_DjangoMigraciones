@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from users.decorators import check_user_role
-from .models import Cliente
+from .models import Cliente, PuntosFidelizacion, ProductoCanjeble, CanjeProducto
 from django.views.decorators.http import require_POST, require_http_methods
 from django.http import JsonResponse
 from django.db import transaction

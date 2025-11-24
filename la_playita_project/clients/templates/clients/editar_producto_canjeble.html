@@ -1,0 +1,84 @@
+{% extends "core/base.html" %}
+
+{% block title %}Editar Producto Canjeable{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Editar Producto Canjeable</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+
+                        <!-- Selección de Producto de Inventario -->
+                        <div class="mb-4 p-3 bg-light rounded border">
+
+                            <div class="mb-3">
+                                <label for="nombre" class="form-label">Nombre del Producto</label>
+                                <input type="text" class="form-control" id="nombre" name="nombre"
+                                    value="{{ producto.nombre }}" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="descripcion" class="form-label">Descripción</label>
+                                <textarea class="form-control" id="descripcion" name="descripcion"
+                                    rows="3">{{ producto.descripcion }}</textarea>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="puntos_requeridos" class="form-label">Puntos Requeridos</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i
+                                                class="bi bi-star-fill text-warning"></i></span>
+                                        <input type="number" class="form-control" id="puntos_requeridos"
+                                            name="puntos_requeridos" step="0.01"
+                                            value="{{ producto.puntos_requeridos|stringformat:'.2f' }}" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="stock_disponible" class="form-label">Stock para Canje</label>
+                                    <input type="number" class="form-control" id="stock_disponible"
+                                        name="stock_disponible" value="{{ producto.stock_disponible }}" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="activo" name="activo" {% if producto.activo %}checked{% endif %}>
+                                <label class="form-check-label" for="activo">Producto Activo</label>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'clients:admin_productos_canjebles' %}"
+                                class="btn btn-secondary me-md-2">Cancelar</a>
+                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('producto_inventario').addEventListener('change', function () {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.value) {
+            if (confirm('¿Deseas actualizar el nombre y descripción con los datos del inventario seleccionado?')) {
+                const nombre = selectedOption.getAttribute('data-nombre');
+                const descripcion = selectedOption.getAttribute('data-descripcion');
+
+                document.getElementById('nombre').value = nombre;
+                if (descripcion) {
+                    document.getElementById('descripcion').value = descripcion;
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from users.decorators import check_user_role
 from .models import Cliente, PuntosFidelizacion, ProductoCanjeble, CanjeProducto
+from inventory.models import Producto, MovimientoInventario
 from django.views.decorators.http import require_POST, require_http_methods
 from django.http import JsonResponse
 from django.db import transaction
@@ -148,20 +149,43 @@ def crear_producto_canjeble(request):
     """Crea un nuevo producto canjeable."""
     if request.method == "POST":
         try:
-            ProductoCanjeble.objects.create(
-                nombre=request.POST.get('nombre'),
-                descripcion=request.POST.get('descripcion'),
-                puntos_requeridos=Decimal(request.POST.get('puntos_requeridos')),
-                stock_disponible=int(request.POST.get('stock_disponible')),
-                activo=request.POST.get('activo') == 'on',
-                imagen_url=request.POST.get('imagen_url', '')
-            )
+            with transaction.atomic():
+                producto_inv_id = request.POST.get('producto_inventario')
+                producto_inv = None
+                stock_solicitado = int(request.POST.get('stock_disponible'))
+
+                if producto_inv_id:
+                    producto_inv = Producto.objects.select_for_update().get(pk=producto_inv_id)
+                    if producto_inv.stock_actual < stock_solicitado:
+                        raise ValueError(f"Stock insuficiente en inventario. Disponible: {producto_inv.stock_actual}")
+                    
+                    # Descontar del inventario
+                    producto_inv.stock_actual -= stock_solicitado
+                    producto_inv.save()
+                    
+                    # Registrar movimiento
+                    MovimientoInventario.objects.create(
+                        producto=producto_inv,
+                        cantidad=-stock_solicitado,
+                        tipo_movimiento='SALIDA',
+                        descripcion=f'Asignación a producto canjeable: {request.POST.get("nombre")}'
+                    )
+
+                ProductoCanjeble.objects.create(
+                    nombre=request.POST.get('nombre'),
+                    descripcion=request.POST.get('descripcion'),
+                    puntos_requeridos=Decimal(request.POST.get('puntos_requeridos')),
+                    stock_disponible=stock_solicitado,
+                    activo=request.POST.get('activo') == 'on',
+                    producto_inventario=producto_inv
+                )
             messages.success(request, 'Producto canjeable creado exitosamente.')
             return redirect('clients:admin_productos_canjebles')
         except Exception as e:
             messages.error(request, f'Error al crear producto: {str(e)}')
     
-    return render(request, 'clients/crear_producto_canjeble.html')
+    productos_inv = Producto.objects.all().order_by('nombre')
+    return render(request, 'clients/crear_producto_canjeble.html', {'productos_inv': productos_inv})
 
 
 @login_required
@@ -173,21 +197,96 @@ def editar_producto_canjeble(request, producto_id):
     
     if request.method == "POST":
         try:
-            producto.nombre = request.POST.get('nombre')
-            producto.descripcion = request.POST.get('descripcion')
-            producto.puntos_requeridos = Decimal(request.POST.get('puntos_requeridos'))
-            producto.stock_disponible = int(request.POST.get('stock_disponible'))
-            producto.activo = request.POST.get('activo') == 'on'
-            producto.imagen_url = request.POST.get('imagen_url', '')
-            producto.save()
+            with transaction.atomic():
+                # Guardar estado anterior
+                stock_anterior = producto.stock_disponible
+                producto_inv_anterior = producto.producto_inventario
+                
+                # Nuevos valores
+                nuevo_stock = int(request.POST.get('stock_disponible'))
+                producto_inv_id = request.POST.get('producto_inventario')
+                
+                producto.nombre = request.POST.get('nombre')
+                producto.descripcion = request.POST.get('descripcion')
+                producto.puntos_requeridos = Decimal(request.POST.get('puntos_requeridos'))
+                producto.stock_disponible = nuevo_stock
+                producto.activo = request.POST.get('activo') == 'on'
+                
+                # Manejo de cambio de producto de inventario o ajuste de stock
+                if producto_inv_id:
+                    nuevo_producto_inv = Producto.objects.select_for_update().get(pk=producto_inv_id)
+                    producto.producto_inventario = nuevo_producto_inv
+                    
+                    if producto_inv_anterior and producto_inv_anterior.id == nuevo_producto_inv.id:
+                        # Mismo producto, solo ajustar diferencia de stock
+                        diferencia = nuevo_stock - stock_anterior
+                        if diferencia > 0:
+                            if nuevo_producto_inv.stock_actual < diferencia:
+                                raise ValueError(f"Stock insuficiente en inventario para el aumento. Disponible: {nuevo_producto_inv.stock_actual}")
+                            nuevo_producto_inv.stock_actual -= diferencia
+                            tipo = 'SALIDA'
+                            desc = f'Aumento de stock canjeable: {producto.nombre}'
+                        else:
+                            nuevo_producto_inv.stock_actual += abs(diferencia)
+                            tipo = 'ENTRADA'
+                            desc = f'Reducción de stock canjeable: {producto.nombre}'
+                            
+                        if diferencia != 0:
+                            nuevo_producto_inv.save()
+                            MovimientoInventario.objects.create(
+                                producto=nuevo_producto_inv,
+                                cantidad=-diferencia if tipo == 'SALIDA' else abs(diferencia),
+                                tipo_movimiento=tipo,
+                                descripcion=desc
+                            )
+                    else:
+                        # Cambio de producto: devolver stock al anterior (si había) y restar al nuevo
+                        if producto_inv_anterior:
+                            producto_inv_anterior.stock_actual += stock_anterior
+                            producto_inv_anterior.save()
+                            MovimientoInventario.objects.create(
+                                producto=producto_inv_anterior,
+                                cantidad=stock_anterior,
+                                tipo_movimiento='ENTRADA',
+                                descripcion=f'Devolución por desvinculación de canje: {producto.nombre}'
+                            )
+                        
+                        # Restar del nuevo
+                        if nuevo_producto_inv.stock_actual < nuevo_stock:
+                            raise ValueError(f"Stock insuficiente en nuevo producto de inventario. Disponible: {nuevo_producto_inv.stock_actual}")
+                        
+                        nuevo_producto_inv.stock_actual -= nuevo_stock
+                        nuevo_producto_inv.save()
+                        MovimientoInventario.objects.create(
+                            producto=nuevo_producto_inv,
+                            cantidad=-nuevo_stock,
+                            tipo_movimiento='SALIDA',
+                            descripcion=f'Asignación a producto canjeable: {producto.nombre}'
+                        )
+                else:
+                    # Se desvincula el producto
+                    producto.producto_inventario = None
+                    if producto_inv_anterior:
+                        producto_inv_anterior.stock_actual += stock_anterior
+                        producto_inv_anterior.save()
+                        MovimientoInventario.objects.create(
+                            producto=producto_inv_anterior,
+                            cantidad=stock_anterior,
+                            tipo_movimiento='ENTRADA',
+                            descripcion=f'Devolución por desvinculación de canje: {producto.nombre}'
+                        )
+                    
+                producto.save()
             
             messages.success(request, 'Producto actualizado exitosamente.')
             return redirect('clients:admin_productos_canjebles')
         except Exception as e:
             messages.error(request, f'Error al actualizar producto: {str(e)}')
     
+    productos_inv = Producto.objects.all().order_by('nombre')
     context = {
         'producto': producto,
+        'productos_inv': productos_inv,
     }
     return render(request, 'clients/editar_producto_canjeble.html', context)
 
@@ -201,11 +300,15 @@ def eliminar_producto_canjeble(request, producto_id):
         producto = get_object_or_404(ProductoCanjeble, pk=producto_id)
         producto.activo = False
         producto.save()
-        messages.success(request, f'Producto "{producto.nombre}" desactivado exitosamente.')
+        return JsonResponse({
+            'success': True,
+            'mensaje': f'Producto "{producto.nombre}" desactivado exitosamente.'
+        })
     except Exception as e:
-        messages.error(request, f'Error al eliminar producto: {str(e)}')
-    
-    return redirect('clients:admin_productos_canjebles')
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
 
 
 # ==================== CANJEAR PRODUCTO: AJAX ====================

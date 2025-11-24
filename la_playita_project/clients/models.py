@@ -36,6 +36,11 @@ class ProductoCanjeble(models.Model):
         db_table = 'producto_canjeble'
         managed = True
 
+    # Relación opcional con el inventario real
+    from inventory.models import Producto
+    producto_inventario = models.ForeignKey(Producto, on_delete=models.SET_NULL, null=True, blank=True, related_name='opciones_canje', db_constraint=False)
+
+
 class CanjeProducto(models.Model):
     ESTADO_PENDIENTE = 'pendiente'
     ESTADO_COMPLETADO = 'completado'

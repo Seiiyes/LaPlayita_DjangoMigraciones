@@ -5,9 +5,9 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="bi bi-gear me-2"></i>Administrar Productos Canjeables</h2>
-        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalProducto">
+        <a href="{% url 'clients:crear_producto_canjeble' %}" class="btn btn-success">
             <i class="bi bi-plus-circle me-1"></i>Agregar Producto
-        </button>
+        </a>
     </div>
 
     <div class="card shadow-sm">
@@ -27,7 +27,14 @@
                     <tbody>
                         {% for producto in productos %}
                         <tr>
-                            <td>{{ producto.nombre }}</td>
+                            <td>
+                                {{ producto.nombre }}
+                                {% if producto.producto_inventario %}
+                                <span class="badge bg-info text-dark ms-2" title="Vinculado a Inventario">
+                                    <i class="bi bi-box-seam"></i> Inventario
+                                </span>
+                                {% endif %}
+                            </td>
                             <td><strong>{{ producto.puntos_requeridos }}</strong></td>
                             <td>{{ producto.stock_disponible }}</td>
                             <td>
@@ -38,10 +45,10 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-primary"
-                                    onclick="abrirModalEdicion({{ producto.id }}, '{{ producto.nombre|escapejs }}', '{{ producto.descripcion|default:''|escapejs }}', {{ producto.puntos_requeridos }}, {{ producto.stock_disponible }}, {{ producto.activo|lower }})">
+                                <a href="{% url 'clients:editar_producto_canjeble' producto.id %}"
+                                    class="btn btn-sm btn-primary">
                                     <i class="bi bi-pencil"></i>
-                                </button>
+                                </a>
                                 <button class="btn btn-sm btn-danger" onclick="eliminarProducto({{ producto.id }})">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -58,138 +65,40 @@
     </div>
 </div>
 
-<!-- Modal para crear/editar producto -->
-<div class="modal fade" id="modalProducto" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="formProducto">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitulo">Nuevo Producto Canjeble</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="nombre" class="form-label">Nombre</label>
-                        <input type="text" class="form-control" id="nombre" name="nombre" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="descripcion" class="form-label">Descripción</label>
-                        <textarea class="form-control" id="descripcion" name="descripcion" rows="3"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="puntos_requeridos" class="form-label">Puntos Requeridos</label>
-                        <input type="number" class="form-control" id="puntos_requeridos" name="puntos_requeridos"
-                            step="0.01" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="stock_disponible" class="form-label">Stock Disponible</label>
-                        <input type="number" class="form-control" id="stock_disponible" name="stock_disponible"
-                            required>
-                    </div>
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="activo" name="activo" checked>
-                        <label class="form-check-label" for="activo">Activo</label>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-success" id="btnSubmit">Crear</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <script>
-    // Variables globales
-    const modalProducto = document.getElementById('modalProducto');
-    const modalTitulo = document.getElementById('modalTitulo');
-    const formProducto = document.getElementById('formProducto');
-    const btnSubmit = document.getElementById('btnSubmit');
-    let isEditing = false;
-    let currentProductId = null;
-
-    // Limpiar modal al cerrar
-    modalProducto.addEventListener('hidden.bs.modal', function () {
-        formProducto.reset();
-        isEditing = false;
-        currentProductId = null;
-        modalTitulo.textContent = 'Nuevo Producto Canjeble';
-        btnSubmit.textContent = 'Crear';
-        document.getElementById('activo').checked = true;
-    });
-
-    // Función para abrir modal de edición
-    function abrirModalEdicion(id, nombre, descripcion, puntos, stock, activo) {
-        isEditing = true;
-        currentProductId = id;
-
-        document.getElementById('nombre').value = nombre;
-        document.getElementById('descripcion').value = descripcion;
-        document.getElementById('puntos_requeridos').value = puntos;
-        document.getElementById('stock_disponible').value = stock;
-        document.getElementById('activo').checked = activo;
-
-        modalTitulo.textContent = 'Editar Producto';
-        btnSubmit.textContent = 'Guardar Cambios';
-
-        const bootstrapModal = new bootstrap.Modal(modalProducto);
-        bootstrapModal.show();
-    }
-
-    // Manejar submit del formulario (crear o editar)
-    formProducto.addEventListener('submit', function (e) {
-        e.preventDefault();
-
-        const datos = {
-            nombre: document.getElementById('nombre').value,
-            descripcion: document.getElementById('descripcion').value,
-            puntos_requeridos: document.getElementById('puntos_requeridos').value,
-            stock_disponible: document.getElementById('stock_disponible').value,
-            activo: document.getElementById('activo').checked
-        };
-
-        let url, method;
-        if (isEditing) {
-            url = "{% url 'clients:editar_producto_canjeble' 0 %}".replace('0', currentProductId);
-            method = 'POST';
-        } else {
-            url = "{% url 'clients:crear_producto_canjeble' %}";
-            method = 'POST';
-        }
-
-        fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify(datos)
-        })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    alert(isEditing ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente');
-                    location.reload();
-                } else {
-                    alert('Error: ' + data.error);
+    // Función para obtener el CSRF token de las cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
                 }
-            })
-            .catch(error => {
-                alert('Error de conexión: ' + error);
-            });
-    });
+            }
+        }
+        return cookieValue;
+    }
 
     // Función para eliminar producto
     function eliminarProducto(productoId) {
-        if (confirm('¿Deseas eliminar este producto?')) {
+        if (confirm('¿Deseas desactivar este producto?')) {
+            const csrftoken = getCookie('csrftoken');
             fetch("{% url 'clients:eliminar_producto_canjeble' 0 %}".replace('0', productoId), {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': '{{ csrf_token }}'
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
                 }
             })
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) {
+                        throw new Error('Error en la respuesta del servidor');
+                    }
+                    return r.json();
+                })
                 .then(data => {
                     if (data.success) {
                         alert(data.mensaje);
@@ -199,7 +108,8 @@
                     }
                 })
                 .catch(error => {
-                    alert('Error de conexión: ' + error);
+                    console.error('Error:', error);
+                    alert('Error de conexión: ' + error.message);
                 });
         }
     }

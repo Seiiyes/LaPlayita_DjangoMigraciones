@@ -169,6 +169,8 @@
                                 </div>
                                 <form method="post" action="{% url 'suppliers:reabastecimiento_create' %}" id="reabastecimientoForm" class="d-flex flex-column h-100">
                                     {% csrf_token %}
+                                    <!-- Hidden input for estado to ensure it's submitted -->
+                                    <input type="hidden" name="estado" value="solicitado">
                                     <div class="p-3 flex-shrink-0">
                                         <div class="row g-3">
                                             <div class="col-12">

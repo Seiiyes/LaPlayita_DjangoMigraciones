@@ -78,7 +78,8 @@ class ReabastecimientoForm(forms.ModelForm):
                 (Reabastecimiento.ESTADO_SOLICITADO, Reabastecimiento.ESTADO_SOLICITADO)
             ]
             self.fields['estado'].initial = Reabastecimiento.ESTADO_SOLICITADO # Set default to Solicitado
-            self.fields['estado'].widget.attrs['disabled'] = True # Disable it to prevent modification
+            # Disable it in the UI to prevent modification
+            self.fields['estado'].widget.attrs['disabled'] = True
 
 
     class Meta:

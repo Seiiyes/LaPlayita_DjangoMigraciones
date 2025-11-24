@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings  # <--- Esta línea es clave
+from inventory.models import Producto
 
 class Cliente(models.Model):
 
@@ -28,6 +29,8 @@ class ProductoCanjeble(models.Model):
     stock_disponible = models.PositiveIntegerField(default=0)
     activo = models.BooleanField(default=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+    # Relación opcional con el inventario real
+    producto_inventario = models.ForeignKey(Producto, on_delete=models.SET_NULL, null=True, blank=True, related_name='opciones_canje', db_constraint=False)
 
     def __str__(self):
         return self.nombre
@@ -35,10 +38,6 @@ class ProductoCanjeble(models.Model):
     class Meta:
         db_table = 'producto_canjeble'
         managed = True
-
-    # Relación opcional con el inventario real
-    from inventory.models import Producto
-    producto_inventario = models.ForeignKey(Producto, on_delete=models.SET_NULL, null=True, blank=True, related_name='opciones_canje', db_constraint=False)
 
 
 class CanjeProducto(models.Model):

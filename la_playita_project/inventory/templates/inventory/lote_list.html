@@ -73,6 +73,9 @@
                                     <a href="{% url 'inventory:lote_update' lote.pk %}" class="btn btn-sm btn-warning" title="Editar Lote">
                                         <i class="fas fa-edit"></i>
                                     </a>
+                                    <a href="{% url 'inventory:descartar_lote' lote.pk %}" class="btn btn-sm btn-secondary" title="Descartar Productos">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
                                     <form action="{% url 'inventory:lote_delete' lote.pk %}" method="post" class="d-inline" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este lote?');">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-sm btn-danger" title="Eliminar Lote">

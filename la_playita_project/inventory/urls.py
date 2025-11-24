@@ -14,4 +14,5 @@ urlpatterns = [
     path('producto/<int:pk>/lotes/', views.producto_lotes_json, name='producto_lotes_json'),
     path('producto/<int:producto_pk>/lotes/list/', views.lote_list, name='lote_list'),
     path('categoria/crear/', views.categoria_create, name='categoria_create'),
+    path('lote/<int:lote_id>/descartar/', views.descartar_lote, name='descartar_lote'),
 ]

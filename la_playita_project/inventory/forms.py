@@ -112,3 +112,73 @@ ReabastecimientoDetalleFormSet = inlineformset_factory(
     extra=1,
     can_delete=True
 )
+
+
+class DescartarLoteForm(forms.Form):
+    """Formulario para descartar productos de un lote"""
+    
+    MOTIVOS_DESCARTE = [
+        ('daño', 'Producto dañado'),
+        ('vencimiento', 'Producto vencido'),
+        ('accidente', 'Accidente / Rotura'),
+        ('calidad', 'Problema de calidad'),
+        ('robo', 'Robo / Pérdida'),
+        ('otro', 'Otro motivo'),
+    ]
+    
+    cantidad = forms.IntegerField(
+        label='Cantidad a descartar',
+        min_value=1,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ingrese la cantidad'
+        }),
+        help_text='Cantidad de unidades a descartar de este lote'
+    )
+    
+    motivo = forms.ChoiceField(
+        label='Motivo del descarte',
+        choices=MOTIVOS_DESCARTE,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        help_text='Seleccione el motivo del descarte'
+    )
+    
+    observaciones = forms.CharField(
+        label='Observaciones',
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Detalles adicionales sobre el descarte (opcional)'
+        }),
+        help_text='Información adicional sobre el descarte'
+    )
+    
+    def __init__(self, *args, **kwargs):
+        self.lote = kwargs.pop('lote', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.lote:
+            # Actualizar el help_text con la cantidad disponible
+            self.fields['cantidad'].help_text = (
+                f'Cantidad disponible en el lote: {self.lote.cantidad_disponible} unidades'
+            )
+            self.fields['cantidad'].widget.attrs['max'] = self.lote.cantidad_disponible
+    
+    def clean_cantidad(self):
+        """Validar que la cantidad no exceda la disponible en el lote"""
+        cantidad = self.cleaned_data.get('cantidad')
+        
+        if not cantidad:
+            raise forms.ValidationError('Debe ingresar una cantidad válida.')
+        
+        if cantidad <= 0:
+            raise forms.ValidationError('La cantidad debe ser mayor a cero.')
+        
+        if self.lote and cantidad > self.lote.cantidad_disponible:
+            raise forms.ValidationError(
+                f'La cantidad a descartar ({cantidad}) no puede ser mayor a la cantidad disponible '
+                f'en el lote ({self.lote.cantidad_disponible}).'
+            )
+        
+        return cantidad

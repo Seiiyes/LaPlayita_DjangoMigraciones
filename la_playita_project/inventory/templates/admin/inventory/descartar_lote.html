@@ -1,0 +1,271 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .descarte-container {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px;
+    }
+    
+    .lote-info {
+        background: #f8f9fa;
+        border-left: 4px solid #007bff;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+    
+    .lote-info h3 {
+        margin-top: 0;
+        color: #333;
+        font-size: 18px;
+    }
+    
+    .lote-info .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .lote-info .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .lote-info .label {
+        font-weight: 600;
+        color: #666;
+    }
+    
+    .lote-info .value {
+        color: #333;
+    }
+    
+    .alert-warning-custom {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .alert-warning-custom strong {
+        color: #856404;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    
+    .btn-descartar {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    
+    .btn-descartar:hover {
+        background: #c82333;
+    }
+    
+    .btn-cancelar {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-cancelar:hover {
+        background: #5a6268;
+        color: white;
+    }
+    
+    .cantidad-disponible {
+        font-size: 24px;
+        font-weight: bold;
+        color: #28a745;
+    }
+    
+    .estado-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .estado-vigente {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .estado-por-vencer {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .estado-vencido {
+        background: #f8d7da;
+        color: #721c24;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Inicio</a>
+    &rsaquo; <a href="{% url 'admin:inventory_lote_changelist' %}">Lotes</a>
+    &rsaquo; Descartar productos
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="descarte-container">
+    <h1>🗑️ {{ title }}</h1>
+    
+    <div class="lote-info">
+        <h3>📦 Información del Lote</h3>
+        <div class="info-row">
+            <span class="label">Número de Lote:</span>
+            <span class="value"><strong>{{ lote.numero_lote }}</strong></span>
+        </div>
+        <div class="info-row">
+            <span class="label">Producto:</span>
+            <span class="value">{{ lote.producto.nombre }}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Cantidad Disponible:</span>
+            <span class="value cantidad-disponible">{{ lote.cantidad_disponible }} unidades</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Costo Unitario:</span>
+            <span class="value">${{ lote.costo_unitario_lote|floatformat:0 }}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Fecha de Caducidad:</span>
+            <span class="value">{{ lote.fecha_caducidad|date:"d/m/Y" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Estado:</span>
+            <span class="value">
+                {% if lote.cantidad_disponible == 0 %}
+                    <span class="estado-badge estado-vencido">🔴 Agotado</span>
+                {% else %}
+                    {% with dias_restantes=lote.fecha_caducidad|timeuntil %}
+                        <span class="estado-badge estado-vigente">🟢 Vigente</span>
+                    {% endwith %}
+                {% endif %}
+            </span>
+        </div>
+    </div>
+    
+    {% if lote.cantidad_disponible == 0 %}
+        <div class="alert-warning-custom">
+            <strong>⚠️ Advertencia:</strong> Este lote no tiene unidades disponibles para descartar.
+        </div>
+        <div class="form-actions">
+            <a href="{% url 'admin:inventory_lote_changelist' %}" class="btn-cancelar">
+                ← Volver a la lista de lotes
+            </a>
+        </div>
+    {% else %}
+        <div class="alert-warning-custom">
+            <strong>⚠️ Advertencia:</strong> Esta acción registrará un descarte de productos y actualizará el inventario. 
+            Esta operación no se puede deshacer fácilmente.
+        </div>
+        
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+            
+            <div class="form-group">
+                <label for="{{ form.cantidad.id_for_label }}">{{ form.cantidad.label }}</label>
+                {{ form.cantidad }}
+                {% if form.cantidad.help_text %}
+                    <small class="form-text text-muted">{{ form.cantidad.help_text }}</small>
+                {% endif %}
+                {% if form.cantidad.errors %}
+                    <div class="alert alert-danger">
+                        {{ form.cantidad.errors }}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="{{ form.motivo.id_for_label }}">{{ form.motivo.label }}</label>
+                {{ form.motivo }}
+                {% if form.motivo.help_text %}
+                    <small class="form-text text-muted">{{ form.motivo.help_text }}</small>
+                {% endif %}
+                {% if form.motivo.errors %}
+                    <div class="alert alert-danger">
+                        {{ form.motivo.errors }}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="{{ form.observaciones.id_for_label }}">{{ form.observaciones.label }}</label>
+                {{ form.observaciones }}
+                {% if form.observaciones.help_text %}
+                    <small class="form-text text-muted">{{ form.observaciones.help_text }}</small>
+                {% endif %}
+                {% if form.observaciones.errors %}
+                    <div class="alert alert-danger">
+                        {{ form.observaciones.errors }}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn-descartar">
+                    🗑️ Confirmar Descarte
+                </button>
+                <a href="{% url 'admin:inventory_lote_changelist' %}" class="btn-cancelar">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    {% endif %}
+</div>
+
+<script>
+    // Calcular el costo total del descarte en tiempo real
+    document.addEventListener('DOMContentLoaded', function() {
+        const cantidadInput = document.getElementById('{{ form.cantidad.id_for_label }}');
+        const costoUnitario = {{ lote.costo_unitario_lote }};
+        
+        if (cantidadInput) {
+            cantidadInput.addEventListener('input', function() {
+                const cantidad = parseInt(this.value) || 0;
+                const costoTotal = cantidad * costoUnitario;
+                
+                // Mostrar advertencia si la cantidad es alta
+                if (cantidad > {{ lote.cantidad_disponible }} * 0.5) {
+                    console.log('Advertencia: Descartando más del 50% del lote');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

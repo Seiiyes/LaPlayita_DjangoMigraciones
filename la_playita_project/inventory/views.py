@@ -272,3 +272,53 @@ def lote_list(request, producto_pk):
         'thirty_days_from_now': thirty_days_from_now,
     }
     return render(request, 'inventory/lote_list.html', context)
+
+@login_required
+@check_user_role(allowed_roles=['Administrador'])
+def descartar_lote(request, lote_id):
+    """Vista para descartar productos de un lote específico"""
+    from django.db import transaction
+    from .forms import DescartarLoteForm
+    
+    lote = get_object_or_404(Lote.objects.select_related('producto'), pk=lote_id)
+    
+    if request.method == 'POST':
+        form = DescartarLoteForm(request.POST, lote=lote)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    cantidad = form.cleaned_data['cantidad']
+                    motivo = form.cleaned_data['motivo']
+                    observaciones = form.cleaned_data['observaciones']
+                    
+                    # Actualizar cantidad disponible del lote
+                    lote.cantidad_disponible -= cantidad
+                    lote.save()
+                    
+                    # Registrar movimiento de inventario
+                    MovimientoInventario.objects.create(
+                        producto=lote.producto,
+                        lote=lote,
+                        cantidad=-cantidad,
+                        tipo_movimiento='descarte',
+                        descripcion=f'Descarte por {motivo} - Lote {lote.numero_lote}. {observaciones}'
+                    )
+                    
+                    messages.success(
+                        request,
+                        f'✅ Se descartaron {cantidad} unidades de {lote.producto.nombre}. '
+                        f'Cantidad restante: {lote.cantidad_disponible}'
+                    )
+                    
+                    return redirect('inventory:inventario_list')
+            except Exception as e:
+                messages.error(request, f'❌ Error al descartar productos: {str(e)}')
+    else:
+        form = DescartarLoteForm(lote=lote)
+    
+    context = {
+        'form': form,
+        'lote': lote,
+    }
+    
+    return render(request, 'inventory/descartar_lote.html', context)

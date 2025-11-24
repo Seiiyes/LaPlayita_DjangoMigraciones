@@ -171,10 +171,13 @@
                             <thead class="table-light">
                                 <tr>
                                     <th># Lote</th>
-                                    <th>Cant. Disp.</th> <!-- Cambio a Cant. Disp. -->
+                                    <th>Cant. Disp.</th>
                                     <th>Costo Unit.</th>
                                     <th>Fecha Cad.</th>
-                                    <th>Proveedor</th> <!-- Agregado Proveedor -->
+                                    <th>Proveedor</th>
+                                    {% if user|has_role:"Administrador" %}
+                                    <th>Acciones</th>
+                                    {% endif %}
                                 </tr>
                             </thead>
                             <tbody>
@@ -185,6 +188,15 @@
                                         <td>${formatCurrency(lote.costo_unitario_lote)}</td>
                                         <td>${formatDate(lote.fecha_caducidad)}</td>
                                         <td>${lote.proveedor}</td>
+                                        {% if user|has_role:"Administrador" %}
+                                        <td>
+                                            <a href="/inventory/lote/${lote.id}/descartar/" 
+                                               class="btn btn-sm btn-outline-danger" 
+                                               title="Descartar productos">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                        {% endif %}
                                     </tr>
                                 `).join('')}
                             </tbody>

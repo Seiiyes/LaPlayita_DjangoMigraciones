@@ -1,0 +1,198 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Descartar Productos - {{ lote.numero_lote }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'inventory:inventario_list' %}">Inventario</a></li>
+                    <li class="breadcrumb-item active">Descartar Productos</li>
+                </ol>
+            </nav>
+
+            <!-- Título -->
+            <div class="d-flex align-items-center mb-4">
+                <i class="bi bi-trash text-danger me-3" style="font-size: 2rem;"></i>
+                <div>
+                    <h2 class="mb-0">Descartar Productos</h2>
+                    <p class="text-muted mb-0">Lote: {{ lote.numero_lote }}</p>
+                </div>
+            </div>
+
+            <!-- Información del Lote -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-box-seam me-2"></i>Información del Lote</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Producto</label>
+                            <p class="fw-bold mb-0">{{ lote.producto.nombre }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted small">Número de Lote</label>
+                            <p class="fw-bold mb-0">{{ lote.numero_lote }}</p>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="text-muted small">Cantidad Disponible</label>
+                            <p class="fs-4 fw-bold text-success mb-0">
+                                <i class="bi bi-box"></i> {{ lote.cantidad_disponible }} unidades
+                            </p>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="text-muted small">Costo Unitario</label>
+                            <p class="fw-bold mb-0">${{ lote.costo_unitario_lote|floatformat:0 }}</p>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="text-muted small">Fecha de Caducidad</label>
+                            <p class="fw-bold mb-0">{{ lote.fecha_caducidad|date:"d/m/Y" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if lote.cantidad_disponible == 0 %}
+                <!-- Alerta si no hay stock -->
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Advertencia:</strong> Este lote no tiene unidades disponibles para descartar.
+                </div>
+                <a href="{% url 'inventory:inventario_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Volver al Inventario
+                </a>
+            {% else %}
+                <!-- Formulario de Descarte -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Formulario de Descarte</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Importante:</strong> Esta acción registrará un descarte de productos y actualizará el inventario. 
+                            Esta operación no se puede deshacer fácilmente.
+                        </div>
+
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+                            
+                            {% if form.non_field_errors %}
+                                <div class="alert alert-danger">
+                                    {{ form.non_field_errors }}
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Cantidad -->
+                            <div class="mb-3">
+                                <label for="{{ form.cantidad.id_for_label }}" class="form-label fw-bold">
+                                    <i class="bi bi-hash me-1"></i>{{ form.cantidad.label }}
+                                </label>
+                                <input type="number" 
+                                       name="{{ form.cantidad.name }}" 
+                                       id="{{ form.cantidad.id_for_label }}"
+                                       class="form-control {% if form.cantidad.errors %}is-invalid{% endif %}"
+                                       min="1"
+                                       max="{{ lote.cantidad_disponible }}"
+                                       placeholder="Ingrese la cantidad a descartar"
+                                       required>
+                                <small class="form-text text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Cantidad disponible en el lote: <strong>{{ lote.cantidad_disponible }}</strong> unidades
+                                </small>
+                                {% if form.cantidad.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.cantidad.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Motivo -->
+                            <div class="mb-3">
+                                <label for="{{ form.motivo.id_for_label }}" class="form-label fw-bold">
+                                    <i class="bi bi-clipboard-check me-1"></i>{{ form.motivo.label }}
+                                </label>
+                                <select name="{{ form.motivo.name }}" 
+                                        id="{{ form.motivo.id_for_label }}"
+                                        class="form-select {% if form.motivo.errors %}is-invalid{% endif %}"
+                                        required>
+                                    <option value="">Seleccione un motivo...</option>
+                                    {% for value, label in form.motivo.field.choices %}
+                                        <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Seleccione el motivo del descarte
+                                </small>
+                                {% if form.motivo.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.motivo.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Observaciones -->
+                            <div class="mb-4">
+                                <label for="{{ form.observaciones.id_for_label }}" class="form-label fw-bold">
+                                    <i class="bi bi-chat-left-text me-1"></i>{{ form.observaciones.label }}
+                                </label>
+                                <textarea name="{{ form.observaciones.name }}" 
+                                          id="{{ form.observaciones.id_for_label }}"
+                                          class="form-control {% if form.observaciones.errors %}is-invalid{% endif %}"
+                                          rows="3"
+                                          placeholder="Detalles adicionales sobre el descarte (opcional)"></textarea>
+                                <small class="form-text text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Información adicional sobre el descarte
+                                </small>
+                                {% if form.observaciones.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.observaciones.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Botones -->
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="bi bi-trash me-2"></i>Confirmar Descarte
+                                </button>
+                                <a href="{% url 'inventory:inventario_list' %}" class="btn btn-secondary">
+                                    <i class="bi bi-x-circle me-2"></i>Cancelar
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border: none;
+        border-radius: 10px;
+    }
+    
+    .card-header {
+        border-radius: 10px 10px 0 0 !important;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    .btn {
+        border-radius: 5px;
+        padding: 10px 20px;
+    }
+</style>
+{% endblock %}

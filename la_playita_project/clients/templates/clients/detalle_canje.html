@@ -132,11 +132,6 @@
                             <i class="bi bi-arrow-left-circle me-2"></i>
                             Volver al Panel de Puntos del Cliente
                         </a>
-
-                        <a href="{% url 'clients:mi_panel_puntos' %}" class="btn btn-outline-info btn-lg">
-                            <i class="bi bi-house-door-fill me-2"></i>
-                            Ir a Mi Panel Personal
-                        </a>
                     </div>
                 </div>
             </div>
@@ -179,10 +174,10 @@
                             const alertDiv = document.createElement('div');
                             alertDiv.className = 'alert alert-success alert-dismissible fade show mt-3';
                             alertDiv.innerHTML = `
-                        <i class="bi bi-check-circle-fill me-2"></i>
-                        Correo de confirmación enviado exitosamente a <strong>${data.email}</strong>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    `;
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            Correo de confirmación enviado exitosamente a <strong>${data.email}</strong>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
                             btn.parentElement.insertBefore(alertDiv, btn);
 
                             // Auto-cerrar después de 5 segundos
@@ -201,10 +196,10 @@
                         const alertDiv = document.createElement('div');
                         alertDiv.className = 'alert alert-danger alert-dismissible fade show mt-3';
                         alertDiv.innerHTML = `
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    Error al enviar el correo: ${error.message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Error al enviar el correo: ${error.message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
                         btn.parentElement.insertBefore(alertDiv, btn);
                     });
             });

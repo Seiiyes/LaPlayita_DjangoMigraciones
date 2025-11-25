@@ -20,11 +20,12 @@ class ProductoForm(forms.ModelForm):
 
     class Meta:
         model = Producto
-        fields = ['nombre', 'precio_unitario', 'descripcion', 'stock_minimo', 'categoria']
+        fields = ['nombre', 'tasa_iva', 'precio_unitario', 'descripcion', 'stock_minimo', 'categoria']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'categoria': forms.Select(attrs={'class': 'form-select'}),
+            'tasa_iva': forms.Select(attrs={'class': 'form-select'}),
         }
 
 class CategoriaForm(forms.ModelForm):

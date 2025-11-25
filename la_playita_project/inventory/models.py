@@ -13,8 +13,21 @@ class Categoria(models.Model):
         managed = False
 
 
+class TasaIVA(models.Model):
+    nombre = models.CharField(max_length=50, unique=True)
+    porcentaje = models.DecimalField(max_digits=5, decimal_places=2, help_text="Porcentaje de IVA (ej. 19.00 para 19%)")
+
+    def __str__(self):
+        return f"{self.nombre} ({self.porcentaje}%)"
+
+    class Meta:
+        db_table = 'tasa_iva'
+        managed = False
+
+
 class Producto(models.Model):
     nombre = models.CharField(unique=True, max_length=50)
+    tasa_iva = models.ForeignKey(TasaIVA, on_delete=models.PROTECT, default=1, help_text="Tasa de IVA aplicable al producto.")
     precio_unitario = models.DecimalField(max_digits=12, decimal_places=2)
     costo_promedio = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, help_text="Costo promedio ponderado, calculado automáticamente.")
     descripcion = models.CharField(max_length=255, blank=True, null=True)

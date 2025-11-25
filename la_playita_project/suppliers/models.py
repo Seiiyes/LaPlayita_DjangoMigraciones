@@ -3,7 +3,19 @@ from django.utils import timezone
 
 
 class Proveedor(models.Model):
-    nit = models.CharField(max_length=20, unique=True)
+    class TipoDocumento(models.TextChoices):
+        NIT = 'NIT', 'NIT'
+        RUT = 'RUT', 'RUT'
+        CEDULA_CIUDADANIA = 'CC', 'Cédula de Ciudadanía'
+        CEDULA_EXTRANJERIA = 'CE', 'Cédula de Extranjería'
+        PASAPORTE = 'PAS', 'Pasaporte'
+
+    tipo_documento = models.CharField(
+        max_length=3,
+        choices=TipoDocumento.choices,
+        default=TipoDocumento.NIT,
+    )
+    documento_identificacion = models.CharField(max_length=20, unique=True)
     nombre_empresa = models.CharField(max_length=100)
     telefono = models.CharField(max_length=50)
     correo = models.CharField(max_length=50)
@@ -46,6 +58,7 @@ class Reabastecimiento(models.Model):
 
     fecha = models.DateTimeField(default=timezone.now)
     costo_total = models.DecimalField(max_digits=12, decimal_places=2)
+    iva = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default=ESTADO_SOLICITADO)
     forma_pago = models.CharField(max_length=25, choices=FORMA_PAGO_CHOICES, default=FORMA_PAGO_EFECTIVO)
     observaciones = models.TextField(blank=True, null=True)
@@ -62,6 +75,7 @@ class ReabastecimientoDetalle(models.Model):
     cantidad = models.IntegerField()
     cantidad_recibida = models.IntegerField(default=0)
     costo_unitario = models.DecimalField(max_digits=12, decimal_places=2)
+    iva = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     fecha_caducidad = models.DateField(null=True, blank=True)
 
     class Meta:

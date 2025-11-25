@@ -86,6 +86,32 @@ LOGIN_URL = '/users/login/'
 
 AUTH_USER_MODEL = 'users.Usuario'
 
+
+# ==============================================================================
+# MANEJO SEGURO DE SESIONES (ISO/IEC 25010 - Seguridad)
+# ==============================================================================
+
+# 1. Forzar que la sesión se cierre al cerrar el navegador.
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# 2. Expiración de sesión a 30 minutos de inactividad.
+SESSION_COOKIE_AGE = 1800  # 30 minutos * 60 segundos
+
+# 3. Regenerar la cookie en cada request para evitar 'session hijacking'.
+#    Esto también reinicia el contador de inactividad en cada petición.
+SESSION_SAVE_EVERY_REQUEST = True
+
+# 4. Asegurar las cookies de sesión con HttpOnly y Secure.
+#    ¡IMPORTANTE! SESSION_COOKIE_SECURE y CSRF_COOKIE_SECURE requieren que tu sitio se sirva bajo HTTPS.
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+# Previene que la cookie de sesión sea accedida por JavaScript (Ataques XSS).
+# Es True por defecto, pero se hace explícito para reforzar la seguridad.
+SESSION_COOKIE_HTTPONLY = True
+# ==============================================================================
+
+
 LANGUAGE_CODE = 'es-co'
 TIME_ZONE = 'America/Bogota'
 USE_I18N = True

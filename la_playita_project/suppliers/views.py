@@ -17,7 +17,7 @@ from email.mime.image import MIMEImage # Import MIMEImage
 from django.core.serializers.json import DjangoJSONEncoder
 from users.decorators import check_user_role
 from .models import Proveedor, Reabastecimiento, ReabastecimientoDetalle
-from inventory.models import Producto, Categoria, Lote, MovimientoInventario
+from inventory.models import Producto, Categoria, Lote, MovimientoInventario, TasaIVA
 from inventory.forms import ReabastecimientoForm, ReabastecimientoDetalleFormSet, ProductoForm
 
 # --- Vistas de Proveedores ---
@@ -41,7 +41,8 @@ def proveedor_create_ajax(request):
     try:
         data = json.loads(request.body)
         proveedor = Proveedor.objects.create(
-            nit=data['nit'],
+            tipo_documento=data['tipo_documento'],
+            documento_identificacion=data['documento_identificacion'],
             nombre_empresa=data['nombre_empresa'],
             telefono=data.get('telefono', ''),
             correo=data.get('correo', ''),
@@ -164,6 +165,7 @@ def reabastecimiento_list(request):
     productos_data = list(Producto.objects.values('id', 'precio_unitario'))
     all_products_data = list(Producto.objects.values('id', 'nombre'))
     categorias = Categoria.objects.all()
+    tasas_iva = TasaIVA.objects.all()
 
     context = {
         'reabastecimientos': reabs,
@@ -172,6 +174,7 @@ def reabastecimiento_list(request):
         'products_json': json.dumps(productos_data, cls=DjangoJSONEncoder),
         'all_products_json': json.dumps(all_products_data),
         'categorias': categorias,
+        'tasas_iva': tasas_iva,
     }
     return render(request, 'suppliers/reabastecimiento_list.html', context)
 
@@ -189,41 +192,60 @@ def reabastecimiento_create(request):
         try:
             with transaction.atomic():
                 reab = form.save(commit=False)
-                # Explicitly set the status to 'Solicitado' for new creations
                 reab.estado = Reabastecimiento.ESTADO_SOLICITADO
-                total = sum(
-                    d['cantidad'] * float(d['costo_unitario'])
-                    for d in formset.cleaned_data if d and not d.get('DELETE')
-                )
-                if total == 0:
+                
+                total_costo = 0
+                total_iva = 0
+                
+                detalles_a_crear = []
+                for detalle_form in formset.cleaned_data:
+                    if detalle_form and not detalle_form.get('DELETE'):
+                        cantidad = detalle_form['cantidad']
+                        costo_unitario = detalle_form['costo_unitario']
+                        producto = detalle_form['producto']
+                        
+                        subtotal = cantidad * costo_unitario
+                        
+                        # Obtener el porcentaje de IVA del producto
+                        tasa_iva_porcentaje = producto.tasa_iva.porcentaje
+                        iva_detalle = subtotal * (tasa_iva_porcentaje / 100)
+                        
+                        total_costo += subtotal
+                        total_iva += iva_detalle
+                        
+                        detalle_form['iva'] = iva_detalle
+                        detalles_a_crear.append(detalle_form)
+
+                if total_costo == 0:
                     return JsonResponse({'error': 'Debe agregar al menos un detalle de producto.'}, status=400)
 
-                reab.costo_total = total
+                reab.costo_total = total_costo
+                reab.iva = total_iva
                 reab.save()
 
                 detalles_data = []
-                for detalle_form in formset.cleaned_data:
-                    if detalle_form and not detalle_form.get('DELETE'):
-                        # Eliminar 'reabastecimiento' si existe para evitar el error de argumento múltiple
-                        detalle_form.pop('reabastecimiento', None)
-                        # Eliminar 'DELETE' para que no se pase al crear el objeto
-                        detalle_form.pop('DELETE', None)
-                        detalle = ReabastecimientoDetalle.objects.create(reabastecimiento=reab, **detalle_form)
-                        detalles_data.append({
-                            'producto_nombre': detalle.producto.nombre,
-                            'categoria_nombre': detalle.producto.categoria.nombre,
-                            'cantidad': detalle.cantidad,
-                            'costo_unitario': float(detalle.costo_unitario),
-                            'subtotal': float(detalle.cantidad * detalle.costo_unitario),
-                            'estado_lote': 'No recibido'
-                        })
+                for detalle_form in detalles_a_crear:
+                    detalle_form.pop('reabastecimiento', None)
+                    detalle_form.pop('DELETE', None)
+                    detalle = ReabastecimientoDetalle.objects.create(reabastecimiento=reab, **detalle_form)
+                    detalles_data.append({
+                        'producto_nombre': detalle.producto.nombre,
+                        'categoria_nombre': detalle.producto.categoria.nombre,
+                        'cantidad': detalle.cantidad,
+                        'costo_unitario': float(detalle.costo_unitario),
+                        'subtotal': float(detalle.cantidad * detalle.costo_unitario),
+                        'iva': float(detalle.iva),
+                        'estado_lote': 'No recibido'
+                    })
 
                 if reab.estado == Reabastecimiento.ESTADO_SOLICITADO:
                     send_supply_request_email(request, reab)
 
                 return JsonResponse({
                     'id': reab.id, 'fecha': reab.fecha.isoformat(),
-                    'proveedor': reab.proveedor.nombre_empresa, 'costo_total': float(reab.costo_total),
+                    'proveedor': reab.proveedor.nombre_empresa, 
+                    'costo_total': float(reab.costo_total),
+                    'iva': float(reab.iva),
                     'forma_pago': reab.get_forma_pago_display(), 'estado': reab.get_estado_display(),
                     'observaciones': reab.observaciones, 'detalles': detalles_data
                 })
@@ -252,10 +274,12 @@ def reabastecimiento_editar(request, pk):
         data = {
             'id': reab.id, 'proveedor_id': reab.proveedor_id, 'fecha': reab.fecha.isoformat(),
             'forma_pago': reab.forma_pago, 'observaciones': reab.observaciones, 'estado': reab.estado,
+            'iva': str(reab.iva),
             'detalles': [{
                 'id': d.id, 'producto_id': d.producto_id, 'producto_nombre': d.producto.nombre,
                 'cantidad': d.cantidad, 'cantidad_recibida': d.cantidad_recibida,
                 'costo_unitario': str(d.costo_unitario),
+                'iva': str(d.iva),
                 'fecha_caducidad': d.fecha_caducidad.isoformat() if d.fecha_caducidad else None
             } for d in reab.reabastecimientodetalle_set.all()]
         }
@@ -273,7 +297,6 @@ def reabastecimiento_update(request, pk):
     try:
         with transaction.atomic():
             reab = get_object_or_404(Reabastecimiento, pk=pk)
-            # New: Check if any lot associated with this restock has sales
             if Lote.objects.filter(reabastecimiento_detalle__reabastecimiento=reab, ventadetalle__isnull=False).exists():
                 return JsonResponse({'error': 'No se puede editar, tiene productos vendidos.'}, status=400)
             
@@ -284,23 +307,44 @@ def reabastecimiento_update(request, pk):
             formset = ReabastecimientoDetalleFormSet(request.POST, instance=reab)
 
             if form.is_valid() and formset.is_valid():
-                reab_instance = form.save()
-                formset.save()
+                reab_instance = form.save(commit=False)
+                
+                total_costo = 0
+                total_iva = 0
+                
+                # Guardar el formset para que se procesen los detalles
+                detalles = formset.save(commit=False)
 
-                total = sum(
-                    d.cleaned_data['cantidad'] * float(d.cleaned_data['costo_unitario'])
-                    for d in formset.forms if d.cleaned_data and not d.cleaned_data.get('DELETE')
-                )
-                reab_instance.costo_total = total
+                for detalle in detalles:
+                    # Calcular subtotal e iva para cada detalle
+                    subtotal = detalle.cantidad * detalle.costo_unitario
+                    tasa_iva_porcentaje = detalle.producto.tasa_iva.porcentaje
+                    detalle.iva = subtotal * (tasa_iva_porcentaje / 100)
+                    detalle.save()
+                    
+                    total_costo += subtotal
+                    total_iva += detalle.iva
+
+                # Procesar también los formularios que se van a eliminar
+                for form_detalle in formset.deleted_forms:
+                    # Si hay lógica adicional al eliminar, va aquí
+                    pass
+
+                reab_instance.costo_total = total_costo
+                reab_instance.iva = total_iva
                 reab_instance.save()
 
                 if reab_instance.estado == Reabastecimiento.ESTADO_SOLICITADO:
                     send_supply_request_email(request, reab_instance)
 
                 return JsonResponse({
-                    'id': reab_instance.id, 'fecha': reab_instance.fecha.isoformat(),
-                    'proveedor': reab_instance.proveedor.nombre_empresa, 'costo_total': float(reab_instance.costo_total),
-                    'forma_pago': reab_instance.get_forma_pago_display(), 'estado': reab_instance.get_estado_display(),
+                    'id': reab_instance.id,
+                    'fecha': reab_instance.fecha.isoformat(),
+                    'proveedor': reab_instance.proveedor.nombre_empresa,
+                    'costo_total': float(reab_instance.costo_total),
+                    'iva': float(reab_instance.iva),
+                    'forma_pago': reab_instance.get_forma_pago_display(),
+                    'estado': reab_instance.get_estado_display(),
                     'observaciones': reab_instance.observaciones,
                 })
             else:

@@ -23,9 +23,10 @@
                             <tr>
                                 <th style="width: 15%">Fecha</th>
                                 <th style="width: 20%">Proveedor</th>
-                                <th style="width: 15%">Costo Total</th>
-                                <th style="width: 15%">Forma Pago</th>
-                                <th style="width: 10%">Estado</th>
+                                <th style="width: 15%" class="text-center">Costo Total</th>
+                                <th style="width: 10%" class="text-center">IVA</th>
+                                <th style="width: 15%" class="text-center">Forma Pago</th>
+                                <th style="width: 10%" class="text-center">Estado</th>
                                 <th style="width: 15%">Observaciones</th>
                                 {% if user|has_role:'Administrador' %}
                                 <th style="width: 10%" class="text-end">Acciones</th>
@@ -44,9 +45,10 @@
                                     </button>
                                 </td>
                                 <td>{{ r.proveedor.nombre_empresa }}</td>
-                                <td>{{ r.costo_total|currency }}</td>
-                                <td>{{ r.get_forma_pago_display }}</td>
-                                <td>
+                                <td class="text-center">{{ r.costo_total|currency }}</td>
+                                <td class="text-center">{{ r.iva|currency }}</td>
+                                <td class="text-center">{{ r.get_forma_pago_display }}</td>
+                                <td class="text-center">
                                     <div class="d-inline-flex align-items-center">
                                         {% if r.estado == 'solicitado' %}
                                             <span class="badge bg-warning text-dark">{{ r.get_estado_display }}</span>
@@ -86,7 +88,7 @@
                                 {% endif %}
                             </tr>
                             <tr class="collapse" id="detalleReabastecimiento{{ r.id }}">
-                                <td colspan="7" class="p-0">
+                                <td colspan="8" class="p-0">
                                     <div class="bg-light border-start border-5 border-primary p-3">
                                         <h6 class="text-primary mb-3">Detalles del Reabastecimiento</h6>
                                         <div class="table-responsive">
@@ -99,6 +101,7 @@
                                                         <th class="text-end">Costo Unitario</th>
                                                         <th class="text-end">Valor Pendiente</th>
                                                         <th class="text-end">Subtotal</th>
+                                                        <th class="text-end">IVA</th>
                                                         <th class="text-center">Estado Recepción</th>
                                                     </tr>
                                                 </thead>
@@ -119,6 +122,7 @@
                                                         <td class="text-end">{{ detalle.costo_unitario|currency }}</td>
                                                         <td class="text-end">{{ valor_pendiente|currency }}</td> {# Added Valor Pendiente #}
                                                         <td class="text-end">{{ detalle.cantidad|multiply:detalle.costo_unitario|currency }}</td>
+                                                        <td class="text-end">{{ detalle.iva|currency }}</td>
                                                         <td class="text-center">
                                                             {% if r.estado == 'recibido' %}
                                                                 {% if detalle.cantidad_recibida == 0 %}
@@ -138,11 +142,15 @@
                                                 </tbody>
                                                 <tfoot class="table-light">
                                                     <tr>
-                                                        <td colspan="5" class="text-end fw-bold">Total Solicitado:</td>
+                                                        <td colspan="6" class="text-end fw-bold">Total Solicitado:</td>
                                                         <td colspan="2" class="text-end fw-bold">{{ r.costo_total|currency }}</td>
                                                     </tr>
                                                     <tr>
-                                                        <td colspan="5" class="text-end fw-bold">Valor Recibido:</td>
+                                                        <td colspan="6" class="text-end fw-bold">Total IVA:</td>
+                                                        <td colspan="2" class="text-end fw-bold">{{ r.iva|currency }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="6" class="text-end fw-bold">Valor Recibido:</td>
                                                         <td colspan="2" class="text-end fw-bold">{% with pending_value=r|calculate_total_pending_value %}{{ r.costo_total|subtract:pending_value|currency }}{% endwith %}</td>
                                                     </tr>
                                                 </tfoot>
@@ -153,7 +161,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="7" class="text-center">No hay reabastecimientos.</td>
+                                <td colspan="8" class="text-center">No hay reabastecimientos.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -682,8 +690,18 @@
             <div class="modal-body">
                 <form id="nuevoProveedorForm">
                     <div class="mb-3">
-                        <label class="form-label">NIT <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="nitEmpresa" maxlength="20" required>
+                        <label class="form-label">Tipo de Documento <span class="text-danger">*</span></label>
+                        <select class="form-select" id="tipoDocumentoEmpresa" required>
+                            <option value="NIT" selected>NIT</option>
+                            <option value="RUT">RUT</option>
+                            <option value="CC">Cédula de Ciudadanía</option>
+                            <option value="CE">Cédula de Extranjería</option>
+                            <option value="PAS">Pasaporte</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nº Documento de Identificación <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="documentoIdentificacionEmpresa" maxlength="20" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Nombre Empresa <span class="text-danger">*</span></label>
@@ -1173,7 +1191,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         
         const data = {
-            nit: document.getElementById('nitEmpresa').value,
+            tipo_documento: document.getElementById('tipoDocumentoEmpresa').value,
+            documento_identificacion: document.getElementById('documentoIdentificacionEmpresa').value,
             nombre_empresa: document.getElementById('nombreEmpresa').value,
             telefono: document.getElementById('telefonoEmpresa').value,
             correo: document.getElementById('correoEmpresa').value,
@@ -1244,7 +1263,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     </button>
                 </td>
                 <td>${reab.proveedor}</td>
-                <td>${reab.costo_total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</td>
+                <td class="text-center">${reab.costo_total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</td>
+                <td class="text-center">${reab.iva.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</td>
                 <td>${reab.forma_pago}</td>
                 <td><span class="badge bg-info text-dark">${reab.estado}</span></td>
                 <td>${reab.observaciones || '-'}</td>
@@ -1270,7 +1290,7 @@ document.addEventListener('DOMContentLoaded', function () {
             detailRow.className = 'collapse';
             detailRow.id = `detalleReabastecimiento${reab.id}`;
 
-            let detallesHtml = '<td colspan="7" class="p-0"><div class="bg-light border-start border-5 border-primary p-3">';
+            let detallesHtml = '<td colspan="8" class="p-0"><div class="bg-light border-start border-5 border-primary p-3">';
             detallesHtml += '<h6 class="text-primary mb-3">Detalles del Reabastecimiento</h6>';
             detallesHtml += '<div class="table-responsive"><table class="table table-sm table-hover mb-0">';
             detallesHtml += `<thead class="table-light">
@@ -1280,6 +1300,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                     <th class="text-center">Cantidad</th>
                                     <th class="text-end">Costo Unitario</th>
                                     <th class="text-end">Subtotal</th>
+                                    <th class="text-end">IVA</th>
                                     <th class="text-center">Estado Actual</th>
                                 </tr>
                             </thead><tbody>`;
@@ -1292,6 +1313,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <td class="text-center">${d.cantidad}</td>
                         <td class="text-end">${d.costo_unitario.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</td>
                         <td class="text-end">${d.subtotal.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</td>
+                        <td class="text-end">${d.iva.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</td>
                         <td class="text-center"><span class="badge bg-secondary">${d.estado_lote}</span></td>
                     </tr>
                 `;
@@ -1299,9 +1321,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
             detallesHtml += `</tbody><tfoot class="table-light">
                                 <tr>
-                                    <td colspan="5" class="text-end fw-bold">Total:</td>
+                                    <td colspan="6" class="text-end fw-bold">Total:</td>
                                     <td class="text-end fw-bold">${reab.costo_total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</td>
-                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="6" class="text-end fw-bold">Total IVA:</td>
+                                    <td class="text-end fw-bold">${reab.iva.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</td>
                                 </tr>
                             </tfoot></table></div></div></td>`;
             detailRow.innerHTML = detallesHtml;
@@ -1394,9 +1419,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const row = document.getElementById(`reabastecimiento-${reab.id}`);
             row.cells[1].textContent = reab.proveedor;
             row.cells[2].textContent = reab.costo_total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' });
-            row.cells[3].textContent = reab.forma_pago;
-            row.cells[4].innerHTML = `<span class="badge bg-info text-dark">${reab.estado}</span>`;
-            row.cells[5].textContent = reab.observaciones || '-';
+            row.cells[3].textContent = reab.iva.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' });
+            row.cells[4].textContent = reab.forma_pago;
+            row.cells[5].innerHTML = `<span class="badge bg-info text-dark">${reab.estado}</span>`;
+            row.cells[6].textContent = reab.observaciones || '-';
 
             const modal = bootstrap.Modal.getInstance(document.getElementById('editarReabastecimientoModal'));
             modal.hide();
@@ -1429,7 +1455,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         detalleDiv.innerHTML = `
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Producto</label>
                 <select name="${FORMSET_PREFIX}-${newIndex}-producto" class="form-select">
                     ${options}
@@ -1439,9 +1465,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 <label class="form-label">Cantidad</label>
                 <input type="number" name="${FORMSET_PREFIX}-${newIndex}-cantidad" class="form-control" value="${detalle.cantidad || 1}">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Costo Unitario</label>
                 <input type="number" name="${FORMSET_PREFIX}-${newIndex}-costo_unitario" class="form-control" value="${detalle.costo_unitario || 0}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">IVA</label>
+                <input type="number" name="${FORMSET_PREFIX}-${newIndex}-iva" class="form-control" value="${detalle.iva || 0}" readonly>
             </div>
             <div class="col-md-2">
                 <label class="form-label">Fecha Cad.</label>

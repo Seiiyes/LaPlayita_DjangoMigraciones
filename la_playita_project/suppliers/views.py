@@ -206,9 +206,17 @@ def reabastecimiento_create(request):
                         
                         subtotal = cantidad * costo_unitario
                         
-                        # Obtener el porcentaje de IVA del producto
-                        tasa_iva_porcentaje = producto.tasa_iva.porcentaje
-                        iva_detalle = subtotal * (tasa_iva_porcentaje / 100)
+                        # Obtener el porcentaje de IVA que el usuario seleccionó (si no, usar el del producto)
+                        iva_porcentaje = detalle_form.get('iva_porcentaje')
+                        if iva_porcentaje:
+                            try:
+                                iva_porcentaje = float(iva_porcentaje)
+                            except (ValueError, TypeError):
+                                iva_porcentaje = producto.tasa_iva.porcentaje
+                        else:
+                            iva_porcentaje = producto.tasa_iva.porcentaje
+                        
+                        iva_detalle = subtotal * (iva_porcentaje / 100)
                         
                         total_costo += subtotal
                         total_iva += iva_detalle
@@ -227,6 +235,7 @@ def reabastecimiento_create(request):
                 for detalle_form in detalles_a_crear:
                     detalle_form.pop('reabastecimiento', None)
                     detalle_form.pop('DELETE', None)
+                    detalle_form.pop('iva_porcentaje', None)  # Remover el campo iva_porcentaje antes de crear
                     detalle = ReabastecimientoDetalle.objects.create(reabastecimiento=reab, **detalle_form)
                     detalles_data.append({
                         'producto_nombre': detalle.producto.nombre,

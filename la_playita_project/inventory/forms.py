@@ -73,28 +73,27 @@ class ReabastecimientoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         initial_creation = kwargs.pop('initial_creation', False)
         super().__init__(*args, **kwargs)
-        if initial_creation:
-            # Restrict choices for 'estado' when creating a new restock
-            self.fields['estado'].choices = [
-                (Reabastecimiento.ESTADO_SOLICITADO, Reabastecimiento.ESTADO_SOLICITADO)
-            ]
-            self.fields['estado'].initial = Reabastecimiento.ESTADO_SOLICITADO # Set default to Solicitado
-            # Disable it in the UI to prevent modification
-            self.fields['estado'].widget.attrs['disabled'] = True
-
 
     class Meta:
         model = Reabastecimiento
-        fields = ['proveedor', 'forma_pago', 'observaciones', 'estado']
+        fields = ['proveedor', 'forma_pago', 'observaciones']
         widgets = {
             'proveedor': forms.Select(attrs={'class': 'form-select'}),
             'forma_pago': forms.Select(attrs={'class': 'form-select'}),
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'estado': forms.Select(attrs={'class': 'form-select'}),
         }
 
 
 class ReabastecimientoDetalleForm(forms.ModelForm):
+    # Campo para seleccionar el porcentaje de IVA
+    iva_porcentaje = forms.ChoiceField(
+        choices=[('0', '0%'), ('5', '5%'), ('8', '8%'), ('19', '19%')],
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='IVA (%)',
+        required=False,
+        initial='0'
+    )
+
     class Meta:
         model = ReabastecimientoDetalle
         fields = ['producto', 'cantidad', 'costo_unitario', 'fecha_caducidad']

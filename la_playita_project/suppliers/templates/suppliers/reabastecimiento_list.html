@@ -173,11 +173,10 @@
                         <div class="col-md-5 d-flex flex-column p-3">
                             <div class="bg-light border rounded-3 shadow-sm h-100 d-flex flex-column">
                                 <div class="p-3 border-bottom">
-                                    <h3 class="text-success m-0">Nuevo reabastecimiento</h3>
+                                    <h3 class="text-success m-0">Solicitar reabastecimiento</h3>
                                 </div>
                                 <form method="post" action="{% url 'suppliers:reabastecimiento_create' %}" id="reabastecimientoForm" class="d-flex flex-column h-100">
                                     {% csrf_token %}
-                                    <!-- Hidden input for estado to ensure it's submitted -->
                                     <input type="hidden" name="estado" value="solicitado">
                                     <div class="p-3 flex-shrink-0">
                                         <div class="row g-3">
@@ -193,10 +192,6 @@
                                             <div class="col-md-6">
                                                 <label class="form-label fw-bold">{{ form.forma_pago.label }}</label>
                                                 {{ form.forma_pago }}
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label fw-bold">{{ form.estado.label }}</label>
-                                                {{ form.estado }}
                                             </div>
                                             <div class="col-12">
                                                 <label class="form-label fw-bold">{{ form.observaciones.label }}</label>
@@ -214,11 +209,12 @@
                                             <table class="table table-sm mb-0" id="detalleTable">
                                                 <thead class="table-light sticky-top">
                                                     <tr>
-                                                        <th style="width: 35%">Producto</th>
-                                                        <th style="width: 15%">Cantidad</th>
-                                                        <th style="width: 20%">Costo Unitario</th>
-                                                        <th style="width: 20%">Fecha Caducidad</th>
-                                                        <th style="width: 10%">Eliminar</th>
+                                                        <th style="width: 30%">Producto</th>
+                                                        <th style="width: 12%">Cantidad</th>
+                                                        <th style="width: 15%">Costo Unitario</th>
+                                                        <th style="width: 12%">IVA (%)</th>
+                                                        <th style="width: 18%">Fecha Caducidad</th>
+                                                        <th style="width: 8%">Eliminar</th>
                                                     </tr>
                                                 </thead>
                                             <tbody>
@@ -227,6 +223,14 @@
                                                     <td>{{ f.producto }}</td>
                                                     <td>{{ f.cantidad }}</td>
                                                     <td>{{ f.costo_unitario }}</td>
+                                                    <td>
+                                                        <select name="{{ f.iva.name }}" class="form-select form-select-sm" style="width: 100%; padding: 0.4rem;">
+                                                            <option value="0" {% if f.iva.value == '0' or f.iva.value == 0 %}selected{% endif %}>0%</option>
+                                                            <option value="5" {% if f.iva.value == '5' or f.iva.value == 5 %}selected{% endif %}>5%</option>
+                                                            <option value="8" {% if f.iva.value == '8' or f.iva.value == 8 %}selected{% endif %}>8%</option>
+                                                            <option value="19" {% if f.iva.value == '19' or f.iva.value == 19 %}selected{% endif %}>19%</option>
+                                                        </select>
+                                                    </td>
                                                     <td>{{ f.fecha_caducidad }}</td>
                                                     <td>
                                                         <span class="d-none">{% if formset.can_delete %}{{ f.DELETE }}{% endif %}</span>
@@ -246,6 +250,14 @@
                                                 <td>{{ ef.producto }}</td>
                                                 <td>{{ ef.cantidad }}</td>
                                                 <td>{{ ef.costo_unitario }}</td>
+                                                <td>
+                                                    <select name="{{ ef.iva.name }}" class="form-select form-select-sm" style="width: 100%; padding: 0.4rem;">
+                                                        <option value="0">0%</option>
+                                                        <option value="5">5%</option>
+                                                        <option value="8">8%</option>
+                                                        <option value="19">19%</option>
+                                                    </select>
+                                                </td>
                                                 <td>{{ ef.fecha_caducidad }}</td>
                                                 <td>
                                                     <span class="d-none">{% if formset.can_delete %}{{ ef.DELETE }}{% endif %}</span>
@@ -268,7 +280,7 @@
                                                 </button>
                                             </div>
                                             <button type="submit" class="btn btn-success" id="guardarReabastecimientoBtn">
-                                                <i class="fas fa-save"></i> Guardar reabastecimiento
+                                                <i class="fas fa-save"></i> Solicitar reabastecimiento
                                             </button>
                                         </div>
                                     </div>

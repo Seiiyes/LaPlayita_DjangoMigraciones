@@ -326,6 +326,28 @@ def dashboard_reportes(request):
         total=DbSum(F('stock_actual') * F('costo_promedio'))
     )['total'] or Decimal('0')
     
+    # Calcular margen de ganancia (últimos 30 días)
+    ventas_con_costo = VentaDetalle.objects.filter(
+        venta__fecha_venta__gte=hace_30_dias
+    ).aggregate(
+        ingresos=Sum('subtotal'),
+        costos=Sum(F('cantidad') * F('lote__costo_unitario_lote'))
+    )
+    
+    ingresos_30dias = ventas_con_costo['ingresos'] or Decimal('0')
+    costos_30dias = ventas_con_costo['costos'] or Decimal('0')
+    ganancia_bruta = ingresos_30dias - costos_30dias
+    margen_porcentaje = (ganancia_bruta / ingresos_30dias * 100) if ingresos_30dias > 0 else Decimal('0')
+    
+    # Productos con bajo movimiento (últimos 30 días)
+    productos_vendidos = VentaDetalle.objects.filter(
+        venta__fecha_venta__gte=hace_30_dias
+    ).values('producto_id').distinct()
+    
+    productos_sin_movimiento = Producto.objects.exclude(
+        id__in=productos_vendidos
+    ).filter(stock_actual__gt=0).count()
+    
     # Ventas del día
     ventas_hoy = Venta.objects.filter(fecha_venta__gte=hoy_inicio)
     total_hoy = ventas_hoy.aggregate(Sum('total_venta'))['total_venta__sum'] or Decimal('0')
@@ -450,6 +472,11 @@ def dashboard_reportes(request):
         'crecimiento': float(crecimiento),
         'producto_dia': producto_dia,
         'hora_pico': hora_pico,
+        'ganancia_bruta': float(ganancia_bruta),
+        'margen_porcentaje': float(margen_porcentaje),
+        'productos_sin_movimiento': productos_sin_movimiento,
+        'ingresos_30dias': float(ingresos_30dias),
+        'costos_30dias': float(costos_30dias),
     }
     
     return render(request, 'pos/dashboard_reportes.html', context)

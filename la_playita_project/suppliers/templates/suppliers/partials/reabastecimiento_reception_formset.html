@@ -1,0 +1,25 @@
+{% for detalle in detalles %}
+<tr>
+    <td>{{ detalle.producto.nombre }}</td>
+    <td class="text-center">{{ detalle.cantidad }}</td>
+    <td class="text-center">
+        <input type="number" class="form-control form-control-sm cantidad-recibida-input"
+               name="cantidad_recibida_{{ detalle.id }}"
+               data-detalle-id="{{ detalle.id }}"
+               data-solicitada="{{ detalle.cantidad }}"
+               value="{{ detalle.cantidad }}" min="0" max="{{ detalle.cantidad }}">
+        <div class="qty-feedback"></div>
+    </td>
+    <td class="text-center">
+        <input type="date" class="form-control form-control-sm fecha-caducidad-input"
+               name="fecha_caducidad_{{ detalle.id }}"
+               data-detalle-id="{{ detalle.id }}"
+               value="{{ detalle.fecha_caducidad|date:'Y-m-d'|default:'' }}">
+        <div class="date-feedback"></div>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="4" class="text-center text-muted">Esta orden no tiene productos.</td>
+</tr>
+{% endfor %}

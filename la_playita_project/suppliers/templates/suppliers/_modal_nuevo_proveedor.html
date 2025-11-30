@@ -1,0 +1,49 @@
+<!-- Modal Nuevo Proveedor -->
+<div class="modal fade" id="nuevoProveedorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nuevo Proveedor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="nuevoProveedorForm">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Documento <span class="text-danger">*</span></label>
+                        <select class="form-select" id="tipoDocumentoEmpresa" required>
+                            <option value="NIT" selected>NIT</option>
+                            <option value="RUT">RUT</option>
+                            <option value="CC">Cédula de Ciudadanía</option>
+                            <option value="CE">Cédula de Extranjería</option>
+                            <option value="PAS">Pasaporte</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nº Documento de Identificación <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="documentoIdentificacionEmpresa" maxlength="20" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nombre Empresa <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="nombreEmpresa" maxlength="100" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Teléfono <span class="text-danger">*</span></label>
+                        <input type="tel" class="form-control" id="telefonoEmpresa" maxlength="50" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Correo</label>
+                        <input type="email" class="form-control" id="correoEmpresa" maxlength="50">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Dirección <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="direccionEmpresa" maxlength="255" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="guardarProveedorBtn">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>

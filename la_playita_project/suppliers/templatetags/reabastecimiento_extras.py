@@ -1,4 +1,5 @@
 from django import template
+from django.utils.safestring import mark_safe
 
 register = template.Library()
 
@@ -24,3 +25,18 @@ def subtract(value, arg):
             return float(value) - float(arg)
         except (ValueError, TypeError):
             return ''
+
+@register.simple_tag
+def get_estado_reabastecimiento_display(estado):
+    """
+    Retorna un badge HTML con el estado del reabastecimiento.
+    """
+    estado_map = {
+        'solicitado': ('warning', 'Solicitado'),
+        'recibido': ('success', 'Recibido'),
+        'cancelado': ('danger', 'Cancelado'),
+    }
+    
+    color, label = estado_map.get(estado, ('secondary', estado))
+    html = f'<span class="badge bg-{color}">{label}</span>'
+    return mark_safe(html)

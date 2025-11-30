@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 
 
 class Proveedor(models.Model):
@@ -77,7 +78,35 @@ class ReabastecimientoDetalle(models.Model):
     costo_unitario = models.DecimalField(max_digits=12, decimal_places=2)
     iva = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     fecha_caducidad = models.DateField(null=True, blank=True)
+    
+    # Auditoría
+    recibido_por = models.ForeignKey('users.Usuario', on_delete=models.SET_NULL, null=True, blank=True, related_name='reabastecimiento_detalles_recibidos')
+    fecha_recepcion = models.DateTimeField(null=True, blank=True)
+    cantidad_anterior = models.IntegerField(default=0)  # Para auditoría de cambios
+    numero_lote = models.CharField(max_length=100, null=True, blank=True)  # Número de lote/serial
 
     class Meta:
         managed = False
         db_table = 'reabastecimiento_detalle'
+
+
+class AuditoriaReabastecimiento(models.Model):
+    ACCIONES = [
+        ('creado', 'Creado'),
+        ('recibido', 'Recibido'),
+        ('editado', 'Editado'),
+        ('cancelado', 'Cancelado'),
+    ]
+    
+    reabastecimiento = models.ForeignKey(Reabastecimiento, on_delete=models.CASCADE, related_name='auditorias')
+    usuario = models.ForeignKey('users.Usuario', on_delete=models.SET_NULL, null=True)
+    accion = models.CharField(max_length=20, choices=ACCIONES)
+    cantidad_anterior = models.IntegerField(null=True, blank=True)
+    cantidad_nueva = models.IntegerField(null=True, blank=True)
+    descripcion = models.TextField(blank=True)
+    fecha = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        managed = False
+        db_table = 'auditoria_reabastecimiento'
+        ordering = ['-fecha']

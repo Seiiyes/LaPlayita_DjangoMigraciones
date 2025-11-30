@@ -9,644 +9,313 @@
 {% load number_extras %}
 {% load currency_format %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="{% static 'suppliers/css/reabastecimiento.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid h-100 p-0">
-    <div class="row g-0 h-100">
-        <div class="col-md-7 d-flex flex-column p-3" style="max-height: 100%;">
-            <div class="bg-white border rounded-3 shadow-sm d-flex flex-column flex-grow-1 p-3">
-                <div class="d-flex justify-content-between align-items-center mb-3 flex-shrink-0">
-                    <h3 class="text-primary m-0">Historial de reabastecimientos</h3>
-                </div>
-                <div class="table-responsive flex-grow-1" style="overflow-y: auto;">
-                    <table class="table table-hover table-striped align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width: 15%">Fecha</th>
-                                <th style="width: 20%">Proveedor</th>
-                                <th style="width: 15%" class="text-center">Costo Total</th>
-                                <th style="width: 10%" class="text-center">IVA</th>
-                                <th style="width: 15%" class="text-center">Forma Pago</th>
-                                <th style="width: 10%" class="text-center">Estado</th>
-                                <th style="width: 15%">Observaciones</th>
-                                {% if user|has_role:'Administrador' %}
-                                <th style="width: 10%" class="text-end">Acciones</th>
-                                {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for r in reabastecimientos %}
-                            <tr class="align-middle" id="reabastecimiento-{{ r.id }}">
-                                <td>
-                                    <button class="btn btn-link text-decoration-none p-0 text-dark fw-bold" type="button" 
-                                            data-bs-toggle="collapse" data-bs-target="#detalleReabastecimiento{{ r.id }}" 
-                                            aria-expanded="false" aria-controls="detalleReabastecimiento{{ r.id }}">
-                                        <i class="fas fa-chevron-down me-1"></i>
-                                        {{ r.fecha|localtime|date:"d/m/Y H:i" }}
-                                    </button>
-                                </td>
-                                <td>{{ r.proveedor.nombre_empresa }}</td>
-                                <td class="text-center">{{ r.costo_total|currency }}</td>
-                                <td class="text-center">{{ r.iva|currency }}</td>
-                                <td class="text-center">{{ r.get_forma_pago_display }}</td>
-                                <td class="text-center">
-                                    <div class="d-inline-flex align-items-center">
-                                        {% if r.estado == 'solicitado' %}
-                                            <span class="badge bg-warning text-dark">{{ r.get_estado_display }}</span>
-                                        {% elif r.estado == 'recibido' %}
-                                            <span class="badge bg-success">{{ r.get_estado_display }}</span>
-                                        {% elif r.estado == 'cancelado' %}
-                                            <span class="badge bg-danger">{{ r.get_estado_display }}</span>
-                                        {% else %}
-                                            <span class="badge bg-info text-dark">{{ r.get_estado_display }}</span>
-                                        {% endif %}
-                                        {% if r.tiene_ventas %}
-                                            <i class="fas fa-lock ms-1" title="Tiene ventas asociadas, no se puede modificar."></i>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                                <td>{{ r.observaciones|default:'-' }}</td>
-                                {% if user|has_role:'Administrador' %}
-                                <td class="text-end">
-                                    <div class="btn-group">
-                                        <button type="button" class="btn btn-sm btn-success"
-                                                onclick="recibirReabastecimiento('{{ r.id }}')"
-                                                {% if r.estado == 'recibido' %}disabled{% endif %}>
-                                            <i class="fas fa-check-circle"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-outline-primary" 
-                                                onclick="editarReabastecimiento('{{ r.id }}')"
-                                                {% if r.tiene_ventas %}disabled title="No se puede editar, tiene productos vendidos."{% endif %}>
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" 
-                                                onclick="eliminarReabastecimiento('{{ r.id }}')"
-                                                {% if r.tiene_ventas %}disabled title="No se puede eliminar, tiene productos vendidos."{% endif %}>
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                                {% endif %}
-                            </tr>
-                            <tr class="collapse" id="detalleReabastecimiento{{ r.id }}">
-                                <td colspan="8" class="p-0">
-                                    <div class="bg-light border-start border-5 border-primary p-3">
-                                        <h6 class="text-primary mb-3">Detalles del Reabastecimiento</h6>
-                                        <div class="table-responsive">
-                                            <table class="table table-sm table-hover mb-0">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th>Producto</th>
-                                                        <th>Categoría</th>
-                                                        <th class="text-center">Cant. Solicitada / Recibida</th>
-                                                        <th class="text-end">Costo Unitario</th>
-                                                        <th class="text-end">Valor Pendiente</th>
-                                                        <th class="text-end">Subtotal</th>
-                                                        <th class="text-end">IVA</th>
-                                                        <th class="text-center">Estado Recepción</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {% for detalle in r.reabastecimientodetalle_set.all %}
-                                                    {% with valor_pendiente=detalle.cantidad|subtract:detalle.cantidad_recibida|multiply:detalle.costo_unitario %}
-                                                    <tr>
-                                                        <td>{{ detalle.producto.nombre }}</td>
-                                                        <td>{{ detalle.producto.categoria.nombre }}</td>
-                                                        <td class="text-center">
-                                                            {{ detalle.cantidad }} / {{ detalle.cantidad_recibida }}
-                                                            {% if detalle.cantidad_recibida > 0 and detalle.cantidad_recibida < detalle.cantidad %}
-                                                                <span class="badge bg-warning text-dark ms-1" title="Cantidad recibida menor a la solicitada">Parcial</span>
-                                                            {% elif detalle.cantidad_recibida > detalle.cantidad %}
-                                                                <span class="badge bg-danger text-white ms-1" title="Cantidad recibida mayor a la solicitada">Exceso</span>
-                                                            {% endif %}
-                                                        </td>
-                                                        <td class="text-end">{{ detalle.costo_unitario|currency }}</td>
-                                                        <td class="text-end">{{ valor_pendiente|currency }}</td> {# Added Valor Pendiente #}
-                                                        <td class="text-end">{{ detalle.cantidad|multiply:detalle.costo_unitario|currency }}</td>
-                                                        <td class="text-end">{{ detalle.iva|currency }}</td>
-                                                        <td class="text-center">
-                                                            {% if r.estado == 'recibido' %}
-                                                                {% if detalle.cantidad_recibida == 0 %}
-                                                                    <span class="badge bg-danger">No Recibido</span>
-                                                                {% elif detalle.cantidad_recibida < detalle.cantidad %}
-                                                                    <span class="badge bg-warning">Parcialmente Recibido</span>
-                                                                {% else %}
-                                                                    <span class="badge bg-success">Recibido Completo</span>
-                                                                {% endif %}
-                                                            {% else %}
-                                                                <span class="badge bg-secondary">Pendiente</span>
-                                                            {% endif %}
-                                                        </td>
-                                                    </tr>
-                                                    {% endwith %}
-                                                    {% endfor %}
-                                                </tbody>
-                                                <tfoot class="table-light">
-                                                    <tr>
-                                                        <td colspan="6" class="text-end fw-bold">Total Solicitado:</td>
-                                                        <td colspan="2" class="text-end fw-bold">{{ r.costo_total|currency }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td colspan="6" class="text-end fw-bold">Total IVA:</td>
-                                                        <td colspan="2" class="text-end fw-bold">{{ r.iva|currency }}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td colspan="6" class="text-end fw-bold">Valor Recibido:</td>
-                                                        <td colspan="2" class="text-end fw-bold">{% with pending_value=r|calculate_total_pending_value %}{{ r.costo_total|subtract:pending_value|currency }}{% endwith %}</td>
-                                                    </tr>
-                                                </tfoot>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="8" class="text-center">No hay reabastecimientos.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+
+<div class="container-fluid py-4" id="reabastecimiento-container"
+     data-recibir-url="{% url 'suppliers:reabastecimiento_recibir' 0 %}"
+     data-eliminar-url="{% url 'suppliers:reabastecimiento_eliminar' 0 %}"
+     data-detail-url="{% url 'suppliers:reabastecimiento_editar' 0 %}"
+     data-update-url="{% url 'suppliers:reabastecimiento_update' 0 %}"
+     data-row-api-url="{% url 'suppliers:reabastecimiento_row_api' 0 %}"
+     data-proveedores-search-url="{% url 'suppliers:api_search_proveedores' %}"
+     data-productos-search-url="{% url 'suppliers:api_search_productos' %}">
+
+    <!-- Sticky Header -->
+    <div class="sticky-header bg-white border-bottom shadow-sm mb-4" style="position: sticky; top: 0; z-index: 50; margin: -1rem -1rem 1rem -1rem; padding: 1rem;">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="text-primary fw-bold mb-2">Órdenes de Reabastecimiento</h2>
+                <div class="d-flex gap-3 flex-wrap">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-warning text-dark" style="font-size: 0.9rem; padding: 0.5rem 0.75rem;">
+                            <i class="fas fa-hourglass-half me-1"></i>
+                            <span id="count-solicitado">0</span>
+                        </span>
+                        <small class="text-muted">Solicitadas</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success" style="font-size: 0.9rem; padding: 0.5rem 0.75rem;">
+                            <i class="fas fa-check-circle me-1"></i>
+                            <span id="count-recibido">0</span>
+                        </span>
+                        <small class="text-muted">Recibidas</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-danger" style="font-size: 0.9rem; padding: 0.5rem 0.75rem;">
+                            <i class="fas fa-ban me-1"></i>
+                            <span id="count-cancelado">0</span>
+                        </span>
+                        <small class="text-muted">Canceladas</small>
+                    </div>
                 </div>
             </div>
+            <a href="{% url 'suppliers:reabastecimiento_create' %}" class="btn btn-primary btn-lg shadow-sm" style="white-space: nowrap;">
+                <i class="fas fa-plus me-2"></i>Nueva Orden
+            </a>
         </div>
-        {% if user|has_role:'Administrador' %}
-                        <div class="col-md-5 d-flex flex-column p-3">
-                            <div class="bg-light border rounded-3 shadow-sm h-100 d-flex flex-column">
-                                <div class="p-3 border-bottom">
-                                    <h3 class="text-success m-0">Solicitar reabastecimiento</h3>
-                                </div>
-                                <form method="post" action="{% url 'suppliers:reabastecimiento_create' %}" id="reabastecimientoForm" class="d-flex flex-column h-100">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="estado" value="solicitado">
-                                    <div class="p-3 flex-shrink-0">
-                                        <div class="row g-3">
-                                            <div class="col-12">
-                                                <label class="form-label fw-bold">{{ form.proveedor.label }}</label>
-                                                <div class="input-group">
-                                                    {{ form.proveedor }}
-                                                    <button type="button" class="btn btn-outline-primary d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#nuevoProveedorModal">
-                                                        <i class="fas fa-plus"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label fw-bold">{{ form.forma_pago.label }}</label>
-                                                {{ form.forma_pago }}
-                                            </div>
-                                            <div class="col-12">
-                                                <label class="form-label fw-bold">{{ form.observaciones.label }}</label>
-                                                {{ form.observaciones }}
-                                            </div>
-                                        </div>
-                                    </div>
+    </div>
 
-                                    <div class="p-3 border-top border-bottom bg-light">
-                                        <h5 class="text-secondary m-0">Detalles del reabastecimiento</h5>
-                                    </div>
-                                    <div class="overflow-auto flex-grow-1" style="max-height: 300px">
-                                        {{ formset.management_form }}
-                                        <div class="table-responsive">
-                                            <table class="table table-sm mb-0" id="detalleTable">
-                                                <thead class="table-light sticky-top">
-                                                    <tr>
-                                                        <th style="width: 30%">Producto</th>
-                                                        <th style="width: 12%">Cantidad</th>
-                                                        <th style="width: 15%">Costo Unitario</th>
-                                                        <th style="width: 12%">IVA (%)</th>
-                                                        <th style="width: 18%">Fecha Caducidad</th>
-                                                        <th style="width: 8%">Eliminar</th>
-                                                    </tr>
-                                                </thead>
-                                            <tbody>
-                                                {% for f in formset.forms %}
-                                                <tr>
-                                                    <td>{{ f.producto }}</td>
-                                                    <td>{{ f.cantidad }}</td>
-                                                    <td>{{ f.costo_unitario }}</td>
-                                                    <td>
-                                                        <select name="{{ f.iva.name }}" class="form-select form-select-sm" style="width: 100%; padding: 0.4rem;">
-                                                            <option value="0" {% if f.iva.value == '0' or f.iva.value == 0 %}selected{% endif %}>0%</option>
-                                                            <option value="5" {% if f.iva.value == '5' or f.iva.value == 5 %}selected{% endif %}>5%</option>
-                                                            <option value="8" {% if f.iva.value == '8' or f.iva.value == 8 %}selected{% endif %}>8%</option>
-                                                            <option value="19" {% if f.iva.value == '19' or f.iva.value == 19 %}selected{% endif %}>19%</option>
-                                                        </select>
-                                                    </td>
-                                                    <td>{{ f.fecha_caducidad }}</td>
-                                                    <td>
-                                                        <span class="d-none">{% if formset.can_delete %}{{ f.DELETE }}{% endif %}</span>
-                                                        <button type="button" class="btn btn-sm btn-danger remove-row">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <table style="display:none;">
-                                        <tbody id="empty-form-template">
-                                            <tr>
-                                                {% with ef=formset.empty_form %}
-                                                <td>{{ ef.producto }}</td>
-                                                <td>{{ ef.cantidad }}</td>
-                                                <td>{{ ef.costo_unitario }}</td>
-                                                <td>
-                                                    <select name="{{ ef.iva.name }}" class="form-select form-select-sm" style="width: 100%; padding: 0.4rem;">
-                                                        <option value="0">0%</option>
-                                                        <option value="5">5%</option>
-                                                        <option value="8">8%</option>
-                                                        <option value="19">19%</option>
-                                                    </select>
-                                                </td>
-                                                <td>{{ ef.fecha_caducidad }}</td>
-                                                <td>
-                                                    <span class="d-none">{% if formset.can_delete %}{{ ef.DELETE }}{% endif %}</span>
-                                                    <button type="button" class="btn btn-sm btn-danger remove-row">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </td>
-                                                {% endwith %}
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                                    <div class="p-3 border-top bg-light flex-shrink-0">
-                                        <div class="d-flex flex-wrap gap-2">
-                                            <div class="btn-group me-auto">
-                                                <button type="button" class="btn btn-outline-primary" id="addDetalleBtn">
-                                                    <i class="fas fa-plus"></i> Agregar Detalle
-                                                </button>
-                                                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#nuevoProductoModal">
-                                                    <i class="fas fa-box"></i> Nuevo Producto
-                                                </button>
-                                            </div>
-                                            <button type="submit" class="btn btn-success" id="guardarReabastecimientoBtn">
-                                                <i class="fas fa-save"></i> Solicitar reabastecimiento
-                                            </button>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
+    <!-- Búsqueda Global -->
+    <div class="card shadow-sm mb-4 bg-light">
+        <div class="card-body">
+            <div class="input-group input-group-lg">
+                <span class="input-group-text bg-white border-end-0">
+                    <i class="fas fa-search text-muted"></i>
+                </span>
+                <input type="text" 
+                       id="global_search" 
+                       class="form-control form-control-lg border-start-0" 
+                       placeholder="Buscar por ID orden, proveedor o producto..."
+                       autocomplete="off"
+                       aria-label="Búsqueda global">
+            </div>
+            <small class="text-muted d-block mt-2">
+                <i class="fas fa-info-circle me-1"></i>
+                Busca en tiempo real: ID de orden, nombre de proveedor o producto
+            </small>
+        </div>
+    </div>
+
+    <!-- Filtros Avanzados -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form class="row g-2" id="filterForm">
+                <div class="col-md-3">
+                    <label for="filter_proveedor" class="form-label small">Proveedor</label>
+                    <input type="text" 
+                           name="proveedor_search" 
+                           id="filter_proveedor" 
+                           class="form-control form-control-sm"
+                           placeholder="Buscar..."
+                           autocomplete="off"
+                           aria-label="Buscar proveedor">
+                    <input type="hidden" name="proveedor_id" id="filter_proveedor_id" value="{{ request.GET.proveedor_id }}">
+                    <div id="proveedor_suggestions" class="list-group position-absolute mt-1" style="display: none; width: 100%; z-index: 1000;"></div>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="filter_estado" class="form-label small">Estado</label>
+                    <select name="estado" id="filter_estado" class="form-select form-select-sm" aria-label="Filtrar por estado">
+                        <option value="" {% if not request.GET.estado %}selected{% endif %}>Todos</option>
+                        <option value="solicitado" {% if request.GET.estado == 'solicitado' %}selected{% endif %}>Solicitado</option>
+                        <option value="recibido" {% if request.GET.estado == 'recibido' %}selected{% endif %}>Recibido</option>
+                        <option value="cancelado" {% if request.GET.estado == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="fecha_desde" class="form-label small">Desde</label>
+                    <input type="date" name="fecha_desde" id="fecha_desde" class="form-control form-control-sm" value="{{ request.GET.fecha_desde }}" aria-label="Fecha desde">
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="fecha_hasta" class="form-label small">Hasta</label>
+                    <input type="date" name="fecha_hasta" id="fecha_hasta" class="form-control form-control-sm" value="{{ request.GET.fecha_hasta }}" aria-label="Fecha hasta">
+                </div>
+
+                <div class="col-md-3 d-flex gap-2 align-items-end">
+                    <button class="btn btn-primary btn-sm flex-grow-1" type="submit" aria-label="Aplicar filtros">
+                        <i class="fas fa-search me-1"></i> Buscar
+                    </button>
+                    <a href="{% url 'suppliers:reabastecimiento_list' %}" class="btn btn-outline-secondary btn-sm" aria-label="Limpiar filtros">
+                        <i class="fas fa-times me-1"></i> Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Reabastecimientos -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle mb-0" role="grid" aria-label="Tabla de órdenes de reabastecimiento">
+                    <thead class="table-light sticky-top" style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6; top: 0; z-index: 10;">
+                        <tr role="row">
+                            <th style="width: 30%; font-weight: 700; color: #212529;" role="columnheader">Proveedor</th>
+                            <th class="text-center" style="width: 15%; font-weight: 700; color: #212529;" role="columnheader">Estado</th>
+                            <th class="text-center" style="width: 20%; font-weight: 700; color: #212529;" role="columnheader">Progreso</th>
+                            <th class="text-center" style="width: 15%; font-weight: 700; color: #212529;" role="columnheader">Costo</th>
+                            <th class="text-center" style="width: 20%; font-weight: 700; color: #212529;" role="columnheader">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reabastecimiento-list-body">
+                        {% for r in reabastecimientos %}
+                            {% include 'suppliers/partials/reabastecimiento_row.html' %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center p-4">
+                                <h5 class="text-muted">No hay órdenes de reabastecimiento</h5>
+                                <p class="text-muted mb-0">¡Crea una nueva orden para empezar!</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {# Pagination #}
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Paginación" class="mt-3 p-3 border-top">
+                <ul class="pagination justify-content-center flex-wrap mb-0">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">&laquo; Anterior</a></li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">&laquo; Anterior</span></li>
+                    {% endif %}
+
+                    {% for i in page_obj.paginator.page_range %}
+                        {% if page_obj.number == i %}
+                            <li class="page-item active"><span class="page-link">{{ i }} <span class="sr-only">(actual)</span></span></li>
+                        {% else %}
+                            <li class="page-item"><a class="page-link" href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ i }}</a></li>
                         {% endif %}
-                    </div>
-</div>
+                    {% endfor %}
 
-<style>
-    html, body {
-        height: 100%;
-        overflow: hidden;
-    }
-
-    main.container {
-        max-width: 100% !important;
-        height: calc(100vh - 72px) !important; 
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-
-    .container-fluid {
-        height: 100%;
-        overflow: hidden;
-    }
-
-    .table-responsive {
-        height: calc(100% - 50px); 
-        overflow: auto;
-    }
-
-    .table {
-        margin-bottom: 0;
-    }
-
-    .table td, .table th {
-        padding: 0.75rem;
-        vertical-align: middle;
-    }
-
-    .collapse {
-        transition: all 0.3s ease;
-    }
-
-    .btn-link {
-        transition: all 0.2s ease;
-    }
-
-    .btn-link[aria-expanded="true"] i {
-        transform: rotate(180deg);
-    }
-
-    .table-hover tbody tr:hover {
-        background-color: rgba(0,0,0,.05);
-    }
-
-    .badge {
-        font-size: 0.75rem;
-        padding: 0.35em 0.65em;
-    }
-
-    .border-5 {
-        border-width: 5px !important;
-    }
-
-    .table-sm td, .table-sm th {
-        padding: 0.5rem;
-    }
-
-    .bg-light {
-        background-color: #f8f9fa !important;
-    }
-
-    .form-control, .form-select {
-        padding: 0.5rem;
-        height: 38px;
-    }
-
-    select[id*='producto'] {
-        width: 100%;
-    }
-
-    #detalleTable {
-        margin-bottom: 0;
-    }
-
-    #detalleTable input, #detalleTable select {
-        width: 100%;
-        padding: 0.4rem;
-    }
-
-    .flex-grow-1 {
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-    }
-
-    #reabastecimientoForm {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-
-    #reabastecimientoForm > .row {
-        flex-shrink: 0;
-    }
-
-    #reabastecimientoForm .flex-grow-1 {
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    #reabastecimientoForm .table-responsive {
-        flex-grow: 1;
-        overflow: auto;
-    }
-
-    .rounded-3 {
-        border-radius: 0.5rem !important;
-    }
-
-    .shadow-sm {
-        box-shadow: 0 .125rem .25rem rgba(0,0,0,.075) !important;
-    }
-
-    .input-group select,
-    .input-group .form-select {
-        padding: 0.375rem 0.75rem;
-        font-size: 1rem;
-        height: 38px;
-        border-radius: 0.375rem;
-    }
-
-    .input-group .btn {
-        padding: 0.375rem 0.75rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 38px;
-        min-width: 38px;
-    }
-
-    .input-group .btn i {
-        font-size: 0.875rem;
-    }
-
-    #reabastecimientoForm .input-group {
-        width: 100%;
-    }
-
-    #reabastecimientoForm .input-group select {
-        flex: 1;
-        border-right: 0;
-    }
-
-    #reabastecimientoForm .input-group .btn {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-        border-left: 0;
-        margin-left: -1px;
-    }
-
-    #reabastecimientoForm .input-group select:focus + .btn {
-        border-left: 1px solid var(--primary-color);
-        margin-left: -1px;
-    }
-
-    #reabastecimientoForm .input-group .btn:hover {
-        border-left: 1px solid var(--primary-color);
-        margin-left: -1px;
-    }
-
-    #detalleTable .input-group {
-        width: 100%;
-    }
-
-    #detalleTable .input-group select {
-        min-width: 200px;
-        flex: 1;
-    }
-
-    #detalleTable .input-group .btn {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-    }
-
-    @media (max-width: 768px) {
-        .input-group {
-            flex-wrap: nowrap !important;
-        }
-        .input-group select {
-            min-width: 150px !important;
-        }
-        .input-group .btn {
-            padding-left: 0.5rem !important;
-            padding-right: 0.5rem !important;
-        }
-    }
-
-    .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        white-space: nowrap;
-    }
-
-    .btn-toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
-
-    .btn-group {
-        display: inline-flex;
-    }
-
-    @media (max-width: 576px) {
-        .btn-toolbar {
-            flex-direction: column;
-            width: 100%;
-        }
-        .btn-group {
-            width: 100%;
-            display: flex;
-        }
-        .btn-group .btn {
-            flex: 1;
-        }
-        .btn-toolbar .btn {
-            width: 100%;
-        }
-    }
-
-    .btn {
-        padding: 0.5rem 1rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .btn i {
-        font-size: 0.875rem;
-    }
-    
-    .table-responsive::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-    }
-
-    .table-responsive::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 4px;
-    }
-
-    .table-responsive::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 4px;
-    }
-
-    .table-responsive::-webkit-scrollbar-thumb:hover {
-        background: #666;
-    }
-
-    #reabastecimientoForm {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
-
-    .table-responsive {
-        width: 100%;
-    }
-
-    #detalleTable {
-        width: 100%;
-    }
-
-    #detalleTable thead th {
-        position: sticky;
-        top: 0;
-        background-color: #f8f9fa;
-        z-index: 1;
-        border-bottom: 2px solid #dee2e6;
-    }
-
-    .overflow-auto {
-        scrollbar-width: thin;
-        scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-    }
-
-    .overflow-auto::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .overflow-auto::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .overflow-auto::-webkit-scrollbar-thumb {
-        background-color: rgba(0, 0, 0, 0.2);
-        border-radius: 3px;
-    }
-
-    #detalleTable tbody tr {
-        background-color: white;
-    }
-
-    #detalleTable tbody tr:hover {
-        background-color: #f8f9fa;
-    }
-
-    #detalleTable input,
-    #detalleTable select {
-        height: 31px;
-        padding: 0.25rem 0.5rem;
-    }
-
-    .table > :not(caption) > * > * {
-        border-bottom-width: 1px;
-    }
-
-    .col-md-5 {
-        height: 100%;
-    }
-</style>
-
-<!-- Modal Recibir Reabastecimiento -->
-<div class="modal fade" id="recibirReabastecimientoModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Recibir Reabastecimiento #<span id="recibirReabastecimientoIdDisplay"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="formRecibirReabastecimiento">
-                    <input type="hidden" id="recibirReabastecimientoId" name="reabastecimiento_id">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Producto</th>
-                                    <th class="text-center">Cantidad Solicitada</th>
-                                    <th class="text-center">Cantidad Recibida</th>
-                                    <th class="text-center">Fecha Caducidad</th>
-                                </tr>
-                            </thead>
-                            <tbody id="recibirDetallesTableBody">
-                                <!-- Detalles se cargarán aquí via JS -->
-                            </tbody>
-                        </table>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" id="confirmarRecepcionBtn">Confirmar Recepción</button>
-            </div>
+                    {% if page_obj.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Siguiente &raquo;</a></li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">Siguiente &raquo;</span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
         </div>
     </div>
 </div>
 
-<!-- Modal Editar Reabastecimiento -->
+<!-- Drawer: Recibir Orden (Lateral) -->
+<div class="offcanvas offcanvas-end reception-drawer" id="receptionDrawer" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="offcanvas-header border-bottom">
+        <div class="flex-grow-1">
+            <h5 class="offcanvas-title">
+                <i class="fas fa-truck-loading text-success me-2"></i>
+                Recibir Orden #<span id="receptionOrderId" class="fw-bold text-primary" aria-live="polite"></span>
+            </h5>
+            <small class="text-muted d-block mt-2">
+                <i class="fas fa-building me-1"></i>
+                <span id="receptionProveedorName" aria-live="polite">Cargando...</span>
+            </small>
+        </div>
+        <button type="button" class="btn-close" id="closeReceptionDrawer" aria-label="Cerrar (Esc)"></button>
+    </div>
+
+    <div class="offcanvas-body p-0 d-flex flex-column">
+        <!-- Quick Actions Bar -->
+        <div class="p-3 border-bottom bg-light sticky-top" style="z-index: 40;">
+            <div class="d-flex flex-column gap-2">
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-success flex-grow-1" id="markAllReceivedBtn" title="Llenar con cantidad solicitada">
+                        <i class="fas fa-check-double me-1"></i> Marcar todo
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="saveDraftBtn" title="Guardar borrador">
+                        <i class="fas fa-save me-1"></i> Borrador
+                    </button>
+                </div>
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control form-control-sm" id="searchProductInput" placeholder="Buscar producto..." autocomplete="off" aria-label="Buscar producto">
+                    <button class="btn btn-outline-secondary btn-sm" type="button" id="clearSearchBtn" title="Limpiar búsqueda">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white">
+                        <i class="fas fa-calendar-alt text-muted"></i>
+                    </span>
+                    <input type="date" class="form-control form-control-sm" id="generalExpiryDate" title="Aplicar fecha a todos">
+                    <button class="btn btn-outline-secondary btn-sm" type="button" id="applyGeneralExpiryBtn" title="Aplicar fecha de caducidad a todos">
+                        Aplicar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reception Table -->
+        <form id="receptionForm" class="flex-grow-1 d-flex flex-column">
+            <div class="table-responsive flex-grow-1" style="overflow-y: auto;">
+                <table class="table table-sm table-hover mb-0 reception-table" role="grid" aria-label="Tabla de recepción de mercancía">
+                    <thead class="table-light sticky-top" style="top: 0; z-index: 10;">
+                        <tr role="row">
+                            <th style="width: 35%;" role="columnheader">Producto</th>
+                            <th class="text-center" style="width: 12%;" role="columnheader">Solicitado</th>
+                            <th class="text-center" style="width: 15%;" role="columnheader">Recibido</th>
+                            <th class="text-center" style="width: 12%;" role="columnheader">Caducidad</th>
+                            <th class="text-center" style="width: 12%;" role="columnheader">Lote</th>
+                            <th class="text-center" style="width: 14%;" role="columnheader">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="receptionTableBody">
+                        {# Rows will be populated by JavaScript #}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Sticky Action Bar (Bottom) -->
+            <div class="sticky-bottom border-top bg-white p-3" style="z-index: 40;">
+                <!-- Progress Bar -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="fw-bold text-muted">Progreso</small>
+                        <small class="text-muted" id="progressText" aria-live="polite">0 de 0</small>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success" id="progressBar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+
+                <!-- Summary Stats (Compact) -->
+                <div class="row g-2 mb-3">
+                    <div class="col-4">
+                        <div class="p-2 bg-success bg-opacity-10 rounded text-center">
+                            <small class="text-muted d-block"><i class="fas fa-check-circle text-success"></i></small>
+                            <strong class="text-success" id="completedCount">0</strong>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2 bg-warning bg-opacity-10 rounded text-center">
+                            <small class="text-muted d-block"><i class="fas fa-exclamation-circle text-warning"></i></small>
+                            <strong class="text-warning" id="partialCount">0</strong>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2 bg-danger bg-opacity-10 rounded text-center">
+                            <small class="text-muted d-block"><i class="fas fa-clock text-danger"></i></small>
+                            <strong class="text-danger" id="pendingCount">0</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerts -->
+                <div id="validationAlert" class="alert alert-danger alert-sm mb-2" role="alert" style="display: none;">
+                    <small id="validationAlertText"></small>
+                </div>
+                <div id="quantityMismatchAlert" class="alert alert-warning alert-sm mb-2" role="alert" style="display: none;">
+                    <small>
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <strong>Recepción Parcial:</strong> <span id="mismatchText"></span>
+                    </small>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary" id="cancelReceptionBtn">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success flex-grow-1" id="confirmReceptionBtn" disabled>
+                        <i class="fas fa-check me-2"></i> Confirmar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Editar Reabastecimiento -->
 <div class="modal fade" id="editarReabastecimientoModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -655,32 +324,16 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="editarReabastecimientoForm">
-                    <input type="hidden" id="editReabastecimientoId">
-                    {% csrf_token %}
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Proveedor</label>
-                            {{ form.proveedor }}
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Forma de Pago</label>
-                            {{ form.forma_pago }}
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Estado</label>
-                            {{ form.estado }}
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Observaciones</label>
-                            {{ form.observaciones }}
-                        </div>
+                <div id="editarLoadingSpinner" class="d-flex justify-content-center align-items-center position-absolute top-0 start-0 w-100 h-100 bg-white bg-opacity-75" style="z-index: 1050; display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
                     </div>
-                    <hr>
-                    <h5 class="text-secondary">Detalles</h5>
-                    <div id="edit-detalles-container"></div>
-                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="add-edit-detalle-btn">Agregar Detalle</button>
-                </form>
+                </div>
+                <div id="editarModalContent">
+                    <form id="editarReabastecimientoForm">
+                        <!-- Form content will be loaded dynamically -->
+                    </form>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -690,813 +343,15 @@
     </div>
 </div>
 
-
-<!-- Modal Nuevo Proveedor -->
-<div class="modal fade" id="nuevoProveedorModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Nuevo Proveedor</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="nuevoProveedorForm">
-                    <div class="mb-3">
-                        <label class="form-label">Tipo de Documento <span class="text-danger">*</span></label>
-                        <select class="form-select" id="tipoDocumentoEmpresa" required>
-                            <option value="NIT" selected>NIT</option>
-                            <option value="RUT">RUT</option>
-                            <option value="CC">Cédula de Ciudadanía</option>
-                            <option value="CE">Cédula de Extranjería</option>
-                            <option value="PAS">Pasaporte</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Nº Documento de Identificación <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="documentoIdentificacionEmpresa" maxlength="20" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Nombre Empresa <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="nombreEmpresa" maxlength="100" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Teléfono <span class="text-danger">*</span></label>
-                        <input type="tel" class="form-control" id="telefonoEmpresa" maxlength="50" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Correo</label>
-                        <input type="email" class="form-control" id="correoEmpresa" maxlength="50">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Dirección <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="direccionEmpresa" maxlength="255" required>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="guardarProveedorBtn">Guardar</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Nuevo Producto -->
-<div class="modal fade" id="nuevoProductoModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Nuevo Producto</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="nuevoProductoForm">
-                    <div class="mb-3">
-                        <label class="form-label">Nombre <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="nombreProducto" maxlength="50" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Categoría <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <select class="form-select" id="categoriaProducto" required>
-                                {% for categoria in categorias %}
-                                <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
-                                {% endfor %}
-                            </select>
-                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#nuevaCategoriaModal">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Precio Unitario <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" class="form-control" id="precioProducto" step="1" min="0" required>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Stock Mínimo <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="stockMinProducto" min="0" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Descripción</label>
-                        <textarea class="form-control" id="descripcionProducto" maxlength="255" rows="2"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="guardarProductoBtn">Guardar</button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Toast Container -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100;"></div>
 
 {% include 'inventory/_nueva_categoria_modal.html' %}
 
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    function formatLocalDate(isoString) {
-        if (!isoString) return '';
-        const date = new Date(isoString);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
-        const year = date.getFullYear();
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${day}/${month}/${year} ${hours}:${minutes}`;
-    }
-
-    const FORMSET_PREFIX = '{{ formset.prefix }}';
-    const PRODUCTS_DATA = JSON.parse('{{ products_json|default:'[]'|escapejs }}');
-    const productos = JSON.parse('{{ all_products_json|default:'[]'|escapejs }}');
-
-    window.editarReabastecimiento = async function(id) {
-        try {
-            const response = await fetch(`{% url 'suppliers:reabastecimiento_editar' 0 %}`.replace('0', id));
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Error al cargar el reabastecimiento');
-            }
-            const data = await response.json();
-
-            document.getElementById('editReabastecimientoId').value = data.id;
-            document.querySelector('#editarReabastecimientoForm [name="proveedor"]').value = data.proveedor_id;
-            document.querySelector('#editarReabastecimientoForm [name="forma_pago"]').value = data.forma_pago;
-            document.querySelector('#editarReabastecimientoForm [name="estado"]').value = data.estado;
-            document.querySelector('#editarReabastecimientoForm [name="observaciones"]').value = data.observaciones;
-
-            const detallesContainer = document.getElementById('edit-detalles-container');
-            detallesContainer.innerHTML = ''; // Limpiar detalles anteriores
-            
-            const managementForm = document.createElement('div');
-            managementForm.innerHTML = `
-                <input type="hidden" name="${FORMSET_PREFIX}-TOTAL_FORMS" value="${data.detalles.length}">
-                <input type="hidden" name="${FORMSET_PREFIX}-INITIAL_FORMS" value="${data.detalles.length}">
-                <input type="hidden" name="${FORMSET_PREFIX}-MIN_NUM_FORMS" value="0">
-                <input type="hidden" name="${FORMSET_PREFIX}-MAX_NUM_FORMS" value="1000">
-            `;
-            detallesContainer.appendChild(managementForm);
-
-            data.detalles.forEach((detalle, index) => {
-                addDetalleToEditForm(detalle, index);
-            });
-
-            const modal = new bootstrap.Modal(document.getElementById('editarReabastecimientoModal'));
-            modal.show();
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: error.message
-            });
-        }
-    }
-
-    window.recibirReabastecimiento = async function(id) {
-        try {
-            const response = await fetch(`{% url 'suppliers:reabastecimiento_editar' 0 %}`.replace('0', id)); // Re-using edit endpoint to get details
-            if (!response.ok) throw new Error('Error al cargar los detalles del reabastecimiento');
-            const data = await response.json();
-
-            document.getElementById('recibirReabastecimientoId').value = data.id;
-            document.getElementById('recibirReabastecimientoIdDisplay').textContent = data.id;
-
-            const detallesTableBody = document.getElementById('recibirDetallesTableBody');
-            detallesTableBody.innerHTML = ''; // Clear previous details
-
-            data.detalles.forEach((detalle, index) => {
-                const row = detallesTableBody.insertRow();
-                row.innerHTML = `
-                    <td>${detalle.producto_nombre}</td>
-                    <td class="text-center">${detalle.cantidad}</td>
-                    <td class="text-center">
-                        <input type="number" class="form-control form-control-sm cantidad-recibida-input"
-                               name="detalle-${detalle.id}-cantidad_recibida"
-                               value="${detalle.cantidad_recibida || detalle.cantidad}" min="0" max="${detalle.cantidad}">
-                    </td>
-                    <td class="text-center">
-                        <input type="date" class="form-control form-control-sm fecha-caducidad-input"
-                               name="detalle-${detalle.id}-fecha_caducidad"
-                               value="${detalle.fecha_caducidad || ''}">
-                    </td>
-                `;
-            });
-
-            const modal = new bootstrap.Modal(document.getElementById('recibirReabastecimientoModal'));
-            modal.show();
-
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: error.message || 'Error al intentar recibir el reabastecimiento'
-            });
-        }
-    }
-
-    document.getElementById('confirmarRecepcionBtn').addEventListener('click', async function() {
-        const reabastecimientoId = document.getElementById('recibirReabastecimientoId').value;
-        const detalles = [];
-        document.querySelectorAll('#recibirDetallesTableBody tr').forEach(row => {
-            const cantidadInput = row.querySelector('.cantidad-recibida-input');
-            const fechaInput = row.querySelector('.fecha-caducidad-input');
-            const detalleId = cantidadInput.name.split('-')[1];
-            
-            detalles.push({
-                id: detalleId,
-                cantidad_recibida: parseInt(cantidadInput.value, 10),
-                fecha_caducidad: fechaInput.value
-            });
-        });
-
-        const result = await Swal.fire({
-            title: '¿Confirmar Recepción?',
-            text: "Se actualizará el stock de los productos con las cantidades recibidas.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Sí, confirmar'
-        });
-
-        if (!result.isConfirmed) {
-            return;
-        }
-
-        try {
-            const response = await fetch(`{% url 'suppliers:reabastecimiento_recibir' 0 %}`.replace('0', reabastecimientoId), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: JSON.stringify({ detalles: detalles })
-            });
-            
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || 'Error al confirmar la recepción del reabastecimiento');
-            }
-
-            const data = await response.json();
-            Swal.fire({
-                icon: 'success',
-                title: '¡Éxito!',
-                text: data.message
-            }).then(() => {
-                // Reload the page or update the specific row
-                location.reload(); // Simple reload for now, can be optimized later
-            });
-
-            bootstrap.Modal.getInstance(document.getElementById('recibirReabastecimientoModal')).hide();
-
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: error.message
-            });
-        }
-    });
-
-    window.eliminarReabastecimiento = async function(id) {
-        const result = await Swal.fire({
-            title: '¿Estás seguro?',
-            text: "¡No podrás revertir esto!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Sí, eliminarlo'
-        });
-
-        if (!result.isConfirmed) {
-            return;
-        }
-
-        try {
-            const response = await fetch(`{% url 'suppliers:reabastecimiento_eliminar' 0 %}`.replace('0', id), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                }
-            });
-            
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || 'Error al eliminar el reabastecimiento');
-            }
-
-            const row = document.getElementById(`reabastecimiento-${id}`);
-            const detailRow = document.getElementById(`detalleReabastecimiento${id}`);
-            if (row) row.remove();
-            if (detailRow) detailRow.remove();
-
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: error.message
-            });
-        }
-    }
-
-    function getProductPrice(productId){
-        if(!PRODUCTS_DATA || !productId) return 0;
-        const p = PRODUCTS_DATA.find(x => x.id == Number(productId));
-        return p ? Number(p.precio_unitario) : 0;
-    }
-
-    async function guardarNuevaCategoria(data) {
-        try {
-            const response = await fetch("{% url 'suppliers:categoria_create_ajax' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: JSON.stringify(data)
-            });
-            
-            if (!response.ok) throw new Error('Error al guardar categoría');
-            
-            const categoria = await response.json();
-            const select = document.getElementById('categoriaProducto');
-            const option = new Option(categoria.nombre, categoria.id);
-            select.add(option);
-            select.value = categoria.id;
-            
-            bootstrap.Modal.getInstance(document.getElementById('nuevaCategoriaModal')).hide();
-            return categoria;
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Error al guardar la categoría'
-            });
-        }
-    }
-
-    async function guardarNuevoProveedor(data) {
-        try {
-            const response = await fetch("{% url 'suppliers:proveedor_create_ajax' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: JSON.stringify(data)
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Error al guardar proveedor');
-            }
-            
-            const proveedor = await response.json();
-            const select = document.querySelector('[name$="proveedor"]');
-            const option = new Option(proveedor.nombre_empresa, proveedor.id);
-            select.add(option);
-            select.value = proveedor.id;
-            
-            bootstrap.Modal.getInstance(document.getElementById('nuevoProveedorModal')).hide();
-            return proveedor;
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: error.message || 'Error al guardar el proveedor'
-            });
-        }
-    }
-
-    async function guardarNuevoProducto(data) {
-        try {
-            const response = await fetch("{% url 'suppliers:producto_create_ajax' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: JSON.stringify(data)
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Error al guardar producto');
-            }
-            
-            const producto = await response.json();
-            PRODUCTS_DATA.push(producto);
-            
-            const selects = document.querySelectorAll('select[name$="-producto"]');
-            selects.forEach(select => {
-                const option = new Option(producto.nombre, producto.id);
-                select.add(option);
-            });
-            
-            bootstrap.Modal.getInstance(document.getElementById('nuevoProductoModal')).hide();
-            return producto;
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: error.message || 'Error al guardar el producto'
-            });
-        }
-    }
-
-    const addBtn = document.getElementById('addDetalleBtn');
-    const detalleTable = document.getElementById('detalleTable');
-    if(addBtn) {
-
-        detalleTable.addEventListener('change', function(e){
-            const target = e.target;
-            if(!target) return;
-            if(target.tagName.toLowerCase() === 'select' && /-producto$/.test(target.name)){
-                const row = target.closest('tr');
-                const selectedId = target.value;
-                const costoInput = row.querySelector('input[name$="-costo_unitario"]');
-                const cantidadInput = row.querySelector('input[name$="-cantidad"]');
-                const fechaCaducidadInput = row.querySelector('input[name$="-fecha_caducidad"]');
-                
-                if(selectedId) {
-                    const price = getProductPrice(selectedId);
-                    if(costoInput){
-                        costoInput.value = Math.round(price);
-                    }
-                    if(cantidadInput && !cantidadInput.value){
-                        cantidadInput.value = "1";
-                    }
-                } else {
-                    if(costoInput) costoInput.value = "";
-                    if(cantidadInput) cantidadInput.value = "";
-                    if(fechaCaducidadInput) fechaCaducidadInput.value = "";
-                }
-            }
-        });
-
-        addBtn.addEventListener('click', function(){
-            const totalFormsInput = document.querySelector(`input[name="${FORMSET_PREFIX}-TOTAL_FORMS"]`);
-            const current = parseInt(totalFormsInput.value, 10);
-            const templateRow = document.querySelector('#empty-form-template tr');
-            const newRowHtml = templateRow.innerHTML.replace(/__prefix__/g, current);
-            const tbody = document.querySelector('#detalleTable tbody');
-            const tr = document.createElement('tr');
-            tr.innerHTML = newRowHtml;
-            tbody.appendChild(tr);
-            totalFormsInput.value = current + 1;
-        });
-
-        detalleTable.addEventListener('click', function(e){
-            const btn = e.target.closest('.remove-row');
-            if(!btn) return;
-            const row = btn.closest('tr');
-            if(!row) return;
-            const deleteCheckbox = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
-            if(deleteCheckbox){
-                deleteCheckbox.checked = true;
-                row.style.display = 'none';
-            } else {
-                row.remove();
-                const totalFormsInput = document.querySelector(`input[name="${FORMSET_PREFIX}-TOTAL_FORMS"]`);
-                if(totalFormsInput){
-                    totalFormsInput.value = parseInt(totalFormsInput.value, 10) - 1;
-                }
-            }
-        });
-    }
-
-    document.getElementById('guardarCategoriaBtn').addEventListener('click', async function() {
-        const form = document.getElementById('nuevaCategoriaForm');
-        if (!form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
-        
-        const data = {
-            nombre: document.getElementById('nombreCategoria').value
-        };
-        
-        await guardarNuevaCategoria(data);
-        form.reset();
-    });
-
-    document.getElementById('guardarProveedorBtn').addEventListener('click', async function() {
-        const form = document.getElementById('nuevoProveedorForm');
-        if (!form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
-        
-        const data = {
-            tipo_documento: document.getElementById('tipoDocumentoEmpresa').value,
-            documento_identificacion: document.getElementById('documentoIdentificacionEmpresa').value,
-            nombre_empresa: document.getElementById('nombreEmpresa').value,
-            telefono: document.getElementById('telefonoEmpresa').value,
-            correo: document.getElementById('correoEmpresa').value,
-            direccion: document.getElementById('direccionEmpresa').value
-        };
-        
-        await guardarNuevoProveedor(data);
-        form.reset();
-    });
-
-    document.getElementById('guardarProductoBtn').addEventListener('click', async function() {
-        const form = document.getElementById('nuevoProductoForm');
-        if (!form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
-        
-        const data = {
-            nombre: document.getElementById('nombreProducto').value,
-            precio_unitario: document.getElementById('precioProducto').value,
-            stock_minimo: document.getElementById('stockMinProducto').value,
-            categoria: document.getElementById('categoriaProducto').value,
-            descripcion: document.getElementById('descripcionProducto').value
-        };
-        
-        await guardarNuevoProducto(data);
-        form.reset();
-    });
-
-    async function guardarReabastecimiento(form) {
-        const formData = new FormData(form);
-        try {
-            const response = await fetch(form.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-                }
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                let errorMessage = 'Error al guardar el reabastecimiento.';
-                if (errorData.errors) {
-                    errorMessage += '\n' + JSON.stringify(errorData.errors, null, 2);
-                }
-                if (errorData.formset_errors) {
-                    errorMessage += '\n' + JSON.stringify(errorData.formset_errors, null, 2);
-                }
-                if (errorData.error) {
-                    errorMessage = errorData.error;
-                }
-                throw new Error(errorMessage);
-            }
-
-            const reab = await response.json();
-
-            const newRow = document.createElement('tr');
-            newRow.className = 'align-middle';
-            newRow.id = `reabastecimiento-${reab.id}`;
-            newRow.innerHTML = `
-                <td>
-                    <button class="btn btn-link text-decoration-none p-0 text-dark fw-bold" type="button"
-                            data-bs-toggle="collapse" data-bs-target="#detalleReabastecimiento${reab.id}"
-                            aria-expanded="false" aria-controls="detalleReabastecimiento${reab.id}">
-                        <i class="fas fa-chevron-down me-1"></i>
-                        ${formatLocalDate(reab.fecha)}
-                    </button>
-                </td>
-                <td>${reab.proveedor}</td>
-                <td class="text-center">${reab.costo_total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</td>
-                <td class="text-center">${reab.iva.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</td>
-                <td>${reab.forma_pago}</td>
-                <td><span class="badge bg-info text-dark">${reab.estado}</span></td>
-                <td>${reab.observaciones || '-'}</td>
-                <td class="text-end">
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-success"
-                                onclick="recibirReabastecimiento('${reab.id}')">
-                            <i class="fas fa-check-circle"></i>
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-primary"
-                                onclick="editarReabastecimiento('${reab.id}')">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-danger"
-                                onclick="eliminarReabastecimiento('${reab.id}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </td>
-            `;
-
-            const detailRow = document.createElement('tr');
-            detailRow.className = 'collapse';
-            detailRow.id = `detalleReabastecimiento${reab.id}`;
-
-            let detallesHtml = '<td colspan="8" class="p-0"><div class="bg-light border-start border-5 border-primary p-3">';
-            detallesHtml += '<h6 class="text-primary mb-3">Detalles del Reabastecimiento</h6>';
-            detallesHtml += '<div class="table-responsive"><table class="table table-sm table-hover mb-0">';
-            detallesHtml += `<thead class="table-light">
-                                <tr>
-                                    <th>Producto</th>
-                                    <th>Categoría</th>
-                                    <th class="text-center">Cantidad</th>
-                                    <th class="text-end">Costo Unitario</th>
-                                    <th class="text-end">Subtotal</th>
-                                    <th class="text-end">IVA</th>
-                                    <th class="text-center">Estado Actual</th>
-                                </tr>
-                            </thead><tbody>`;
-
-            reab.detalles.forEach(d => {
-                detallesHtml += `
-                    <tr>
-                        <td>${d.producto_nombre}</td>
-                        <td>${d.categoria_nombre}</td>
-                        <td class="text-center">${d.cantidad}</td>
-                        <td class="text-end">${d.costo_unitario.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</td>
-                        <td class="text-end">${d.subtotal.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</td>
-                        <td class="text-end">${d.iva.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</td>
-                        <td class="text-center"><span class="badge bg-secondary">${d.estado_lote}</span></td>
-                    </tr>
-                `;
-            });
-
-            detallesHtml += `</tbody><tfoot class="table-light">
-                                <tr>
-                                    <td colspan="6" class="text-end fw-bold">Total:</td>
-                                    <td class="text-end fw-bold">${reab.costo_total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</td>
-                                </tr>
-                                <tr>
-                                    <td colspan="6" class="text-end fw-bold">Total IVA:</td>
-                                    <td class="text-end fw-bold">${reab.iva.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</td>
-                                </tr>
-                            </tfoot></table></div></div></td>`;
-            detailRow.innerHTML = detallesHtml;
-
-            const tableBody = document.querySelector('.table-responsive tbody');
-            tableBody.prepend(detailRow);
-            tableBody.prepend(newRow);
-
-            form.reset();
-            const detalleTableBody = document.querySelector('#detalleTable tbody');
-            detalleTableBody.innerHTML = '';
-            document.querySelector(`input[name="${FORMSET_PREFIX}-TOTAL_FORMS"]`).value = 0;
-            document.getElementById('addDetalleBtn').click();
-
-        } catch (error) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: error.message
-            });
-            throw error;
-        }
-    }
-
-    document.getElementById('reabastecimientoForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const submitBtn = document.getElementById('guardarReabastecimientoBtn');
-        const originalBtnHtml = submitBtn.innerHTML;
-
-        // Disable button and show spinner
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = `
-            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            Guardando...
-        `;
-
-        try {
-            await guardarReabastecimiento(this);
-        } finally {
-            // Re-enable button and restore text
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalBtnHtml;
-        }
-    });
-
-    ['nuevoProveedorModal', 'nuevoProductoModal'].forEach(modalId => {
-        document.getElementById(modalId).addEventListener('hidden.bs.modal', function() {
-            const form = this.querySelector('form');
-            if(form) form.reset();
-        });
-    });
-
-    document.getElementById('nuevaCategoriaModal').addEventListener('hidden.bs.modal', function (event) {
-        if (document.getElementById('nuevoProductoModal').classList.contains('show')) {
-            document.body.classList.add('modal-open');
-        }
-    });
-
-    document.getElementById('guardarEdicionReabastecimientoBtn').addEventListener('click', async function () {
-        const form = document.getElementById('editarReabastecimientoForm');
-        const id = document.getElementById('editReabastecimientoId').value;
-        const formData = new FormData(form);
-
-        try {
-            const response = await fetch(`{% url 'suppliers:reabastecimiento_update' 0 %}`.replace('0', id), {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-                }
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                let errorMessage = 'Error al actualizar el reabastecimiento.';
-                if (errorData.errors) {
-                    errorMessage += '\n' + JSON.stringify(errorData.errors, null, 2);
-                }
-                if (errorData.formset_errors) {
-                    errorMessage += '\n' + JSON.stringify(errorData.formset_errors, null, 2);
-                }
-                if (errorData.error) {
-                    errorMessage = errorData.error;
-                }
-                throw new Error(errorMessage);
-            }
-
-            const reab = await response.json();
-            const row = document.getElementById(`reabastecimiento-${reab.id}`);
-            row.cells[1].textContent = reab.proveedor;
-            row.cells[2].textContent = reab.costo_total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' });
-            row.cells[3].textContent = reab.iva.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' });
-            row.cells[4].textContent = reab.forma_pago;
-            row.cells[5].innerHTML = `<span class="badge bg-info text-dark">${reab.estado}</span>`;
-            row.cells[6].textContent = reab.observaciones || '-';
-
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editarReabastecimientoModal'));
-            modal.hide();
-
-        } catch (error) {
-            console.error('Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: error.message
-            });
-        }
-    });
-
-    document.getElementById('add-edit-detalle-btn').addEventListener('click', function () {
-        addDetalleToEditForm();
-    });
-
-    function addDetalleToEditForm(detalle = {}, index = -1) {
-        const container = document.getElementById('edit-detalles-container');
-        const newIndex = index === -1 ? container.children.length : index;
-
-        const detalleDiv = document.createElement('div');
-        detalleDiv.classList.add('row', 'g-3', 'mb-3', 'align-items-center');
-        
-        let options = '';
-        for (const p of productos) {
-            const selected = detalle.producto_id == p.id ? 'selected' : '';
-            options += `<option value="${p.id}" ${selected}>${p.nombre}</option>`;
-        }
-
-        detalleDiv.innerHTML = `
-            <div class="col-md-3">
-                <label class="form-label">Producto</label>
-                <select name="${FORMSET_PREFIX}-${newIndex}-producto" class="form-select">
-                    ${options}
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Cantidad</label>
-                <input type="number" name="${FORMSET_PREFIX}-${newIndex}-cantidad" class="form-control" value="${detalle.cantidad || 1}">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Costo Unitario</label>
-                <input type="number" name="${FORMSET_PREFIX}-${newIndex}-costo_unitario" class="form-control" value="${detalle.costo_unitario || 0}">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">IVA</label>
-                <input type="number" name="${FORMSET_PREFIX}-${newIndex}-iva" class="form-control" value="${detalle.iva || 0}" readonly>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Fecha Cad.</label>
-                <input type="date" name="${FORMSET_PREFIX}-${newIndex}-fecha_caducidad" class="form-control" value="${detalle.fecha_caducidad || ''}">
-            </div>
-            <div class="col-md-1">
-                <label class="form-label">&nbsp;</label>
-                <button type="button" class="btn btn-danger btn-sm remove-edit-detalle"><i class="fas fa-trash"></i></button>
-            </div>
-            <input type="hidden" name="${FORMSET_PREFIX}-${newIndex}-id" value="${detalle.id || ''}">
-        `;
-        container.appendChild(detalleDiv);
-    }
-});
-</script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="{% static 'suppliers/js/reabastecimiento_reception.js' %}"></script>
+<script src="{% static 'suppliers/js/reabastecimiento_list.js' %}"></script>
 {% endblock %}

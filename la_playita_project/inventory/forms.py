@@ -111,7 +111,8 @@ ReabastecimientoDetalleFormSet = inlineformset_factory(
     ReabastecimientoDetalle,
     form=ReabastecimientoDetalleForm,
     extra=1,
-    can_delete=True
+    can_delete=True,
+    validate_min=False
 )
 
 

@@ -12,7 +12,21 @@ urlpatterns = [
     path('reabastecimientos/<int:pk>/editar/', views.reabastecimiento_editar, name='reabastecimiento_editar'),
     path('reabastecimientos/<int:pk>/actualizar/', views.reabastecimiento_update, name='reabastecimiento_update'),
     path('reabastecimientos/<int:pk>/recibir/', views.reabastecimiento_recibir, name='reabastecimiento_recibir'),
+    path('reabastecimientos/<int:pk>/actualizar-recibido/', views.reabastecimiento_update_received, name='reabastecimiento_update_received'),
     path('reabastecimientos/<int:pk>/eliminar/', views.reabastecimiento_eliminar, name='reabastecimiento_eliminar'),
     path('categoria/crear_ajax/', views.categoria_create_ajax, name='categoria_create_ajax'),
     path('producto/crear_ajax/', views.producto_create_ajax, name='producto_create_ajax'),
+    path('api/search-suppliers/', views.search_suppliers_ajax, name='search_suppliers_ajax'), # New API endpoint
+    path('api/search-products/', views.search_products_ajax, name='search_products_ajax'), # New API endpoint
+
+    # New API endpoints for dynamic content loading
+    path('reabastecimientos/<int:pk>/row_api/', views.reabastecimiento_row_api, name='reabastecimiento_row_api'),
+    path('reabastecimientos/<int:pk>/details_api/', views.reabastecimiento_detail_api, name='reabastecimiento_detail_api'),
+    path('reabastecimientos/<int:pk>/audit_history/', views.reabastecimiento_audit_history, name='reabastecimiento_audit_history'),
+    path('reabastecimientos/<int:pk>/get_reception_form_api/', views.get_reception_form_api, name='get_reception_form_api'),
+    path('reabastecimientos/<int:pk>/get_edit_form_api/', views.get_edit_form_api, name='get_edit_form_api'),
+
+    # API endpoints for Select2 search
+    path('api/search_proveedores/', views.api_search_proveedores, name='api_search_proveedores'),
+    path('api/search_productos/', views.api_search_productos, name='api_search_productos'),
 ]

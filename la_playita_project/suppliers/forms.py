@@ -46,7 +46,8 @@ ReabastecimientoDetalleFormSet = forms.inlineformset_factory(
     form=ReabastecimientoDetalleForm,
     extra=1,
     can_delete=True,
-    can_delete_extra=True
+    can_delete_extra=True,
+    validate_min=False
 )
 
 class ProductoAjaxForm(forms.ModelForm):

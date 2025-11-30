@@ -4,16 +4,16 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4"><i class="bi bi-graph-up-arrow me-2"></i>Reporte de Ventas</h2>
+    <h2 class="mb-4 text-white"><i class="bi bi-graph-up-arrow me-2"></i>Reporte de Ventas</h2>
 
     <!-- Formulario de filtro por fechas -->
     <form method="get" class="row g-3 mb-4">
         <div class="col-md-4">
-            <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+            <label for="fecha_inicio" class="form-label text-white">Fecha Inicio</label>
             <input type="date" id="fecha_inicio" name="fecha_inicio" class="form-control" value="{{ request.GET.fecha_inicio }}">
         </div>
         <div class="col-md-4">
-            <label for="fecha_fin" class="form-label">Fecha Fin</label>
+            <label for="fecha_fin" class="form-label text-white">Fecha Fin</label>
             <input type="date" id="fecha_fin" name="fecha_fin" class="form-control" value="{{ request.GET.fecha_fin }}">
         </div>
         <div class="col-md-4 d-flex align-items-end">
@@ -25,13 +25,13 @@
     <!-- Resumen de ventas del día -->
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">Ventas del Día: ${{ total_ventas_hoy|floatformat:2 }}</h5>
+            <h5 class="card-title text-white">Ventas del Día: ${{ total_ventas_hoy|floatformat:2 }}</h5>
         </div>
     </div>
 
     <!-- Tabla de ventas del día -->
     <div class="table-responsive mb-4">
-        <h5>Ventas del Día</h5>
+        <h5 class="text-white">Ventas del Día</h5>
         <table class="table table-bordered table-hover">
             <thead class="table-light">
                 <tr>

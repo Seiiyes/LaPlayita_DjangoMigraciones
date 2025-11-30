@@ -19,18 +19,26 @@ from users.decorators import check_user_role
 def pqrs_list(request):
     base_query = Pqrs.objects.select_related('cliente', 'usuario').order_by('-fecha_creacion')
     query = request.GET.get('q')
+    tipo = request.GET.get('tipo')
+    estado = request.GET.get('estado')
+
+    pqrs_query = base_query.all()
+
     if query:
-        pqrs_query = base_query.filter(            
+        pqrs_query = pqrs_query.filter(            
             models.Q(cliente__nombres__icontains=query) |
             models.Q(cliente__apellidos__icontains=query) |
             models.Q(tipo__icontains=query) |
             models.Q(estado__icontains=query)
         )
-    else:
-        pqrs_query = base_query.all()
+    if tipo:
+        pqrs_query = pqrs_query.filter(tipo=tipo)
+    if estado:
+        pqrs_query = pqrs_query.filter(estado=estado)
+
 
     # Calculate statistics
-    stats_query = pqrs_query if query else base_query
+    stats_query = pqrs_query if (query or tipo or estado) else base_query
     stats = stats_query.aggregate(
         total=models.Count('id'),
         nuevos=models.Count('id', filter=models.Q(estado='nuevo')),
@@ -47,6 +55,10 @@ def pqrs_list(request):
         'pqrs': page_obj,
         'stats': stats,
         'query': query,
+        'tipos': Pqrs.TIPO_CHOICES,
+        'estados': Pqrs.ESTADO_CHOICES,
+        'selected_tipo': tipo,
+        'selected_estado': estado,
     }
     return render(request, 'pqrs/pqrs_list.html', context)
 

@@ -8,7 +8,7 @@ def status_badge(status):
     if status_lower == 'nuevo':
         return 'bg-primary'
     elif status_lower == 'en_proceso':
-        return 'bg-warning text-dark'
+        return 'bg-orange text-white'
     elif status_lower == 'resuelto':
         return 'bg-success'
     elif status_lower == 'cerrado':

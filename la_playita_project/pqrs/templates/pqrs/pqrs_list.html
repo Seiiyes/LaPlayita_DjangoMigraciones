@@ -8,6 +8,11 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'pqrs/css/pqrs.css' %}">
+    <style>
+        .bg-orange {
+            background-color: orange;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
@@ -55,7 +60,7 @@
             </div>
         </div>
     </div>
-
+    <hr/>
     <div class="card shadow-sm">
         <div class="card-header d-flex justify-content-between align-items-center bg-light">
             <h4 class="mb-0 text-primary">Historial de PQRS</h4>
@@ -65,11 +70,31 @@
         </div>
         <div class="card-body">
             <form method="get" class="mb-3">
-                <div class="input-group">
-                    <input type="text" class="form-control" name="q" placeholder="Buscar por cliente, tipo, estado..." value="{{ request.GET.q }}">
-                    <button class="btn btn-outline-secondary" type="submit">
-                        <i class="bi bi-search"></i> Buscar
-                    </button>
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" name="q" placeholder="Buscar por cliente..." value="{{ request.GET.q }}">
+                    </div>
+                    <div class="col-md-2">
+                        <select name="tipo" class="form-select">
+                            <option value="">Todos los tipos</option>
+                            {% for value, display in tipos %}
+                            <option value="{{ value }}" {% if selected_tipo == value %}selected{% endif %}>{{ display }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="estado" class="form-select">
+                            <option value="">Todos los estados</option>
+                            {% for value, display in estados %}
+                            <option value="{{ value }}" {% if selected_estado == value %}selected{% endif %}>{{ display }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-primary w-100" type="submit">
+                            <i class="bi bi-search"></i> Filtrar
+                        </button>
+                    </div>
                 </div>
             </form>
             <div class="table-responsive">
@@ -118,8 +143,8 @@
             <nav aria-label="Page navigation">
                 <ul class="pagination justify-content-center">
                     {% if pqrs.has_previous %}
-                        <li class="page-item"><a class="page-link" href="?page=1{% if query %}&q={{ query }}{% endif %}">&laquo; Primera</a></li>
-                        <li class="page-item"><a class="page-link" href="?page={{ pqrs.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">Anterior</a></li>
+                        <li class="page-item"><a class="page-link" href="?page=1{% if query %}&q={{ query }}{% endif %}{% if selected_tipo %}&tipo={{ selected_tipo }}{% endif %}{% if selected_estado %}&estado={{ selected_estado }}{% endif %}">&laquo; Primera</a></li>
+                        <li class="page-item"><a class="page-link" href="?page={{ pqrs.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_tipo %}&tipo={{ selected_tipo }}{% endif %}{% if selected_estado %}&estado={{ selected_estado }}{% endif %}">Anterior</a></li>
                     {% endif %}
                     
                     <li class="page-item active" aria-current="page">
@@ -127,8 +152,8 @@
                     </li>
                     
                     {% if pqrs.has_next %}
-                        <li class="page-item"><a class="page-link" href="?page={{ pqrs.next_page_number }}{% if query %}&q={{ query }}{% endif %}">Siguiente</a></li>
-                        <li class="page-item"><a class="page-link" href="?page={{ pqrs.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}">Última &raquo;</a></li>
+                        <li class="page-item"><a class="page-link" href="?page={{ pqrs.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_tipo %}&tipo={{ selected_tipo }}{% endif %}{% if selected_estado %}&estado={{ selected_estado }}{% endif %}">Siguiente</a></li>
+                        <li class="page-item"><a class="page-link" href="?page={{ pqrs.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}{% if selected_tipo %}&tipo={{ selected_tipo }}{% endif %}{% if selected_estado %}&estado={{ selected_estado }}{% endif %}">Última &raquo;</a></li>
                     {% endif %}
                 </ul>
             </nav>

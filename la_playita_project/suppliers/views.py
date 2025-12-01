@@ -390,7 +390,10 @@ def reabastecimiento_create(request):
                     logger.info(f"[REAB] Reabastecimiento guardado: ID {reab.id}")
 
                     for detalle_form_data in detalles_a_crear:
+                        # Eliminar campos que no pertenecen al modelo
                         detalle_form_data.pop('DELETE', None)
+                        detalle_form_data.pop('reabastecimiento', None)
+                        detalle_form_data.pop('iva_porcentaje', None)
                         ReabastecimientoDetalle.objects.create(reabastecimiento=reab, **detalle_form_data)
                     logger.info(f"[REAB] Detalles guardados: {len(detalles_a_crear)}")
 

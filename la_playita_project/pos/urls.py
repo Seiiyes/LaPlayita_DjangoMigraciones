@@ -25,4 +25,16 @@ urlpatterns = [
     path('api/ventas-por-fecha/', views.api_ventas_por_fecha, name='api_ventas_por_fecha'),
     path('api/comparativa-metodos-pago/', views.api_comparativa_metodos_pago, name='api_comparativa_metodos_pago'),
     path('api/ventas-por-hora/', views.api_ventas_por_hora, name='api_ventas_por_hora'),
+    
+    # APIs de Mesas
+    path('api/mesas/', views.api_listar_mesas, name='api_listar_mesas'),
+    path('api/mesa/crear/', views.api_crear_mesa, name='api_crear_mesa'),
+    path('api/mesa/<int:mesa_id>/editar/', views.api_editar_mesa, name='api_editar_mesa'),
+    path('api/mesa/<int:mesa_id>/eliminar/', views.api_eliminar_mesa, name='api_eliminar_mesa'),
+    path('api/mesa/<int:mesa_id>/abrir/', views.api_abrir_mesa, name='api_abrir_mesa'),
+    path('api/mesa/<int:mesa_id>/agregar-item/', views.api_agregar_item_mesa, name='api_agregar_item_mesa'),
+    path('api/mesa/<int:mesa_id>/items/', views.api_items_mesa, name='api_items_mesa'),
+    path('api/mesa/<int:mesa_id>/item/<int:item_id>/editar/', views.api_editar_item_mesa, name='api_editar_item_mesa'),
+    path('api/mesa/<int:mesa_id>/item/<int:item_id>/eliminar/', views.api_eliminar_item_mesa, name='api_eliminar_item_mesa'),
+    path('api/mesa/<int:mesa_id>/cerrar/', views.api_cerrar_mesa, name='api_cerrar_mesa'),
 ]

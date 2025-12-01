@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    'widget_tweaks',
     'core.apps.CoreConfig',
     'inventory.apps.InventoryConfig',
     'pos.apps.PosConfig',

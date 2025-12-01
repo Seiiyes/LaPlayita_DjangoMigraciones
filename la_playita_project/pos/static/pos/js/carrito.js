@@ -321,6 +321,7 @@ class CarritoPOS {
      * Agrega un producto al carrito distribuyendo la cantidad entre múltiples lotes (FIFO)
      */
     agregarProductoMultiLote(producto, lotes, cantidadTotal) {
+        // SIEMPRE agregar al carrito primero (tanto para mesa como para venta normal)
         let cantidadRestante = cantidadTotal;
         let lotesUsados = 0;
 
@@ -351,11 +352,221 @@ class CarritoPOS {
         }
 
         // Mostrar notificación informativa
+        const mesaActiva = window.gestionMesas && window.gestionMesas.mesaSeleccionada;
         if (lotesUsados > 1) {
             this.mostrarNotificacion(
-                `${producto.nombre}: ${cantidadTotal} unidades agregadas usando ${lotesUsados} lotes`,
+                `${producto.nombre}: ${cantidadTotal} unidades agregadas ${mesaActiva ? 'al carrito' : 'usando ' + lotesUsados + ' lotes'}`,
                 'success'
             );
+        } else if (mesaActiva) {
+            this.mostrarNotificacion(
+                `${producto.nombre} agregado al carrito. Click "Agregar a Mesa" para confirmar.`,
+                'info'
+            );
+        }
+    }
+
+    /**
+     * Agrega todo el carrito a la mesa con anotación
+     */
+    async agregarCarritoAMesa(mesaId) {
+        if (this.carrito.length === 0) {
+            alert('El carrito está vacío');
+            return;
+        }
+
+        // Mostrar modal con productos y anotaciones
+        this.mostrarModalAnotaciones(mesaId);
+    }
+
+    mostrarModalAnotaciones(mesaId) {
+        // Crear HTML de productos con campos de anotación
+        let productosHTML = '';
+        this.carrito.forEach((item, index) => {
+            productosHTML += `
+                <div class="producto-anotacion mb-3 p-3 border rounded">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="mb-1"><strong>${this.escaparHTML(item.nombre)}</strong></h6>
+                            <small class="text-muted">Cantidad: ${item.cantidad} | Precio: $${this.formatearMoneda(item.precio)}</small>
+                        </div>
+                        <span class="badge bg-primary">$${this.formatearMoneda(item.precio * item.cantidad)}</span>
+                    </div>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-chat-left-text"></i></span>
+                        <input type="text" class="form-control anotacion-input" data-index="${index}" 
+                               placeholder="Ej: Sin cebolla, Extra picante, Para llevar..." 
+                               maxlength="200">
+                    </div>
+                </div>
+            `;
+        });
+
+        const modalHTML = `
+            <div class="modal fade" id="modalAnotaciones" tabindex="-1">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title">
+                                <i class="bi bi-cart-check me-2"></i>Confirmar Pedido para Mesa
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Revisa los productos y agrega anotaciones si es necesario</strong>
+                                <br>
+                                <small>Las anotaciones son opcionales y ayudan a especificar preferencias del cliente</small>
+                            </div>
+                            <div id="productos-anotaciones">
+                                ${productosHTML}
+                            </div>
+                            <div class="alert alert-success mt-3 mb-0">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong class="fs-5">Total del Pedido:</strong>
+                                    <span class="fs-4">$${this.formatearMoneda(this.carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0))}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </button>
+                            <button type="button" class="btn btn-success btn-lg" id="btn-confirmar-agregar-mesa">
+                                <i class="bi bi-check-circle-fill me-1"></i>Confirmar y Agregar a Mesa
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remover modal anterior si existe
+        const modalAnterior = document.getElementById('modalAnotaciones');
+        if (modalAnterior) {
+            modalAnterior.remove();
+        }
+
+        // Insertar nuevo modal
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        // Evento para confirmar
+        document.getElementById('btn-confirmar-agregar-mesa').addEventListener('click', () => {
+            this.confirmarAgregarAMesa(mesaId);
+        });
+
+        // Mostrar modal
+        const modal = new bootstrap.Modal(document.getElementById('modalAnotaciones'));
+        modal.show();
+    }
+
+    async confirmarAgregarAMesa(mesaId) {
+        // Recopilar anotaciones
+        const inputs = document.querySelectorAll('.anotacion-input');
+        const items = this.carrito.map((item, index) => ({
+            producto_id: item.producto_id,
+            lote_id: item.lote_id,
+            cantidad: item.cantidad,
+            anotacion: inputs[index].value.trim()
+        }));
+
+        // Deshabilitar botón
+        const btnConfirmar = document.getElementById('btn-confirmar-agregar-mesa');
+        const textoOriginal = btnConfirmar.innerHTML;
+        btnConfirmar.disabled = true;
+        btnConfirmar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Agregando...';
+
+        try {
+            const response = await fetch(`/pos/api/mesa/${mesaId}/agregar-item/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.obtenerCSRFToken()
+                },
+                body: JSON.stringify({ items })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Cerrar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalAnotaciones'));
+                modal.hide();
+
+                this.mostrarNotificacion(
+                    `${items.length} producto(s) agregado(s) a la mesa. Total: $${data.total_cuenta.toFixed(2)}`,
+                    'success'
+                );
+                
+                // Vaciar carrito
+                this.vaciarCarrito();
+            } else {
+                this.mostrarNotificacion('Error: ' + data.error, 'danger');
+                btnConfirmar.disabled = false;
+                btnConfirmar.innerHTML = textoOriginal;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            this.mostrarNotificacion('Error al agregar productos a la mesa', 'danger');
+            btnConfirmar.disabled = false;
+            btnConfirmar.innerHTML = textoOriginal;
+        }
+    }
+
+    /**
+     * Agrega productos directamente a una mesa
+     */
+    async agregarProductoAMesa(producto, lotes, cantidadTotal, mesaId) {
+        // Ordenar lotes por fecha de caducidad (FIFO)
+        const lotesOrdenados = [...lotes].sort((a, b) => {
+            if (a.fecha_caducidad === 'N/A') return 1;
+            if (b.fecha_caducidad === 'N/A') return -1;
+            return new Date(a.fecha_caducidad) - new Date(b.fecha_caducidad);
+        });
+
+        // Preparar items para enviar
+        const items = [];
+        let cantidadRestante = cantidadTotal;
+
+        for (const lote of lotesOrdenados) {
+            if (cantidadRestante <= 0) break;
+
+            const cantidadDeLote = Math.min(cantidadRestante, lote.cantidad);
+            
+            items.push({
+                producto_id: producto.id,
+                lote_id: lote.id,
+                cantidad: cantidadDeLote
+            });
+
+            cantidadRestante -= cantidadDeLote;
+        }
+
+        // Enviar a la API de la mesa
+        try {
+            const response = await fetch(`/pos/api/mesa/${mesaId}/agregar-item/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.obtenerCSRFToken()
+                },
+                body: JSON.stringify({ items })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.mostrarNotificacion(
+                    `${producto.nombre} (${cantidadTotal} unidades) agregado a la mesa. Total: $${data.total_cuenta.toFixed(2)}`,
+                    'success'
+                );
+            } else {
+                this.mostrarNotificacion('Error: ' + data.error, 'danger');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            this.mostrarNotificacion('Error al agregar producto a la mesa', 'danger');
         }
     }
 
@@ -786,6 +997,252 @@ class CarritoPOS {
             } catch (error) {
                 this.carrito = [];
             }
+        }
+    }
+
+    calcularSubtotal() {
+        return this.carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+    }
+
+    calcularImpuestos() {
+        return this.calcularSubtotal() * this.impuesto;
+    }
+
+    calcularTotal() {
+        return this.calcularSubtotal() + this.calcularImpuestos();
+    }
+
+    mostrarFormularioPago() {
+        if (this.carrito.length === 0) {
+            this.mostrarNotificacion('El carrito está vacío', 'warning');
+            return;
+        }
+
+        const subtotal = this.calcularSubtotal();
+        const impuestos = this.calcularImpuestos();
+        const total = this.calcularTotal();
+
+        const itemsHTML = this.carrito.map(item => `
+            <tr>
+                <td>${this.escaparHTML(item.nombre)}</td>
+                <td class="text-center">${item.cantidad}</td>
+                <td class="text-end">$${this.formatearMoneda(item.precio)}</td>
+                <td class="text-end">$${this.formatearMoneda(item.precio * item.cantidad)}</td>
+            </tr>
+        `).join('');
+
+        const modalHTML = `
+            <div class="modal fade" id="modalCompletarVenta" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title">
+                                <i class="bi bi-check-circle me-2"></i>Completar Venta
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="mb-3"><i class="bi bi-cart-check me-2"></i>Resumen del Carrito</h6>
+                                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Producto</th>
+                                                    <th class="text-center">Cant.</th>
+                                                    <th class="text-end">Precio</th>
+                                                    <th class="text-end">Subtotal</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${itemsHTML}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <th colspan="3" class="text-end">Subtotal:</th>
+                                                    <th class="text-end">$${this.formatearMoneda(subtotal)}</th>
+                                                </tr>
+                                                <tr>
+                                                    <th colspan="3" class="text-end">Impuestos (19%):</th>
+                                                    <th class="text-end">$${this.formatearMoneda(impuestos)}</th>
+                                                </tr>
+                                                <tr class="table-success">
+                                                    <th colspan="3" class="text-end">TOTAL:</th>
+                                                    <th class="text-end">$${this.formatearMoneda(total)}</th>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="mb-3"><i class="bi bi-credit-card me-2"></i>Información de Pago</h6>
+                                    <form id="formCompletarVenta">
+                                        <div class="mb-3">
+                                            <label for="cliente-modal" class="form-label">
+                                                <i class="bi bi-person me-1"></i>Cliente *
+                                            </label>
+                                            <select class="form-select" id="cliente-modal" required>
+                                                <option value="">Cargando clientes...</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="metodo-pago" class="form-label">Método de Pago *</label>
+                                            <select class="form-select" id="metodo-pago" required>
+                                                <option value="efectivo">Efectivo</option>
+                                                <option value="tarjeta_debito">Tarjeta Débito</option>
+                                                <option value="tarjeta_credito">Tarjeta Crédito</option>
+                                                <option value="transferencia">Transferencia</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="monto-recibido" class="form-label">Monto Recibido</label>
+                                            <input type="number" class="form-control" id="monto-recibido" 
+                                                   step="0.01" min="${total}" value="${total}" 
+                                                   placeholder="Ingrese el monto recibido">
+                                            <small class="text-muted">Total a pagar: $${this.formatearMoneda(total)}</small>
+                                        </div>
+                                        <div class="mb-3" id="cambio-container" style="display: none;">
+                                            <div class="alert alert-info">
+                                                <strong>Cambio a devolver:</strong> 
+                                                <span id="cambio-valor" class="fs-5">$0.00</span>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </button>
+                            <button type="button" class="btn btn-success" onclick="carritoPOS.procesarVenta()">
+                                <i class="bi bi-check-circle-fill me-1"></i>Generar Factura
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remover modal anterior
+        const modalAnterior = document.getElementById('modalCompletarVenta');
+        if (modalAnterior) modalAnterior.remove();
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = new bootstrap.Modal(document.getElementById('modalCompletarVenta'));
+        modal.show();
+
+        // Cargar clientes en el selector del modal
+        this.cargarClientesEnModal();
+
+        // Calcular cambio automáticamente
+        const montoRecibidoInput = document.getElementById('monto-recibido');
+        const cambioContainer = document.getElementById('cambio-container');
+        const cambioValor = document.getElementById('cambio-valor');
+
+        montoRecibidoInput.addEventListener('input', () => {
+            const montoRecibido = parseFloat(montoRecibidoInput.value) || 0;
+            const cambio = montoRecibido - total;
+            
+            if (cambio > 0) {
+                cambioContainer.style.display = 'block';
+                cambioValor.textContent = '$' + this.formatearMoneda(cambio);
+            } else {
+                cambioContainer.style.display = 'none';
+            }
+        });
+    }
+
+    async cargarClientesEnModal() {
+        const clienteModal = document.getElementById('cliente-modal');
+        if (!clienteModal) return;
+
+        // Obtener el cliente seleccionado del selector principal
+        const clienteSelectPrincipal = document.getElementById('cliente-select');
+        const clienteSeleccionado = clienteSelectPrincipal ? clienteSelectPrincipal.value : '1';
+
+        try {
+            const response = await fetch('/pos/api/obtener-clientes/');
+            const data = await response.json();
+
+            if (data.success && data.clientes) {
+                clienteModal.innerHTML = '<option value="1">Consumidor Final</option>';
+                
+                data.clientes.forEach(cliente => {
+                    const selected = cliente.id == clienteSeleccionado ? 'selected' : '';
+                    clienteModal.innerHTML += `<option value="${cliente.id}" ${selected}>${this.escaparHTML(cliente.nombre)}</option>`;
+                });
+            } else {
+                clienteModal.innerHTML = '<option value="1" selected>Consumidor Final</option>';
+            }
+        } catch (error) {
+            console.error('Error al cargar clientes:', error);
+            clienteModal.innerHTML = '<option value="1" selected>Consumidor Final</option>';
+        }
+    }
+
+    async procesarVenta() {
+        const metodoPago = document.getElementById('metodo-pago').value;
+        const montoRecibido = parseFloat(document.getElementById('monto-recibido').value) || 0;
+        const clienteId = document.getElementById('cliente-modal').value;
+
+        if (!metodoPago) {
+            this.mostrarNotificacion('Por favor seleccione un método de pago', 'warning');
+            return;
+        }
+
+        if (!clienteId) {
+            this.mostrarNotificacion('Por favor seleccione un cliente', 'warning');
+            return;
+        }
+
+        // Preparar datos de la venta
+        const ventaData = {
+            cliente_id: clienteId,
+            metodo_pago: metodoPago,
+            canal_venta: 'mostrador',
+            monto_recibido: montoRecibido,
+            items: this.carrito.map(item => ({
+                producto_id: item.producto_id,
+                lote_id: item.lote_id,
+                cantidad: item.cantidad,
+                precio: item.precio
+            }))
+        };
+
+        try {
+            const response = await fetch('/pos/api/procesar-venta/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.obtenerCSRFToken()
+                },
+                body: JSON.stringify(ventaData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Cerrar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalCompletarVenta'));
+                if (modal) modal.hide();
+
+                this.mostrarNotificacion('Venta procesada exitosamente', 'success');
+                this.vaciarCarrito();
+
+                // Redirigir a detalle de venta
+                setTimeout(() => {
+                    if (confirm('¿Desea ver la factura?')) {
+                        window.location.href = `/pos/venta/${data.venta_id}/`;
+                    }
+                }, 500);
+            } else {
+                this.mostrarNotificacion('Error: ' + data.error, 'danger');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            this.mostrarNotificacion('Error al procesar la venta', 'danger');
         }
     }
 

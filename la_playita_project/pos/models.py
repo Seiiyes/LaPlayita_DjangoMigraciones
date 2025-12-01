@@ -89,3 +89,52 @@ class Pago(models.Model):
     class Meta:
         managed = False
         db_table = 'pago'
+
+
+class Mesa(models.Model):
+    ESTADO_DISPONIBLE = 'disponible'
+    ESTADO_OCUPADA = 'ocupada'
+    ESTADO_RESERVADA = 'reservada'
+    
+    ESTADO_CHOICES = [
+        (ESTADO_DISPONIBLE, 'Disponible'),
+        (ESTADO_OCUPADA, 'Ocupada'),
+        (ESTADO_RESERVADA, 'Reservada'),
+    ]
+    
+    numero = models.CharField(max_length=10, unique=True)
+    nombre = models.CharField(max_length=50, blank=True)
+    capacidad = models.PositiveIntegerField(default=4)
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default=ESTADO_DISPONIBLE)
+    activa = models.BooleanField(default=True)
+    
+    # Campos para la cuenta actual
+    cuenta_abierta = models.BooleanField(default=False)
+    total_cuenta = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    fecha_apertura = models.DateTimeField(null=True, blank=True)
+    cliente = models.ForeignKey('clients.Cliente', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    def __str__(self):
+        return f"Mesa {self.numero} - {self.get_estado_display()}"
+    
+    class Meta:
+        db_table = 'mesa'
+        ordering = ['numero']
+
+
+class ItemMesa(models.Model):
+    mesa = models.ForeignKey(Mesa, on_delete=models.CASCADE, related_name='items')
+    producto = models.ForeignKey('inventory.Producto', on_delete=models.PROTECT)
+    lote = models.ForeignKey('inventory.Lote', on_delete=models.PROTECT)
+    cantidad = models.PositiveIntegerField()
+    precio_unitario = models.DecimalField(max_digits=12, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2)
+    fecha_agregado = models.DateTimeField(default=timezone.now)
+    facturado = models.BooleanField(default=False)
+    anotacion = models.TextField(blank=True, null=True)
+    
+    def __str__(self):
+        return f"{self.cantidad} x {self.producto.nombre} - Mesa {self.mesa.numero}"
+    
+    class Meta:
+        db_table = 'item_mesa'

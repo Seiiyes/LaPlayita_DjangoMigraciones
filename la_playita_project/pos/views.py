@@ -5,12 +5,12 @@ from django.db import transaction
 from django.db.models import Sum, F, Count, Avg
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from django.template.loader import render_to_string
 from weasyprint import HTML
 from inventory.models import Producto, Lote, MovimientoInventario
 from clients.models import Cliente, PuntosFidelizacion
-from .models import Venta, VentaDetalle, Pago
+from .models import Venta, VentaDetalle, Pago, Mesa, ItemMesa
 from .forms import ProductoSearchForm, VentaForm
 from users.decorators import check_user_role
 from django.core.mail import EmailMessage
@@ -630,3 +630,449 @@ def api_ventas_por_hora(request):
         'cantidades': [ventas_por_hora[h]['cantidad'] for h in horas],
         'totales': [ventas_por_hora[h]['total'] for h in horas],
     })
+
+
+# ==================== GESTIÓN DE MESAS ====================
+
+@login_required
+def api_listar_mesas(request):
+    """API para listar todas las mesas con su estado"""
+    from .models import Mesa
+    
+    mesas = Mesa.objects.filter(activa=True).order_by('numero')
+    
+    mesas_data = []
+    for mesa in mesas:
+        mesas_data.append({
+            'id': mesa.id,
+            'numero': mesa.numero,
+            'nombre': mesa.nombre,
+            'capacidad': mesa.capacidad,
+            'estado': mesa.estado,
+            'cuenta_abierta': mesa.cuenta_abierta,
+            'total_cuenta': float(mesa.total_cuenta),
+            'cliente': {
+                'id': mesa.cliente.id,
+                'nombre': f"{mesa.cliente.nombres} {mesa.cliente.apellidos}"
+            } if mesa.cliente else None
+        })
+    
+    return JsonResponse({'success': True, 'mesas': mesas_data})
+
+
+@login_required
+@require_POST
+def api_crear_mesa(request):
+    """API para crear una nueva mesa"""
+    from .models import Mesa
+    
+    try:
+        data = json.loads(request.body)
+        numero = data.get('numero')
+        nombre = data.get('nombre', f'Mesa {numero}')
+        capacidad = int(data.get('capacidad', 4))
+        
+        # Verificar que no exista una mesa con ese número
+        if Mesa.objects.filter(numero=numero).exists():
+            return JsonResponse({'success': False, 'error': 'Ya existe una mesa con ese número'}, status=400)
+        
+        mesa = Mesa.objects.create(
+            numero=numero,
+            nombre=nombre,
+            capacidad=capacidad,
+            estado=Mesa.ESTADO_DISPONIBLE,
+            activa=True,
+            cuenta_abierta=False,
+            total_cuenta=Decimal('0.00')
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'mensaje': f'Mesa {numero} creada correctamente',
+            'mesa': {
+                'id': mesa.id,
+                'numero': mesa.numero,
+                'nombre': mesa.nombre,
+                'capacidad': mesa.capacidad
+            }
+        })
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_POST
+def api_editar_mesa(request, mesa_id):
+    """API para editar una mesa existente"""
+    from .models import Mesa
+    
+    try:
+        data = json.loads(request.body)
+        mesa = get_object_or_404(Mesa, pk=mesa_id)
+        
+        if mesa.cuenta_abierta:
+            return JsonResponse({'success': False, 'error': 'No se puede editar una mesa con cuenta abierta'}, status=400)
+        
+        mesa.numero = data.get('numero', mesa.numero)
+        mesa.nombre = data.get('nombre', mesa.nombre)
+        mesa.capacidad = int(data.get('capacidad', mesa.capacidad))
+        mesa.save()
+        
+        return JsonResponse({
+            'success': True,
+            'mensaje': f'Mesa {mesa.numero} actualizada correctamente'
+        })
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_POST
+def api_eliminar_mesa(request, mesa_id):
+    """API para eliminar (desactivar) una mesa"""
+    from .models import Mesa
+    
+    try:
+        mesa = get_object_or_404(Mesa, pk=mesa_id)
+        
+        if mesa.cuenta_abierta:
+            return JsonResponse({'success': False, 'error': 'No se puede eliminar una mesa con cuenta abierta'}, status=400)
+        
+        mesa.activa = False
+        mesa.save()
+        
+        return JsonResponse({
+            'success': True,
+            'mensaje': f'Mesa {mesa.numero} eliminada correctamente'
+        })
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_POST
+def api_abrir_mesa(request, mesa_id):
+    """API para abrir una mesa"""
+    from .models import Mesa
+    
+    try:
+        data = json.loads(request.body)
+        mesa = get_object_or_404(Mesa, pk=mesa_id)
+        
+        if mesa.cuenta_abierta:
+            return JsonResponse({'success': False, 'error': 'La mesa ya tiene una cuenta abierta'}, status=400)
+        
+        cliente_id = data.get('cliente_id', 1)
+        cliente = get_object_or_404(Cliente, pk=cliente_id)
+        
+        mesa.cuenta_abierta = True
+        mesa.estado = Mesa.ESTADO_OCUPADA
+        mesa.cliente = cliente
+        mesa.fecha_apertura = timezone.now()
+        mesa.total_cuenta = Decimal('0.00')
+        mesa.save()
+        
+        return JsonResponse({
+            'success': True,
+            'mensaje': f'Mesa {mesa.numero} abierta correctamente',
+            'mesa_numero': mesa.numero
+        })
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_POST
+def api_agregar_item_mesa(request, mesa_id):
+    """API para agregar items a una mesa"""
+    from .models import Mesa, ItemMesa
+    
+    try:
+        data = json.loads(request.body)
+        mesa = get_object_or_404(Mesa, pk=mesa_id)
+        
+        if not mesa.cuenta_abierta:
+            return JsonResponse({'success': False, 'error': 'La mesa no tiene una cuenta abierta'}, status=400)
+        
+        items = data.get('items', [])
+        
+        for item_data in items:
+            producto = get_object_or_404(Producto, pk=item_data['producto_id'])
+            lote = get_object_or_404(Lote, pk=item_data['lote_id'])
+            cantidad = int(item_data['cantidad'])
+            anotacion = item_data.get('anotacion', '')
+            
+            subtotal = producto.precio_unitario * cantidad
+            
+            ItemMesa.objects.create(
+                mesa=mesa,
+                producto=producto,
+                lote=lote,
+                cantidad=cantidad,
+                precio_unitario=producto.precio_unitario,
+                subtotal=subtotal,
+                anotacion=anotacion
+            )
+        
+        # Actualizar total de la mesa
+        from .models import ItemMesa
+        total = ItemMesa.objects.filter(mesa=mesa, facturado=False).aggregate(
+            Sum('subtotal')
+        )['subtotal__sum'] or Decimal('0.00')
+        
+        mesa.total_cuenta = total
+        mesa.save()
+        
+        return JsonResponse({
+            'success': True,
+            'mensaje': 'Items agregados correctamente',
+            'total_cuenta': float(total)
+        })
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+def api_items_mesa(request, mesa_id):
+    """API para obtener los items de una mesa"""
+    from .models import Mesa, ItemMesa
+    
+    mesa = get_object_or_404(Mesa, pk=mesa_id)
+    items = ItemMesa.objects.filter(mesa=mesa, facturado=False).select_related('producto', 'lote')
+    
+    items_data = []
+    for item in items:
+        items_data.append({
+            'id': item.id,
+            'producto': item.producto.nombre,
+            'producto_id': item.producto.id,
+            'lote_id': item.lote.id if item.lote else None,
+            'cantidad': item.cantidad,
+            'precio_unitario': float(item.precio_unitario),
+            'subtotal': float(item.subtotal),
+            'anotacion': item.anotacion or ''
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'items': items_data,
+        'total': float(mesa.total_cuenta),
+        'mesa_numero': mesa.numero
+    })
+
+
+@login_required
+@require_POST
+def api_editar_item_mesa(request, item_id):
+    """API para editar la anotación de un item de mesa"""
+    from .models import ItemMesa
+    
+    try:
+        data = json.loads(request.body)
+        item = get_object_or_404(ItemMesa, pk=item_id)
+        
+        if item.facturado:
+            return JsonResponse({'success': False, 'error': 'No se puede editar un item ya facturado'}, status=400)
+        
+        item.anotacion = data.get('anotacion', '')
+        item.save()
+        
+        return JsonResponse({
+            'success': True,
+            'mensaje': 'Anotación actualizada correctamente'
+        })
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_POST
+def api_eliminar_item_mesa(request, item_id):
+    """API para eliminar un item de una mesa"""
+    from .models import ItemMesa
+    
+    try:
+        item = get_object_or_404(ItemMesa, pk=item_id)
+        mesa = item.mesa
+        
+        if item.facturado:
+            return JsonResponse({'success': False, 'error': 'No se puede eliminar un item ya facturado'}, status=400)
+        
+        item.delete()
+        
+        # Recalcular total de la mesa
+        total = ItemMesa.objects.filter(mesa=mesa, facturado=False).aggregate(
+            Sum('subtotal')
+        )['subtotal__sum'] or Decimal('0.00')
+        
+        mesa.total_cuenta = total
+        mesa.save()
+        
+        return JsonResponse({
+            'success': True,
+            'mensaje': 'Item eliminado correctamente',
+            'total_cuenta': float(total)
+        })
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_POST
+@transaction.atomic
+def api_cerrar_mesa(request, mesa_id):
+    """API para cerrar una mesa y generar la venta"""
+    from .models import Mesa, ItemMesa
+    
+    try:
+        data = json.loads(request.body)
+        print(f"DEBUG - Datos recibidos en cerrar mesa: {data}")
+        
+        mesa = get_object_or_404(Mesa, pk=mesa_id)
+        
+        if not mesa.cuenta_abierta:
+            return JsonResponse({'success': False, 'error': 'La mesa no tiene una cuenta abierta'}, status=400)
+        
+        items = ItemMesa.objects.filter(mesa=mesa, facturado=False)
+        
+        if not items.exists():
+            return JsonResponse({'success': False, 'error': 'No hay items en la mesa'}, status=400)
+        
+        # Obtener el cliente del request o usar el de la mesa como fallback
+        cliente_id = data.get('cliente_id')
+        print(f"DEBUG - Cliente ID recibido: {cliente_id}")
+        print(f"DEBUG - Cliente de la mesa: {mesa.cliente}")
+        
+        if cliente_id:
+            cliente = get_object_or_404(Cliente, pk=cliente_id)
+            print(f"DEBUG - Usando cliente del request: {cliente}")
+        else:
+            cliente = mesa.cliente if mesa.cliente else get_object_or_404(Cliente, pk=1)
+            print(f"DEBUG - Usando cliente fallback: {cliente}")
+        
+        # Crear la venta
+        nueva_venta = Venta.objects.create(
+            cliente=cliente,
+            usuario=request.user,
+            canal_venta='mostrador',
+            total_venta=mesa.total_cuenta
+        )
+        
+        # Crear el pago
+        Pago.objects.create(
+            venta=nueva_venta,
+            monto=mesa.total_cuenta,
+            metodo_pago=data.get('metodo_pago', 'efectivo'),
+            estado='completado'
+        )
+        
+        # Crear detalles de venta y actualizar lotes
+        for item in items:
+            VentaDetalle.objects.create(
+                venta=nueva_venta,
+                producto=item.producto,
+                lote=item.lote,
+                cantidad=item.cantidad,
+                subtotal=item.subtotal
+            )
+            
+            # Actualizar lote
+            item.lote.cantidad_disponible -= item.cantidad
+            item.lote.save()
+            
+            # Registrar movimiento de inventario
+            MovimientoInventario.objects.create(
+                producto=item.producto,
+                lote=item.lote,
+                cantidad=-item.cantidad,
+                tipo_movimiento='salida',
+                descripcion=f'Venta Mesa {mesa.numero} - Venta #{nueva_venta.id}',
+                venta=nueva_venta
+            )
+            
+            # Marcar item como facturado
+            item.facturado = True
+            item.save()
+        
+        # Cerrar la mesa
+        mesa.cuenta_abierta = False
+        mesa.estado = Mesa.ESTADO_DISPONIBLE
+        mesa.total_cuenta = Decimal('0.00')
+        mesa.cliente = None
+        mesa.fecha_apertura = None
+        mesa.save()
+        
+        return JsonResponse({
+            'success': True,
+            'mensaje': f'Mesa {mesa.numero} cerrada correctamente',
+            'venta_id': nueva_venta.id
+        })
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@require_http_methods(["POST"])
+def api_editar_item_mesa(request, mesa_id, item_id):
+    """API para editar la anotación de un item de mesa"""
+    try:
+        data = json.loads(request.body)
+        
+        # Obtener el item
+        item = ItemMesa.objects.get(id=item_id, mesa_id=mesa_id)
+        
+        # Actualizar la anotación
+        item.anotacion = data.get('anotacion', '')
+        item.save()
+        
+        return JsonResponse({
+            'success': True,
+            'mensaje': 'Comentario actualizado correctamente'
+        })
+    
+    except ItemMesa.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Item no encontrado'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@require_http_methods(["POST"])
+def api_eliminar_item_mesa(request, mesa_id, item_id):
+    """API para eliminar un item de una mesa"""
+    try:
+        # Obtener el item
+        item = ItemMesa.objects.get(id=item_id, mesa_id=mesa_id)
+        mesa = item.mesa
+        
+        # Guardar el subtotal antes de eliminar
+        subtotal = item.subtotal
+        
+        # Eliminar el item
+        item.delete()
+        
+        # Recalcular el total de la mesa
+        mesa.total_cuenta = ItemMesa.objects.filter(
+            mesa=mesa,
+            facturado=False
+        ).aggregate(
+            total=Sum('subtotal')
+        )['total'] or Decimal('0.00')
+        mesa.save()
+        
+        return JsonResponse({
+            'success': True,
+            'mensaje': 'Producto eliminado correctamente',
+            'nuevo_total': float(mesa.total_cuenta)
+        })
+    
+    except ItemMesa.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Item no encontrado'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)

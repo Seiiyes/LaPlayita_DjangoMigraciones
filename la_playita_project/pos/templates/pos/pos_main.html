@@ -147,6 +147,74 @@
         font-weight: 600;
     }
 
+    .mesa-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border-radius: 12px;
+        border: 2px solid #e9ecef;
+    }
+
+    .mesa-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+
+    .mesa-disponible {
+        border-color: #28a745;
+        background: linear-gradient(135deg, #f8fff9 0%, #e8f5e9 100%);
+    }
+
+    .mesa-ocupada {
+        border-color: #dc3545;
+        background: linear-gradient(135deg, #fff8f8 0%, #ffe8e8 100%);
+    }
+
+    .mesa-nueva {
+        border-color: #007bff;
+        border-style: dashed;
+        background: linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%);
+    }
+
+    .mesa-nueva:hover {
+        border-style: solid;
+        background: linear-gradient(135deg, #e8f0ff 0%, #d0e0ff 100%);
+    }
+
+    .indicador-mesa-fijo {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1050;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 1rem 0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+        from {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .indicador-mesa-fijo .btn {
+        font-weight: 600;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .indicador-mesa-fijo .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
     .cart-container {
         position: sticky;
         top: 20px;
@@ -316,9 +384,12 @@
                 <a href="{% url 'pos:dashboard_reportes' %}" class="btn btn-outline-primary me-2">
                     <i class="bi bi-graph-up me-1"></i>Dashboard
                 </a>
-                <a href="{% url 'pos:listar_ventas' %}" class="btn btn-outline-secondary">
+                <a href="{% url 'pos:listar_ventas' %}" class="btn btn-outline-secondary me-2">
                     <i class="bi bi-list-check me-1"></i>Historial
                 </a>
+                <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalMesas">
+                    <i class="bi bi-grid-3x3-gap me-1"></i>Mesas
+                </button>
             </div>
         </div>
     </div>
@@ -466,7 +537,7 @@
                         
                         <!-- Botones -->
                         <button class="btn btn-process btn-action w-100 mb-2 mt-3" id="btn-procesar-venta">
-                            <i class="bi bi-check-circle me-2"></i>Procesar Venta
+                            <i class="bi bi-check-circle me-2"></i><span id="texto-btn-procesar">Procesar Venta</span>
                         </button>
                         <button class="btn btn-outline-danger btn-action w-100" id="btn-cancelar-venta">
                             <i class="bi bi-trash me-2"></i>Vaciar Carrito
@@ -513,6 +584,25 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Modal de Mesas -->
+<div class="modal fade" id="modalMesas" tabindex="-1" aria-labelledby="modalMesasLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="modalMesasLabel">
+          <i class="bi bi-grid-3x3-gap me-2"></i>Gestión de Mesas
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="mesas-container" class="row g-3">
+          <!-- Las mesas se cargarán aquí dinámicamente -->
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Modal para registrar cliente nuevo -->
@@ -583,6 +673,7 @@
 
 {% block extra_js %}
 <script src="{% static 'pos/js/carrito.js' %}?v=2.0"></script>
+<script src="{% static 'pos/js/mesas.js' %}?v=1.0"></script>
 <script>
     // Actualizar fecha y hora
     function actualizarFechaHora() {
@@ -617,9 +708,30 @@
         const btnProcesar = document.getElementById('btn-procesar-venta');
         if (btnProcesar) {
             btnProcesar.addEventListener('click', () => {
-                window.carritoPOS.mostrarFormularioPago();
+                // Verificar si hay mesa activa
+                const mesaActiva = window.gestionMesas && window.gestionMesas.mesaSeleccionada;
+                if (mesaActiva) {
+                    window.carritoPOS.agregarCarritoAMesa(mesaActiva);
+                } else {
+                    window.carritoPOS.mostrarFormularioPago();
+                }
             });
         }
+
+        // Actualizar texto del botón según si hay mesa activa
+        setInterval(() => {
+            const mesaActiva = window.gestionMesas && window.gestionMesas.mesaSeleccionada;
+            const textoBtnProcesar = document.getElementById('texto-btn-procesar');
+            if (textoBtnProcesar) {
+                if (mesaActiva) {
+                    textoBtnProcesar.textContent = 'Agregar a Mesa';
+                    document.getElementById('btn-procesar-venta').className = 'btn btn-success btn-action w-100 mb-2 mt-3';
+                } else {
+                    textoBtnProcesar.textContent = 'Procesar Venta';
+                    document.getElementById('btn-procesar-venta').className = 'btn btn-process btn-action w-100 mb-2 mt-3';
+                }
+            }
+        }, 500);
 
         // Evento para vaciar carrito
         const btnCancelar = document.getElementById('btn-cancelar-venta');

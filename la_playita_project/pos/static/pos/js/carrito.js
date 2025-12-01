@@ -290,8 +290,14 @@ class CarritoPOS {
             return;
         }
 
-        // Obtener clientes desde la API - iniciar con opción por defecto
-        let clientesHTML = '<option value="">-- Sin Cliente --</option>';
+        // Obtener el cliente seleccionado del selector principal
+        const clienteSelectPrincipal = document.getElementById('cliente-select');
+        const clienteSeleccionado = clienteSelectPrincipal ? clienteSelectPrincipal.value : '';
+        
+        console.log('Cliente seleccionado en el selector principal:', clienteSeleccionado);
+
+        // Obtener clientes desde la API
+        let clientesHTML = '<option value="">Consumidor Final</option>';
 
         try {
             console.log('Obteniendo clientes...');
@@ -305,7 +311,8 @@ class CarritoPOS {
                 if (data.success && data.clientes && data.clientes.length > 0) {
                     // Construir opciones de clientes
                     data.clientes.forEach(cliente => {
-                        clientesHTML += `<option value="${cliente.id}">${this.escaparHTML(cliente.nombre)}</option>`;
+                        const selected = clienteSeleccionado && cliente.id == clienteSeleccionado ? 'selected' : '';
+                        clientesHTML += `<option value="${cliente.id}" ${selected}>${this.escaparHTML(cliente.nombre)}</option>`;
                     });
                     console.log(`Se cargaron ${data.clientes.length} clientes`);
                 }
@@ -409,9 +416,13 @@ class CarritoPOS {
     }
 
     async confirmarVenta() {
-        const clienteId = document.getElementById('cliente-pago').value || null;
+        const clienteIdSeleccionado = document.getElementById('cliente-pago').value;
+        // Si no se selecciona cliente, usar Consumidor Final (ID 1)
+        const clienteId = clienteIdSeleccionado ? parseInt(clienteIdSeleccionado) : 1;
         const metodoPago = document.getElementById('metodo-pago').value;
         const canalVenta = document.getElementById('canal-venta').value;
+
+        console.log('Cliente ID para la venta:', clienteId);
 
         // Validar que los campos requeridos estén completos
         if (!metodoPago || metodoPago.trim() === '') {
@@ -437,7 +448,7 @@ class CarritoPOS {
                     'X-CSRFToken': this.obtenerCSRFToken(),
                 },
                 body: JSON.stringify({
-                    cliente_id: clienteId ? parseInt(clienteId) : null,
+                    cliente_id: clienteId,
                     metodo_pago: metodoPago,
                     canal_venta: canalVenta,
                     items: this.carrito

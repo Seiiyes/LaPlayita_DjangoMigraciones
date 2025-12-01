@@ -13,7 +13,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
- 'users.apps.UsersConfig',  # ← debe estar primero
+    'users.apps.UsersConfig',  # ← debe estar primero
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -22,7 +22,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
-    'widget_tweaks',
     'core.apps.CoreConfig',
     'inventory.apps.InventoryConfig',
     'pos.apps.PosConfig',

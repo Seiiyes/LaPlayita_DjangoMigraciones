@@ -1,72 +1,459 @@
-/* Estilos para el Punto de Venta (POS) */
+/* ============================================
+   Estilos Modernos para el Punto de Venta (POS)
+   ============================================ */
 
-/* Estilos para mejorar la visibilidad de los botones de acción */
-#btn-complete-sale {
-    background-color: #28a745; /* Verde más brillante */
-    border-color: #28a745;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    transition: all 0.3s ease;
+/* Variables de Colores */
+:root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    --danger-gradient: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+    --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
+    --border-radius: 12px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-#btn-complete-sale:hover {
-    background-color: #218838; /* Verde más oscuro al pasar el mouse */
-    border-color: #1e7e34;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-}
-
-.product-item .btn-add-to-cart {
-    background-color: #007bff; /* Azul brillante */
-    color: white;
+/* ============================================
+   Tarjetas de Productos
+   ============================================ */
+.product-card {
     border: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    overflow: hidden;
+    background: white;
 }
 
-.product-item .btn-add-to-cart:hover {
-    background-color: #0069d9;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
 }
 
-/* Separador visual entre el carrito y la lista de productos */
-.col-lg-7 {
-    border-right: 1px solid #dee2e6; /* Línea separadora suave */
+.product-card .card-body {
+    padding: 1.25rem;
 }
 
-/* Estilos para el Modo Compacto */
-.compact-mode .product-item {
-    padding: 0.5rem 0.75rem;
+.product-card .card-title {
+    font-weight: 700;
+    color: #2d3748;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
 }
 
-.compact-mode .product-item h6 {
+.product-card .card-text {
+    color: #718096;
     font-size: 0.9rem;
-    margin-bottom: 0;
 }
 
-.compact-mode .product-item p {
-    font-size: 0.85rem;
-    margin-bottom: 0;
+.product-card .badge {
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-weight: 600;
 }
 
-.compact-mode .product-item small {
-    font-size: 0.8rem;
+.product-card .agregar-producto-btn {
+    background: var(--primary-gradient);
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    transition: var(--transition);
+    width: 100%;
 }
 
-.compact-mode .list-group-item-action {
+.product-card .agregar-producto-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* ============================================
+   Carrito de Compras
+   ============================================ */
+.cart-container {
+    position: sticky;
+    top: 20px;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    padding: 1.5rem;
+}
+
+.cart-header {
+    background: var(--primary-gradient);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+}
+
+.cart-header h5 {
+    margin: 0;
+    font-weight: 700;
+}
+
+#cart-items tr {
+    transition: var(--transition);
+}
+
+#cart-items tr:hover {
+    background-color: #f7fafc;
+}
+
+#cart-items input[type="number"] {
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    transition: var(--transition);
+}
+
+#cart-items input[type="number"]:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.cart-summary {
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.cart-summary p {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    margin-bottom: 0.5rem;
 }
 
-.compact-mode .product-details {
-    flex-grow: 1;
+.cart-summary .total-row {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2d3748;
+    border-top: 2px solid #cbd5e0;
+    padding-top: 0.75rem;
+    margin-top: 0.75rem;
 }
 
-/* Botón para activar el modo compacto */
+/* ============================================
+   Botones de Acción
+   ============================================ */
+#btn-complete-sale, .btn-procesar-venta {
+    background: var(--success-gradient);
+    border: none;
+    border-radius: 10px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 700;
+    font-size: 1.05rem;
+    box-shadow: var(--shadow-md);
+    transition: var(--transition);
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+#btn-complete-sale:hover, .btn-procesar-venta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
+}
+
+.btn-cancelar-venta {
+    background: transparent;
+    border: 2px solid #e53e3e;
+    color: #e53e3e;
+    border-radius: 10px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    transition: var(--transition);
+    width: 100%;
+}
+
+.btn-cancelar-venta:hover {
+    background: var(--danger-gradient);
+    color: white;
+    border-color: transparent;
+    transform: translateY(-2px);
+}
+
+.btn-outline-danger:hover .eliminar-btn {
+    background: var(--danger-gradient);
+    border: none;
+    color: white;
+}
+
+.eliminar-btn {
+    border-radius: 6px;
+    transition: var(--transition);
+}
+
+.eliminar-btn:hover {
+    transform: scale(1.1);
+}
+
+/* ============================================
+   Búsqueda de Productos
+   ============================================ */
+.search-container {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+#product-search-input {
+    border-radius: 10px;
+    border: 2px solid #e2e8f0;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+#product-search-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+#product-search-button {
+    background: var(--primary-gradient);
+    border: none;
+    border-radius: 10px;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+#product-search-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* ============================================
+   Grid de Productos
+   ============================================ */
+#product-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem 0;
+}
+
+@media (max-width: 768px) {
+    #product-list {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+}
+
+/* ============================================
+   Modal de Pago
+   ============================================ */
+.modal-content {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+}
+
+.modal-header {
+    background: var(--primary-gradient);
+    color: white;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    border: none;
+}
+
+.modal-body .form-label {
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+}
+
+.modal-body .form-control, .modal-body .form-select {
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    padding: 0.75rem;
+    transition: var(--transition);
+}
+
+.modal-body .form-control:focus, .modal-body .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.modal-body .alert-info {
+    background: linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%);
+    border: none;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+#btn-confirmar-venta {
+    background: var(--success-gradient);
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 2rem;
+    font-weight: 700;
+    transition: var(--transition);
+}
+
+#btn-confirmar-venta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(17, 153, 142, 0.4);
+}
+
+/* ============================================
+   Notificaciones
+   ============================================ */
+.alert {
+    border: none;
+    border-radius: 10px;
+    box-shadow: var(--shadow-md);
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ============================================
+   Modo Compacto
+   ============================================ */
+.compact-mode .product-card {
+    padding: 0.75rem;
+}
+
+.compact-mode .product-card .card-title {
+    font-size: 0.95rem;
+}
+
+.compact-mode .product-card .card-text {
+    font-size: 0.85rem;
+}
+
+.compact-mode #product-list {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
 #btn-toggle-compact-mode {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    z-index: 1050; /* Asegurar que esté sobre otros elementos */
+    z-index: 1050;
+    background: var(--primary-gradient);
+    border: none;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition);
+}
+
+#btn-toggle-compact-mode:hover {
+    transform: scale(1.1) rotate(90deg);
+}
+
+/* ============================================
+   Separadores y Espaciado
+   ============================================ */
+.col-lg-7 {
+    border-right: 2px solid #e2e8f0;
+    padding-right: 2rem;
+}
+
+@media (max-width: 992px) {
+    .col-lg-7 {
+        border-right: none;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 2rem;
+        margin-bottom: 2rem;
+    }
+}
+
+/* ============================================
+   Animaciones y Transiciones
+   ============================================ */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.scale-in {
+    animation: scaleIn 0.2s ease-out;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ============================================
+   Estados de Carga
+   ============================================ */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15em;
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+/* ============================================
+   Mejoras de Accesibilidad
+   ============================================ */
+button:focus, input:focus, select:focus {
+    outline: none;
+}
+
+button:focus-visible, input:focus-visible, select:focus-visible {
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+}
+
+/* ============================================
+   Scrollbar Personalizado
+   ============================================ */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 }

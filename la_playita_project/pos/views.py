@@ -39,21 +39,71 @@ def pos_view(request):
 
 @login_required
 def listar_ventas(request):
-    ventas = Venta.objects.select_related('cliente', 'usuario').order_by('-fecha_venta')
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+    from django.utils import timezone
+    
+    ventas = Venta.objects.select_related('cliente', 'usuario').prefetch_related('pago_set').order_by('-fecha_venta')
 
-    fecha = request.GET.get('fecha')
-    if fecha:
+    # Filtro por rango de fechas
+    fecha_desde = request.GET.get('fecha_desde')
+    fecha_hasta = request.GET.get('fecha_hasta')
+    
+    if fecha_desde:
         try:
-            fecha_dt = datetime.strptime(fecha, '%Y-%m-%d').date()
-            ventas = ventas.filter(fecha_venta__date=fecha_dt)
-        except Exception:
+            # Convertir a datetime con hora 00:00:00 y hacer timezone-aware
+            fecha_desde_dt = datetime.strptime(fecha_desde, '%Y-%m-%d')
+            fecha_desde_aware = timezone.make_aware(fecha_desde_dt.replace(hour=0, minute=0, second=0))
+            ventas = ventas.filter(fecha_venta__gte=fecha_desde_aware)
+        except Exception as e:
+            print(f"Error en fecha_desde: {e}")
+            pass
+    
+    if fecha_hasta:
+        try:
+            # Convertir a datetime con hora 23:59:59 y hacer timezone-aware
+            fecha_hasta_dt = datetime.strptime(fecha_hasta, '%Y-%m-%d')
+            fecha_hasta_aware = timezone.make_aware(fecha_hasta_dt.replace(hour=23, minute=59, second=59))
+            ventas = ventas.filter(fecha_venta__lte=fecha_hasta_aware)
+        except Exception as e:
+            print(f"Error en fecha_hasta: {e}")
             pass
 
+    # Filtro por método de pago
     metodo_pago = request.GET.get('metodo_pago')
     if metodo_pago:
-        ventas = ventas.filter(pago__metodo_pago=metodo_pago)
+        ventas = ventas.filter(pago__metodo_pago=metodo_pago).distinct()
 
-    return render(request, 'pos/listar_ventas.html', {'ventas': ventas})
+    # Filtro por canal de venta
+    canal_venta = request.GET.get('canal_venta')
+    if canal_venta:
+        ventas = ventas.filter(canal_venta=canal_venta)
+
+    # Paginación
+    items_por_pagina = request.GET.get('items', 10)
+    try:
+        items_por_pagina = int(items_por_pagina)
+        if items_por_pagina not in [10, 20, 50, 100]:
+            items_por_pagina = 10
+    except (ValueError, TypeError):
+        items_por_pagina = 10
+
+    paginator = Paginator(ventas, items_por_pagina)
+    page = request.GET.get('page', 1)
+
+    try:
+        ventas_paginadas = paginator.page(page)
+    except PageNotAnInteger:
+        ventas_paginadas = paginator.page(1)
+    except EmptyPage:
+        ventas_paginadas = paginator.page(paginator.num_pages)
+
+    context = {
+        'ventas': ventas_paginadas,
+        'total_ventas': paginator.count,
+        'items_por_pagina': items_por_pagina,
+    }
+
+    return render(request, 'pos/listar_ventas.html', context)
 
 @login_required
 def buscar_productos(request):

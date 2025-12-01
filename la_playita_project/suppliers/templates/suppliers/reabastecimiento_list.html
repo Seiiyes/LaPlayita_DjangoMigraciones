@@ -87,7 +87,7 @@
     <div class="filter-collapse" id="filtersCollapse">
         <div class="card shadow-sm mb-4">
             <div class="card-body">
-                <form class="row g-2" id="filterForm">
+                <form class="row g-2" id="filterForm" method="GET" action="{% url 'suppliers:reabastecimiento_list' %}"></form>
                     <div class="col-md-3">
                         <label for="filter_proveedor" class="form-label small">Proveedor</label>
                         <input type="text" 
@@ -112,10 +112,10 @@
                     </div>
 
                     <div class="col-md-5 d-flex gap-2 align-items-end">
-                        <button class="btn btn-primary btn-sm flex-grow-1" type="submit" aria-label="Aplicar filtros">
+                        <button class="btn btn-primary btn-sm" type="button" id="applyFiltersBtn" style="min-width: 100px;" aria-label="Aplicar filtros">
                             <i class="fas fa-search me-1"></i> Buscar
                         </button>
-                        <a href="{% url 'suppliers:reabastecimiento_list' %}" class="btn btn-outline-secondary btn-sm" aria-label="Limpiar filtros">
+                        <a href="{% url 'suppliers:reabastecimiento_list' %}" class="btn btn-outline-secondary btn-sm" style="min-width: 100px;" aria-label="Limpiar filtros">
                             <i class="fas fa-times me-1"></i> Limpiar
                         </a>
                     </div>
@@ -132,6 +132,7 @@
                  data-proveedor="{{ r.proveedor.nombre_empresa }}"
                  data-fecha="{{ r.fecha|date:'d/m/Y H:i' }}"
                  data-costo="{{ r.costo_total|default:0 }}"
+                 data-iva="{{ r.iva|default:0 }}"
                  data-product-count="{{ r.reabastecimientodetalle_set.count }}">
             </div>
         {% endfor %}
@@ -178,135 +179,56 @@
     {% endif %}
 </div>
 
-<!-- Modal: Recibir Orden (Mejorado) -->
-<div class="modal fade" id="receptionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+<!-- Modal: Recibir Orden (Simplificado) -->
+<div class="modal fade" id="receptionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <!-- Header -->
-            <div class="modal-header border-bottom">
-                <div class="flex-grow-1">
-                    <h5 class="modal-title">
-                        <i class="fas fa-truck-loading text-success me-2"></i>
-                        Recibir Orden #<span id="receptionOrderId" class="fw-bold text-primary"></span>
-                    </h5>
-                    <small class="text-muted d-block mt-1">
-                        <i class="fas fa-building me-1"></i>
-                        <span id="receptionProveedorName">Cargando...</span>
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-truck-loading text-success me-2"></i>
+                    Recibir Orden #<span id="receptionOrderId" class="fw-bold"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm reception-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 40%;">Producto</th>
+                                <th class="text-center" style="width: 20%;">Solicitado</th>
+                                <th class="text-center" style="width: 20%;">Recibido</th>
+                                <th class="text-center" style="width: 20%;">Caducidad</th>
+                            </tr>
+                        </thead>
+                        <tbody id="receptionTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="fw-bold">Progreso</small>
+                        <small class="text-muted" id="progressText">0 de 0</small>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success" id="progressBar" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <div id="discrepancyAlert" class="alert alert-warning mt-3 mb-0" style="display: none;">
+                    <small>
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <strong>Discrepancia:</strong> <span id="discrepancyText"></span>
                     </small>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
 
-            <!-- Body -->
-            <div class="modal-body p-0">
-                <!-- Quick Actions -->
-                <div class="p-3 border-bottom bg-light">
-                    <div class="row g-2">
-                        <div class="col-md-6">
-                            <button type="button" class="btn btn-sm btn-success w-100" id="markAllReceivedBtn">
-                                <i class="fas fa-check-double me-1"></i> Marcar todo
-                            </button>
-                        </div>
-                        <div class="col-md-6">
-                            <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="saveDraftBtn">
-                                <i class="fas fa-save me-1"></i> Guardar borrador
-                            </button>
-                        </div>
-                        <div class="col-12">
-                            <input type="text" class="form-control form-control-sm" id="searchProductInput" placeholder="Buscar producto..." autocomplete="off">
-                        </div>
-                        <div class="col-12">
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-white">
-                                    <i class="fas fa-calendar-alt text-muted"></i>
-                                </span>
-                                <input type="date" class="form-control form-control-sm" id="generalExpiryDate">
-                                <button class="btn btn-outline-secondary btn-sm" type="button" id="applyGeneralExpiryBtn">
-                                    Aplicar a todos
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Reception Table -->
-                <form id="receptionForm">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0 reception-table">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width: 30%;">Producto</th>
-                                    <th class="text-center" style="width: 12%;">Solicitado</th>
-                                    <th class="text-center" style="width: 15%;">Recibido</th>
-                                    <th class="text-center" style="width: 15%;">Caducidad</th>
-                                    <th class="text-center" style="width: 12%;">Lote</th>
-                                    <th class="text-center" style="width: 16%;">Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody id="receptionTableBody">
-                                <!-- Rows populated by JS -->
-                            </tbody>
-                        </table>
-                    </div>
-                </form>
-
-                <!-- Progress Section -->
-                <div class="p-3 border-top bg-light">
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <small class="fw-bold">Progreso de Recepción</small>
-                            <small class="text-muted" id="progressText">0 de 0</small>
-                        </div>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-success" id="progressBar" role="progressbar" style="width: 0%;"></div>
-                        </div>
-                    </div>
-
-                    <!-- Status Summary -->
-                    <div class="row g-2">
-                        <div class="col-4">
-                            <div class="p-2 bg-success bg-opacity-10 rounded text-center">
-                                <i class="fas fa-check-circle text-success d-block mb-1"></i>
-                                <strong class="text-success d-block" id="completedCount">0</strong>
-                                <small class="text-muted">Completo</small>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="p-2 bg-warning bg-opacity-10 rounded text-center">
-                                <i class="fas fa-exclamation-circle text-warning d-block mb-1"></i>
-                                <strong class="text-warning d-block" id="partialCount">0</strong>
-                                <small class="text-muted">Parcial</small>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="p-2 bg-secondary bg-opacity-10 rounded text-center">
-                                <i class="fas fa-circle text-secondary d-block mb-1"></i>
-                                <strong class="text-secondary d-block" id="pendingCount">0</strong>
-                                <small class="text-muted">Pendiente</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Alerts -->
-                    <div id="validationAlert" class="alert alert-danger alert-sm mt-3 mb-0" role="alert" style="display: none;">
-                        <small id="validationAlertText"></small>
-                    </div>
-                    <div id="quantityMismatchAlert" class="alert alert-warning alert-sm mt-3 mb-0" role="alert" style="display: none;">
-                        <small>
-                            <i class="fas fa-exclamation-triangle me-1"></i>
-                            <strong>Recepción Parcial:</strong> <span id="mismatchText"></span>
-                        </small>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="modal-footer border-top">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i>Cancelar
-                </button>
-                <button type="button" class="btn btn-success" id="confirmReceptionBtn" disabled>
-                    <i class="fas fa-check me-1"></i> Confirmar Recepción
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="confirmReceptionBtn">
+                    <i class="fas fa-check me-1"></i>Confirmar
                 </button>
             </div>
         </div>

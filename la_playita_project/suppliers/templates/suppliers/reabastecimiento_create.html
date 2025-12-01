@@ -8,29 +8,23 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
 <link rel="stylesheet" href="{% static 'suppliers/css/reabastecimiento.css' %}">
 <style>
-    .reab-container { max-width: 1200px; }
-    .reab-header { background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); }
-    .reab-section { margin-bottom: 2rem; }
-    .reab-section-title { font-size: 1.1rem; font-weight: 600; color: #212529; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-    .reab-section-title i { color: #0d6efd; font-size: 1.3rem; }
-    .reab-table { font-size: 0.95rem; }
-    .reab-table tbody tr { height: 70px; }
-    .reab-table td { vertical-align: middle; padding: 0.75rem; }
-    .reab-summary { background: #f8f9fa; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 2rem; }
-    .reab-summary-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
-    .reab-summary-label { color: #6c757d; font-size: 0.9rem; font-weight: 500; }
-    .reab-summary-value { font-size: 1.3rem; font-weight: 700; color: #0d6efd; }
-    .reab-summary-value.total { color: #198754; font-size: 1.5rem; }
-    .reab-quick-add { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-    .reab-quick-add button { flex: 1; }
-    .reab-sticky-footer { position: sticky; bottom: 0; background: white; border-top: 2px solid #dee2e6; padding: 1.5rem; margin: 0 -1rem -1rem -1rem; box-shadow: 0 -2px 8px rgba(0,0,0,0.1); z-index: 100; }
-    .reab-sticky-footer .btn { min-width: 150px; }
-    .row-error { background-color: #f8d7da !important; }
-    .row-valid { background-color: #d4edda !important; }
-    .field-error { border-color: #dc3545 !important; }
-    .field-valid { border-color: #198754 !important; }
-    .recent-suppliers { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
-    .recent-suppliers button { font-size: 0.85rem; padding: 0.4rem 0.8rem; }
+    /* Remover box-shadow de inputs en tabla */
+    .reab-table input,
+    .reab-table select,
+    .cantidad-input,
+    .costo-unitario-input {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+    }
+    
+    .reab-table input:focus,
+    .reab-table select:focus,
+    .cantidad-input:focus,
+    .costo-unitario-input:focus {
+        box-shadow: none !important;
+        border-color: #80bdff !important;
+        outline: none !important;
+    }
 </style>
 {% endblock %}
 
@@ -85,27 +79,48 @@
                             <label class="form-label fw-bold">{{ form.observaciones.label }}</label>
                             {{ form.observaciones }}
                         </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">{{ form.producto.label }}</label>
+                            {{ form.producto|add_class:"form-control" }}
+                        </div>
                     </div>
                 </div>
 
                 <!-- SECCIÓN 2: RESUMEN EN VIVO -->
-                <div class="reab-summary" role="region" aria-label="Resumen de la orden">
-                    <div class="reab-summary-item">
-                        <span class="reab-summary-label"><i class="fas fa-box me-2"></i>Productos</span>
-                        <span class="reab-summary-value" id="product-count">0</span>
-                    </div>
-                    <div class="reab-summary-item">
-                        <span class="reab-summary-label"><i class="fas fa-calculator me-2"></i>Subtotal</span>
-                        <span class="reab-summary-value" id="gran-subtotal">$0</span>
-                    </div>
-                    <div class="reab-summary-item">
-                        <span class="reab-summary-label"><i class="fas fa-percent me-2"></i>IVA</span>
-                        <span class="reab-summary-value" id="gran-iva">$0</span>
-                    </div>
-                    <hr class="my-2">
-                    <div class="reab-summary-item">
-                        <span class="reab-summary-label"><i class="fas fa-money-bill me-2"></i>Total a Pagar</span>
-                        <span class="reab-summary-value total" id="gran-total">$0</span>
+                <div class="card border-0 shadow-sm mb-4" role="region" aria-label="Resumen de la orden">
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <small class="text-muted d-block mb-1"><i class="fas fa-box me-1"></i>Productos</small>
+                                    <h5 class="mb-0" id="product-count">0</h5>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <small class="text-muted d-block mb-1"><i class="fas fa-calculator me-1"></i>Subtotal</small>
+                                    <h5 class="mb-0" id="gran-subtotal">$0</h5>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <small class="text-muted d-block mb-1"><i class="fas fa-percent me-1"></i>IVA</small>
+                                    <h5 class="mb-0 text-warning" id="gran-iva">$0</h5>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center p-2 bg-success bg-opacity-10 rounded">
+                                    <small class="text-muted d-block mb-1"><i class="fas fa-money-bill me-1"></i>Total</small>
+                                    <h5 class="mb-0 text-success" id="gran-total">$0</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <small class="text-muted d-block mb-2">Progreso de validación</small>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-success" id="formValidationBar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -127,37 +142,42 @@
 
                     {{ formset.management_form }}
                     <div class="table-responsive">
-                        <table class="table reab-table" id="detalleTable" role="grid" aria-label="Detalles de productos a reabastecerse">
+                        <table class="table table-sm reab-table" id="detalleTable" role="grid" aria-label="Detalles de productos a reabastecerse">
                             <thead class="table-light">
                                 <tr role="row">
-                                    <th style="width: 28%;" role="columnheader">Producto</th>
-                                    <th class="text-center" style="width: 12%;" role="columnheader">Cantidad</th>
-                                    <th class="text-center" style="width: 14%;" role="columnheader">Costo Unit.</th>
-                                    <th class="text-center" style="width: 10%;" role="columnheader">IVA</th>
-                                    <th class="text-center" style="width: 16%;" role="columnheader">Caducidad</th>
-                                    <th class="text-center" style="width: 12%;" role="columnheader">Subtotal</th>
-                                    <th class="text-center" style="width: 8%;" role="columnheader"></th>
+                                    <th role="columnheader">Producto</th>
+                                    <th class="text-center" role="columnheader">Cant.</th>
+                                    <th class="text-center" role="columnheader">Costo</th>
+                                    <th class="text-center" role="columnheader">IVA</th>
+                                    <th class="text-center" role="columnheader">Caducidad</th>
+                                    <th class="text-center" role="columnheader">Subtotal</th>
+                                    <th class="text-center" role="columnheader">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for f in formset.forms %}
                                 <tr class="formset-row" id="detalle-row-{{ forloop.counter0 }}" role="row">
-                                    <td role="gridcell">{% render_field f.producto class="form-select select2-field producto-select" aria-label="Producto fila {{ forloop.counter }}" %}</td>
-                                    <td class="text-center" role="gridcell">{% render_field f.cantidad class="form-control cantidad-input text-center" required="required" aria-label="Cantidad fila {{ forloop.counter }}" %}</td>
-                                    <td class="text-center" role="gridcell">{% render_field f.costo_unitario class="form-control costo-unitario-input text-center" required="required" aria-label="Costo unitario fila {{ forloop.counter }}" %}</td>
+                                    <td role="gridcell">{% render_field f.producto class="form-select form-select-sm select2-field producto-select" aria-label="Producto fila {{ forloop.counter }}" %}</td>
+                                    <td class="text-center" role="gridcell">{% render_field f.cantidad class="form-control form-control-sm cantidad-input text-center" required="required" aria-label="Cantidad fila {{ forloop.counter }}" placeholder="0" %}</td>
+                                    <td class="text-center" role="gridcell">{% render_field f.costo_unitario class="form-control form-control-sm costo-unitario-input text-center" required="required" aria-label="Costo unitario fila {{ forloop.counter }}" placeholder="0" %}</td>
                                     <td class="text-center" role="gridcell">
-                                        <select name="{{ f.iva.name }}" id="{{ f.iva.id_for_label }}" class="form-select form-select-sm iva-select text-center" style="font-size: 0.9rem;" aria-label="IVA fila {{ forloop.counter }}">
-                                            <option value="">-- Seleccionar --</option>
+                <select class="form-select form-select-sm iva-select text-center" name="{{ f.iva.html_name }}" aria-label="IVA fila {{ forloop.counter }}">
+                                            <option value="">--</option>
                                         </select>
                                     </td>
-                                    <td class="text-center" role="gridcell">{% render_field f.fecha_caducidad class="form-control" required="required" aria-label="Fecha de caducidad fila {{ forloop.counter }}" %}</td>
+                                    <td class="text-center" role="gridcell">{% render_field f.fecha_caducidad class="form-control form-control-sm" required="required" aria-label="Fecha de caducidad fila {{ forloop.counter }}" %}</td>
                                     <td class="text-center fw-bold" role="gridcell">
                                         <span class="subtotal-display">$0</span>
                                     </td>
                                     <td class="text-center" role="gridcell">
-                                        <button type="button" class="btn btn-sm btn-outline-danger delete-row-btn" title="Eliminar producto fila {{ forloop.counter }}" aria-label="Eliminar producto fila {{ forloop.counter }}">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary copy-row-btn" title="Duplicar (Ctrl+D)" aria-label="Duplicar fila {{ forloop.counter }}">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger delete-row-btn" title="Eliminar (Ctrl+Backspace)" aria-label="Eliminar producto fila {{ forloop.counter }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -168,22 +188,27 @@
                         <tbody id="empty-form-template">
                             <tr class="formset-row" role="row">
                                 {% with ef=formset.empty_form %}
-                                <td role="gridcell">{% render_field ef.producto class="form-select select2-field producto-select" %}</td>
-                                <td role="gridcell">{% render_field ef.cantidad class="form-control cantidad-input text-center" %}</td>
-                                <td role="gridcell">{% render_field ef.costo_unitario class="form-control costo-unitario-input text-center" %}</td>
+                                <td role="gridcell">{% render_field ef.producto class="form-select form-select-sm select2-field producto-select" %}</td>
+                                <td role="gridcell">{% render_field ef.cantidad class="form-control form-control-sm cantidad-input text-center" placeholder="0" %}</td>
+                                <td role="gridcell">{% render_field ef.costo_unitario class="form-control form-control-sm costo-unitario-input text-center" placeholder="0" %}</td>
                                 <td role="gridcell">
-                                    <select name="{{ ef.iva.name }}" id="{{ ef.iva.id_for_label }}" class="form-select form-select-sm iva-select text-center" style="font-size: 0.9rem;">
-                                        <option value="">-- Seleccionar --</option>
+                                    <select class="form-select form-select-sm iva-select text-center" name="{{ ef.iva.html_name }}">
+                                        <option value="">--</option>
                                     </select>
                                 </td>
-                                <td role="gridcell">{% render_field ef.fecha_caducidad class="form-control" %}</td>
+                                <td role="gridcell">{% render_field ef.fecha_caducidad class="form-control form-control-sm" %}</td>
                                 <td role="gridcell">
                                     <span class="subtotal-display">$0</span>
                                 </td>
                                 <td class="text-center" role="gridcell">
-                                    <button type="button" class="btn btn-sm btn-outline-danger delete-row-btn" title="Eliminar producto">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary copy-row-btn" title="Duplicar">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger delete-row-btn" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
                                 </td>
                                 {% endwith %}
                             </tr>
@@ -193,13 +218,19 @@
 
                 <!-- FOOTER STICKY CON BOTONES DE ACCIÓN -->
                 <div class="reab-sticky-footer">
-                    <div class="d-flex justify-content-end gap-2">
-                        <button type="button" class="btn btn-outline-secondary btn-lg" id="cancelarBtn" aria-label="Cancelar y volver a la lista">
-                            <i class="fas fa-times me-2"></i>Cancelar
-                        </button>
-                        <button type="submit" class="btn btn-success btn-lg" id="guardarReabastecimientoBtn" aria-label="Guardar solicitud de reabastecimiento">
-                            <i class="fas fa-save me-2"></i>Guardar Solicitud
-                        </button>
+                    <div class="d-flex justify-content-between align-items-center gap-2">
+                        <small class="text-muted">
+                            <i class="fas fa-keyboard me-1"></i>
+                            <kbd>Ctrl</kbd>+<kbd>Enter</kbd> para guardar | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> para agregar
+                        </small>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-secondary" id="cancelarBtn" aria-label="Cancelar y volver a la lista">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-success" id="guardarReabastecimientoBtn" aria-label="Guardar solicitud de reabastecimiento">
+                                <i class="fas fa-save me-2"></i>Guardar Solicitud
+                            </button>
+                        </div>
                     </div>
                 </div>
             </form>
@@ -214,10 +245,36 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script data-productos type="application/json">{{ all_products_json|default:"[]"|safe }}</script>
 <script data-tasas-iva type="application/json">{{ tasas_iva_json|default:"[]"|safe }}</script>
 <script>
     const cancelUrl = "{% url 'suppliers:reabastecimiento_list' %}";
+    
+    // Atajos de teclado globales
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+Enter: Guardar
+        if (e.ctrlKey && e.key === 'Enter') {
+            e.preventDefault();
+            const btn = document.getElementById('guardarReabastecimientoBtn');
+            if (!btn.disabled) btn.click();
+        }
+        // Ctrl+Shift+A: Agregar fila
+        if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+            e.preventDefault();
+            document.getElementById('add-row-formset').click();
+        }
+        // Ctrl+Shift+C: Cancelar
+        if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+            e.preventDefault();
+            document.getElementById('cancelarBtn').click();
+        }
+        // Escape: Cancelar
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            document.getElementById('cancelarBtn').click();
+        }
+    });
 </script>
 <script src="{% static 'suppliers/js/reabastecimiento_create_v2.js' %}"></script>
 {% endblock %}

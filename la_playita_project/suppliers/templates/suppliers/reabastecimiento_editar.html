@@ -1,0 +1,589 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Editar Reabastecimiento #{{ reabastecimiento.id }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+<link rel="stylesheet" href="{% static 'suppliers/css/reabastecimiento.css' %}">
+<style>
+    /* Remover box-shadow de inputs en tabla */
+    .reab-table input,
+    .reab-table select,
+    .cantidad-input,
+    .costo-unitario-input {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+    }
+    
+    .reab-table input:focus,
+    .reab-table select:focus,
+    .cantidad-input:focus,
+    .costo-unitario-input:focus {
+        box-shadow: none !important;
+        border-color: #80bdff !important;
+        outline: none !important;
+    }
+</style>
+<style>
+    .iva-select {
+        border: 2px solid #e9ecef !important;
+        border-radius: 0.375rem !important;
+        transition: all 0.3s ease !important;
+        font-weight: 600 !important;
+        color: #2c3e50 !important;
+        background-color: #f8f9fa !important;
+    }
+    
+    .iva-select:hover {
+        border-color: #0d6efd !important;
+        background-color: #fff !important;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15) !important;
+    }
+    
+    .iva-select:focus {
+        border-color: #0d6efd !important;
+        background-color: #fff !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+        outline: 0 !important;
+    }
+    
+    .iva-select option {
+        padding: 0.5rem;
+        background-color: #fff;
+        color: #2c3e50;
+    }
+    
+    .iva-select option:checked {
+        background: linear-gradient(#0d6efd, #0d6efd);
+        background-color: #0d6efd !important;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 reab-container">
+    <div class="card shadow-sm">
+        <div class="card-header reab-header text-white d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="h4 mb-0"><i class="fas fa-edit me-2"></i>Editar Orden #{{ reabastecimiento.id }}</h2>
+                <small class="text-white-50">Modifica los detalles de tu orden de compra</small>
+            </div>
+            <a href="{% url 'suppliers:reabastecimiento_list' %}" class="btn btn-close btn-close-white" aria-label="Cerrar"></a>
+        </div>
+        <div class="card-body p-4">
+            <form method="post" action="{% url 'suppliers:reabastecimiento_update' reabastecimiento.id %}" id="reabastecimientoForm" data-formset-prefix="{{ formset.prefix }}">
+                {% csrf_token %}
+
+                <!-- SECCIÓN 1: INFORMACIÓN BÁSICA -->
+                <div class="reab-section">
+                    <div class="reab-section-title">
+                        <i class="fas fa-info-circle"></i>
+                        Información del Reabastecimiento
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">{{ form.proveedor.label }}</label>
+                            {{ form.proveedor }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Estado</label>
+                            <p class="form-control-plaintext">
+                                <span class="badge bg-warning text-dark">{{ reabastecimiento.get_estado_display }}</span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">{{ form.forma_pago.label }}</label>
+                            {{ form.forma_pago }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Fecha de Solicitud</label>
+                            <p class="form-control-plaintext">{{ reabastecimiento.fecha|date:"d/m/Y H:i" }}</p>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">{{ form.observaciones.label }}</label>
+                            {{ form.observaciones }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">{{ form.producto.label }}</label>
+                            {{ form.producto|add_class:"form-control" }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 2: RESUMEN EN VIVO -->
+                <div class="card border-0 shadow-sm mb-4" role="region" aria-label="Resumen de la orden">
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <small class="text-muted d-block mb-1"><i class="fas fa-box me-1"></i>Productos</small>
+                                    <h5 class="mb-0" id="product-count">{{ formset.forms|length }}</h5>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <small class="text-muted d-block mb-1"><i class="fas fa-calculator me-1"></i>Subtotal</small>
+                                    <h5 class="mb-0" id="gran-subtotal">${{ reabastecimiento.costo_total }}</h5>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <small class="text-muted d-block mb-1"><i class="fas fa-percent me-1"></i>IVA</small>
+                                    <h5 class="mb-0 text-warning" id="gran-iva">${{ reabastecimiento.iva }}</h5>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center p-2 bg-success bg-opacity-10 rounded">
+                                    <small class="text-muted d-block mb-1"><i class="fas fa-money-bill me-1"></i>Total</small>
+                                    <h5 class="mb-0 text-success" id="gran-total">${{ reabastecimiento.costo_total|add:reabastecimiento.iva }}</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 3: DETALLES DE PRODUCTOS -->
+                <div class="reab-section">
+                    <div class="reab-section-title">
+                        <i class="fas fa-list"></i>
+                        Productos
+                    </div>
+
+                    {{ formset.management_form }}
+                    <div class="table-responsive">
+                        <table class="table table-sm reab-table" id="detalleTable" role="grid" aria-label="Detalles de productos">
+                            <thead class="table-light">
+                                <tr role="row">
+                                    <th style="width: 30%;" role="columnheader">Producto</th>
+                                    <th class="text-center" style="width: 12%;" role="columnheader">Cant.</th>
+                                    <th class="text-center" style="width: 12%;" role="columnheader">Costo</th>
+                                    <th class="text-center" style="width: 8%;" role="columnheader">IVA</th>
+                                    <th class="text-center" style="width: 14%;" role="columnheader">Caducidad</th>
+                                    <th class="text-center" style="width: 12%;" role="columnheader">Subtotal</th>
+                                    <th class="text-center" style="width: 12%;" role="columnheader">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for f in formset.forms %}
+                                <tr class="formset-row" id="detalle-row-{{ forloop.counter0 }}" role="row">
+                                    {{ f.id }}
+                                    <td role="gridcell">{% render_field f.producto class="form-select form-select-sm select2-field producto-select" aria-label="Producto fila {{ forloop.counter }}" %}</td>
+                                    <td class="text-center" role="gridcell">{% render_field f.cantidad class="form-control form-control-sm cantidad-input text-center" required="required" aria-label="Cantidad fila {{ forloop.counter }}" placeholder="0" %}</td>
+                                    <td class="text-center" role="gridcell">{% render_field f.costo_unitario class="form-control form-control-sm costo-unitario-input text-center" required="required" aria-label="Costo unitario fila {{ forloop.counter }}" placeholder="0" %}</td>
+                                    <td class="text-center" role="gridcell">
+                                        <select class="form-select form-select-sm iva-select text-center" name="{{ f.iva.html_name }}" data-producto-id="{{ f.instance.producto_id }}" data-tasa-iva-id="{{ f.instance.producto.tasa_iva_id }}" data-iva-value="{{ f.instance.iva }}" aria-label="IVA fila {{ forloop.counter }}">
+                                            <option value="">Seleccionar IVA</option>
+                                        </select>
+                                    </td>
+                                    <td class="text-center" role="gridcell">
+                                        <input type="date" name="{{ formset.prefix }}-{{ forloop.counter0 }}-fecha_caducidad" class="form-control form-control-sm" value="{% if f.instance.fecha_caducidad %}{{ f.instance.fecha_caducidad|date:'Y-m-d' }}{% endif %}" aria-label="Fecha de caducidad fila {{ forloop.counter }}">
+                                    </td>
+                                    <td class="text-center fw-bold" role="gridcell">
+                                        <span class="subtotal-display">$0</span>
+                                    </td>
+                                    <td class="text-center" role="gridcell">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary delete-row-btn" title="Eliminar (Ctrl+Backspace)" aria-label="Eliminar producto fila {{ forloop.counter }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- FOOTER STICKY CON BOTONES DE ACCIÓN -->
+                <div class="reab-sticky-footer">
+                    <div class="d-flex justify-content-between align-items-center gap-2">
+                        <small class="text-muted">
+                            <i class="fas fa-keyboard me-1"></i>
+                            <kbd>Ctrl</kbd>+<kbd>Enter</kbd> para guardar
+                        </small>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'suppliers:reabastecimiento_list' %}" class="btn btn-outline-secondary" aria-label="Cancelar y volver a la lista">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success" id="guardarReabastecimientoBtn" aria-label="Guardar cambios">
+                                <i class="fas fa-save me-2"></i>Guardar Cambios
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% include 'inventory/_nueva_categoria_modal.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="productosData">{{ all_products_json|safe }}</script>
+<script type="application/json" id="tasasIVAData">{{ tasas_iva_json|safe }}</script>
+<script>
+    const cancelUrl = "{% url 'suppliers:reabastecimiento_list' %}";
+    
+    // Atajos de teclado
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'Enter') {
+            e.preventDefault();
+            document.querySelector('form').submit();
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            window.location.href = cancelUrl;
+        }
+    });
+    
+    // Datos de productos con IVA
+    const productosData = JSON.parse(document.getElementById('productosData').textContent || '[]');
+    const productMap = new Map(productosData.map(p => [p.id, p]));
+    
+    // Datos de tasas de IVA
+    const tasasIVAData = JSON.parse(document.getElementById('tasasIVAData').textContent || '[]');
+    console.log('Tasas de IVA cargadas:', tasasIVAData);
+    
+    // Calcular totales en vivo
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('cantidad-input') || 
+            e.target.classList.contains('costo-unitario-input')) {
+            calculateTotals();
+        }
+    });
+    
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('producto-select')) {
+            updateRowIVA(e.target);
+            calculateTotals();
+        }
+        if (e.target.classList.contains('iva-select')) {
+            // Actualizar el campo oculto con el nuevo IVA seleccionado
+            const row = e.target.closest('tr');
+            // Buscar el campo de IVA en la misma celda que el select
+            const ivaCell = e.target.closest('td');
+            const ivaField = ivaCell.querySelector('input[name*="iva"]');
+            const cantidadInput = row.querySelector('.cantidad-input');
+            const costoInput = row.querySelector('.costo-unitario-input');
+            
+            if (ivaField && cantidadInput && costoInput) {
+                const cantidad = parseFloat(cantidadInput.value) || 0;
+                const costo = parseFloat(costoInput.value) || 0;
+                const selectedOption = e.target.options[e.target.selectedIndex];
+                
+                // Validar que la opción seleccionada tenga un porcentaje válido
+                if (!selectedOption.dataset.porcentaje) {
+                    console.log(`IVA: Opción sin porcentaje seleccionada, no se actualiza`);
+                    return;
+                }
+                
+                const ivaPorcentaje = parseFloat(selectedOption.dataset.porcentaje);
+                
+                const subtotal = cantidad * costo;
+                const iva = subtotal * (ivaPorcentaje / 100);
+                ivaField.value = iva;
+                console.log(`IVA actualizado: campo=${ivaField.name}, porcentaje=${ivaPorcentaje}, iva=${iva}`);
+            }
+            
+            calculateTotals();
+        }
+    });
+    
+    function updateRowIVA(selectElement) {
+        const row = selectElement.closest('tr');
+        const productId = parseInt(selectElement.value);
+        const ivaSelect = row.querySelector('.iva-select');
+        
+        if (productId && productMap.has(productId)) {
+            const producto = productMap.get(productId);
+            const productIvaId = producto.tasa_iva_id;
+            
+            // Llenar el select con las opciones de IVA
+            populateIVASelect(ivaSelect, productIvaId);
+        }
+    }
+    
+    function populateIVASelect(ivaSelect, selectedTasaIvaId) {
+        // Limpiar opciones previas excepto la primera
+        while (ivaSelect.options.length > 1) {
+            ivaSelect.remove(1);
+        }
+        
+        // Agregar opciones de tasas de IVA
+        if (tasasIVAData && tasasIVAData.length > 0) {
+            tasasIVAData.forEach(tasa => {
+                const option = document.createElement('option');
+                option.value = tasa.id;
+                option.textContent = `${tasa.porcentaje}%`;
+                option.dataset.porcentaje = tasa.porcentaje;
+                ivaSelect.appendChild(option);
+            });
+        }
+        
+        // Seleccionar la tasa de IVA del producto
+        if (selectedTasaIvaId) {
+            ivaSelect.value = selectedTasaIvaId;
+        }
+    }
+    
+    function calculateTotals() {
+        let grandSubtotal = 0;
+        let grandIva = 0;
+
+        document.querySelectorAll('tbody tr').forEach(row => {
+            const cantidadInput = row.querySelector('.cantidad-input');
+            const costoInput = row.querySelector('.costo-unitario-input');
+            const ivaField = row.querySelector('.iva-field');
+            const ivaSelect = row.querySelector('.iva-select');
+            const subtotalDisplay = row.querySelector('.subtotal-display');
+
+            if (cantidadInput && costoInput) {
+                const cantidad = parseFloat(cantidadInput.value) || 0;
+                const costo = parseFloat(costoInput.value) || 0;
+                const subtotal = cantidad * costo;
+                
+                let iva = 0;
+                
+                // Si hay un select de IVA con opción seleccionada, usar ese
+                if (ivaSelect && ivaSelect.selectedIndex > 0) {
+                    const selectedOption = ivaSelect.options[ivaSelect.selectedIndex];
+                    const ivaPorcentaje = parseFloat(selectedOption?.dataset?.porcentaje) || 0;
+                    iva = subtotal * (ivaPorcentaje / 100);
+                } else if (ivaField && ivaField.value) {
+                    // Si no hay select seleccionado, usar el valor del campo oculto
+                    iva = parseFloat(ivaField.value) || 0;
+                }
+                
+                const total = subtotal + iva;
+
+                grandSubtotal += subtotal;
+                grandIva += iva;
+
+                if (subtotalDisplay) {
+                    subtotalDisplay.textContent = formatCurrency(total);
+                }
+            }
+        });
+
+        const grandTotal = grandSubtotal + grandIva;
+        document.getElementById('gran-subtotal').textContent = formatCurrency(grandSubtotal);
+        document.getElementById('gran-iva').textContent = formatCurrency(grandIva);
+        document.getElementById('gran-total').textContent = formatCurrency(grandTotal);
+    }
+
+    function formatCurrency(value) {
+        return new Intl.NumberFormat('es-CO', {
+            style: 'currency',
+            currency: 'COP',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(value);
+    }
+    
+    // Inicializar al cargar
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOMContentLoaded - Inicializando IVA');
+        console.log('Tasas de IVA disponibles:', tasasIVAData);
+        
+        // Inicializar IVA para todos los productos ya seleccionados
+        document.querySelectorAll('tbody tr').forEach((row, rowIndex) => {
+            const ivaSelect = row.querySelector('.iva-select');
+            const ivaField = row.querySelector('.iva-field');
+            const tasaIvaId = ivaSelect.getAttribute('data-tasa-iva-id');
+            const cantidadInput = row.querySelector('.cantidad-input');
+            const costoInput = row.querySelector('.costo-unitario-input');
+            
+            console.log(`Fila ${rowIndex}: tasaIvaId=${tasaIvaId}, ivaField.value=${ivaField?.value}`);
+            
+            // Obtener el valor del IVA guardado del campo oculto
+            let ivaValueSaved = 0;
+            if (ivaField && ivaField.value) {
+                ivaValueSaved = parseFloat(ivaField.value) || 0;
+            }
+            
+            // Llenar el select con las opciones de IVA
+            populateIVASelect(ivaSelect, tasaIvaId);
+            
+            // Si hay un valor de IVA guardado (incluso si es 0), calcular el porcentaje y seleccionar la tasa correcta
+            if (ivaValueSaved >= 0 && cantidadInput && costoInput) {
+                const cantidad = parseFloat(cantidadInput.value) || 0;
+                const costo = parseFloat(costoInput.value) || 0;
+                const subtotal = cantidad * costo;
+                
+                if (subtotal > 0) {
+                    const ivaPorcentaje = (ivaValueSaved / subtotal) * 100;
+                    
+                    console.log(`Fila ${rowIndex}: cantidad=${cantidad}, costo=${costo}, subtotal=${subtotal}, ivaValue=${ivaValueSaved}, ivaPorcentaje=${ivaPorcentaje}%`);
+                    
+                    // Buscar la tasa de IVA que coincida con este porcentaje
+                    let found = false;
+                    for (let option of ivaSelect.options) {
+                        if (option.dataset.porcentaje) {
+                            const optionPorcentaje = parseFloat(option.dataset.porcentaje);
+                            if (Math.abs(optionPorcentaje - ivaPorcentaje) < 0.01) {
+                                ivaSelect.value = option.value;
+                                // Forzar actualización visual
+                                ivaSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                                console.log(`Fila ${rowIndex}: Encontrada tasa exacta: ${optionPorcentaje}%, option.value=${option.value}, ivaSelect.value=${ivaSelect.value}`);
+                                console.log(`Fila ${rowIndex}: Select text: ${ivaSelect.options[ivaSelect.selectedIndex].text}`);
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Si no encontró coincidencia exacta, no hacer nada y dejar el default del producto.
+                    if (!found) {
+                        console.log(`Fila ${rowIndex}: No se encontró coincidencia exacta para ${ivaPorcentaje}%. Se usará el IVA por defecto del producto.`);
+                    }
+                } else {
+                    console.log(`Fila ${rowIndex}: Subtotal es 0, no se puede calcular porcentaje`);
+                }
+            } else {
+                console.log(`Fila ${rowIndex}: No hay IVA guardado (ivaValueSaved=${ivaValueSaved})`);
+            }
+        });
+        calculateTotals();
+    });
+    
+    // Manejador del formulario
+    document.getElementById('reabastecimientoForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        console.log('=== SUBMIT FORM ===');
+        
+        const form = this;
+        
+        // No hacer nada aquí - el IVA ya está en el campo oculto
+        // El evento change del select ya actualiza el IVA cuando cambia
+        console.log('Enviando formulario con IVA actual');
+        
+        const formData = new FormData(form);
+        const submitBtn = document.getElementById('guardarReabastecimientoBtn');
+        const originalBtnText = submitBtn.innerHTML;
+        
+        // Mostrar estado de carga
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+        
+        // Debug: mostrar qué se está enviando
+        console.log('=== FormData a enviar ===');
+        for (let [key, value] of formData.entries()) {
+            console.log(`  ${key}: ${value}`);
+        }
+        console.log('=== Enviando fetch ===');
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => {
+            console.log('=== Respuesta recibida ===');
+            console.log('Status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('=== Datos JSON ===', data);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+            
+            if (data.error) {
+                console.log('Error:', data.error);
+                showErrorNotification('Error', data.error);
+            } else if (data.errors) {
+                let errorMsg = 'Errores en el formulario:\n';
+                for (let field in data.errors) {
+                    errorMsg += `${field}: ${data.errors[field].join(', ')}\n`;
+                }
+                if (data.formset_errors && data.formset_errors.length > 0) {
+                    errorMsg += '\nErrores en productos:\n';
+                    data.formset_errors.forEach((errors, index) => {
+                        for (let field in errors) {
+                            errorMsg += `Fila ${index + 1} - ${field}: ${errors[field].join(', ')}\n`;
+                        }
+                    });
+                }
+                showErrorNotification('Errores de validación', errorMsg);
+            } else {
+                // Éxito - guardar en sessionStorage y redirigir inmediatamente
+                sessionStorage.setItem('successMessage', JSON.stringify({
+                    title: '¡Éxito!',
+                    message: `Reabastecimiento #${data.id} actualizado correctamente`,
+                    proveedor: data.proveedor,
+                    total: data.costo_total
+                }));
+                window.location.href = "{% url 'suppliers:reabastecimiento_list' %}";
+            }
+        })
+        .catch(error => {
+            console.error('=== ERROR EN FETCH ===', error);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+            showErrorNotification('Error', 'Error al guardar: ' + error);
+        });
+    });
+    
+    function showSuccessNotification(title, message, data) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.style.minWidth = '400px';
+        alertDiv.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="fas fa-check-circle me-3" style="font-size: 1.5rem;"></i>
+                <div>
+                    <strong>${title}</strong>
+                    <div style="font-size: 0.9rem; margin-top: 0.25rem;">
+                        ${message}
+                        <br>
+                        <small class="text-muted">Proveedor: ${data.proveedor} | Total: $${parseFloat(data.costo_total).toLocaleString('es-CO')}</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        // Auto-cerrar después de 3 segundos y redirigir
+        setTimeout(() => {
+            alertDiv.remove();
+            window.location.href = "{% url 'suppliers:reabastecimiento_list' %}";
+        }, 3000);
+    }
+    
+    function showErrorNotification(title, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.style.minWidth = '400px';
+        alertDiv.innerHTML = `
+            <div class="d-flex align-items-start">
+                <i class="fas fa-exclamation-circle me-3" style="font-size: 1.5rem; margin-top: 0.25rem;"></i>
+                <div style="flex: 1;">
+                    <strong>${title}</strong>
+                    <div style="font-size: 0.9rem; margin-top: 0.5rem; white-space: pre-wrap;">
+                        ${message}
+                    </div>
+                </div>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        // Auto-cerrar después de 5 segundos
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+</script>
+{% endblock %}

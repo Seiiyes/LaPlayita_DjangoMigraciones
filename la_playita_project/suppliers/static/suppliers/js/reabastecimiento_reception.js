@@ -62,24 +62,56 @@ class ReceptionManager {
             this.filterTableBySearch('');
         });
 
-        document.getElementById('searchProductInput')?.addEventListener('keyup', (e) => {
-            this.filterTableBySearch(e.target.value);
-        });
+        const searchInput = document.getElementById('searchProductInput');
+        if (searchInput) {
+            // Debounce búsqueda para mejor performance
+            let searchTimeout;
+            searchInput.addEventListener('keyup', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.filterTableBySearch(e.target.value);
+                }, 150);
+            });
+        }
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (!this.currentReceptionData) return;
+            
+            // Ctrl+Enter: Confirmar recepción
             if (e.ctrlKey && e.key === 'Enter') {
                 e.preventDefault();
                 this.confirmReception();
             }
+            
+            // Escape: Cerrar modal
             if (e.key === 'Escape') {
                 e.preventDefault();
                 this.exitReceptionMode();
             }
+            
+            // Ctrl+S: Guardar borrador
             if (e.ctrlKey && e.key === 's') {
                 e.preventDefault();
                 this.saveDraft();
+            }
+            
+            // Ctrl+M: Marcar todo como recibido
+            if (e.ctrlKey && e.key === 'm') {
+                e.preventDefault();
+                this.markAllReceived();
+            }
+            
+            // Alt+F: Enfocar búsqueda
+            if (e.altKey && e.key === 'f') {
+                e.preventDefault();
+                document.getElementById('searchProductInput')?.focus();
+            }
+
+            // Ctrl+D: Aplicar fecha general
+            if (e.ctrlKey && e.key === 'd') {
+                e.preventDefault();
+                document.getElementById('applyGeneralExpiryBtn')?.click();
             }
         });
 
@@ -125,6 +157,15 @@ class ReceptionManager {
         // Actualizar header
         document.getElementById('receptionOrderId').textContent = reabastecimientoData.id;
         document.getElementById('receptionProveedorName').textContent = reabastecimientoData.proveedor_nombre || 'N/A';
+        
+        // Calcular y mostrar subtotal, IVA y total
+        const subtotal = reabastecimientoData.costo_total || 0;
+        const iva = reabastecimientoData.iva || 0;
+        const total = subtotal + iva;
+        
+        document.getElementById('receptionSubtotal').textContent = this.formatCurrency(subtotal);
+        document.getElementById('receptionIVA').textContent = this.formatCurrency(iva);
+        document.getElementById('receptionTotal').textContent = this.formatCurrency(total);
 
         // Poblar tabla con detalles completos
         console.log('Detalles a poblar:', detallesOriginales);
@@ -178,7 +219,7 @@ class ReceptionManager {
                 <small class="fw-500">${detalle.producto_nombre}</small>
             </td>
             <td class="text-center">
-                <small class="text-muted">${cantidad}</small>
+                <small class="text-muted" title="Cantidad solicitada">${cantidad}</small>
             </td>
             <td class="text-center">
                 <input type="number" 
@@ -189,14 +230,18 @@ class ReceptionManager {
                        value="${quantityRecibida}"
                        min="0"
                        max="${cantidad}"
-                       placeholder="0">
+                       placeholder="0"
+                       title="Cantidad a recibir (máx: ${cantidad})"
+                       autocomplete="off">
             </td>
             <td class="text-center">
                 <input type="date" 
                        name="fecha_${detalle.id}"
                        class="form-control form-control-sm reception-expiry-input" 
                        data-detalle-id="${detalle.id}"
-                       value="${detalle.fecha_caducidad || ''}">
+                       value="${detalle.fecha_caducidad || ''}"
+                       title="Fecha de caducidad"
+                       autocomplete="off">
             </td>
             <td class="text-center">
                 <input type="text" 
@@ -204,7 +249,9 @@ class ReceptionManager {
                        class="form-control form-control-sm reception-lote-input" 
                        data-detalle-id="${detalle.id}"
                        value="${detalle.numero_lote || ''}"
-                       placeholder="Lote/Serial">
+                       placeholder="Lote/Serial"
+                       title="Número de lote o serial"
+                       autocomplete="off">
             </td>
             <td class="text-center">
                 <span class="badge" id="status-${detalle.id}">
@@ -217,6 +264,17 @@ class ReceptionManager {
         const quantityInput = row.querySelector('.reception-quantity-input');
         const expiryInput = row.querySelector('.reception-expiry-input');
         const loteInput = row.querySelector('.reception-lote-input');
+
+        quantityInput.addEventListener('input', () => {
+            // Limitar cantidad máxima en tiempo real
+            const max = parseInt(quantityInput.dataset.solicitado);
+            const value = parseInt(quantityInput.value) || 0;
+            if (value > max) {
+                quantityInput.value = max;
+            }
+            // Validación en vivo sin esperar change
+            this.validateRow(detalle.id, row);
+        });
 
         quantityInput.addEventListener('change', () => {
             this.validateRow(detalle.id, row);
@@ -231,6 +289,36 @@ class ReceptionManager {
         loteInput.addEventListener('change', () => {
             this.validateRow(detalle.id, row);
         });
+
+        // Atajos de teclado en inputs
+        quantityInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                expiryInput.focus();
+            }
+        });
+
+        expiryInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                loteInput.focus();
+            }
+        });
+
+        loteInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                // Ir a siguiente fila o confirmar
+                const nextRow = row.nextElementSibling;
+                if (nextRow) {
+                    nextRow.querySelector('.reception-quantity-input')?.focus();
+                } else {
+                    document.getElementById('confirmReceptionBtn')?.focus();
+                }
+            }
+        });
+
+
 
         return row;
     }
@@ -251,29 +339,36 @@ class ReceptionManager {
         if (quantity > solicitado) {
             quantityInput.classList.add('is-invalid');
             quantityInput.classList.remove('is-valid');
+            quantityInput.title = `No puede exceder ${solicitado}`;
             isValid = false;
         } else if (quantity === solicitado) {
             quantityInput.classList.add('is-valid');
             quantityInput.classList.remove('is-invalid');
+            quantityInput.title = 'Recepción completa';
             status = 'complete';
         } else if (quantity > 0) {
             quantityInput.classList.add('is-valid');
             quantityInput.classList.remove('is-invalid');
+            quantityInput.title = `Recepción parcial (${quantity}/${solicitado})`;
             status = 'partial';
         } else {
             quantityInput.classList.remove('is-valid', 'is-invalid');
+            quantityInput.title = '';
             status = 'pending';
         }
 
         // Validar fecha si hay cantidad
         if (quantity > 0 && !expiry) {
             expiryInput.classList.add('is-invalid');
+            expiryInput.title = 'Fecha requerida';
             isValid = false;
         } else if (quantity > 0 && expiry) {
             expiryInput.classList.add('is-valid');
             expiryInput.classList.remove('is-invalid');
+            expiryInput.title = `Caducidad: ${expiry}`;
         } else {
             expiryInput.classList.remove('is-valid', 'is-invalid');
+            expiryInput.title = '';
         }
 
         // Actualizar estado visual de la fila
@@ -332,9 +427,38 @@ class ReceptionManager {
 
     updateConfirmButton() {
         const confirmBtn = document.getElementById('confirmReceptionBtn');
+        const validationAlert = document.getElementById('validationAlert');
+        const quantityMismatchAlert = document.getElementById('quantityMismatchAlert');
+        const successAlert = document.getElementById('successAlert');
+
         const hasAtLeastOne = Array.from(this.validationState.values()).some(
             v => v.quantity > 0
         );
+
+        const hasDiscrepancies = Array.from(this.validationState.values()).some(
+            v => v.status === 'partial'
+        );
+
+        const allValid = Array.from(this.validationState.values()).every(
+            v => v.isValid
+        );
+
+        // Mostrar/ocultar alertas
+        validationAlert.style.display = 'none';
+        quantityMismatchAlert.style.display = 'none';
+        successAlert.style.display = 'none';
+
+        if (!hasAtLeastOne) {
+            validationAlert.style.display = 'block';
+            validationAlert.innerHTML = '<small id="validationAlertText">Debes recibir al menos 1 producto</small>';
+        } else if (hasDiscrepancies) {
+            quantityMismatchAlert.style.display = 'block';
+            const partialCount = Array.from(this.validationState.values()).filter(v => v.status === 'partial').length;
+            document.getElementById('mismatchText').textContent = `${partialCount} producto(s) con recepción parcial`;
+        } else if (allValid && hasAtLeastOne) {
+            successAlert.style.display = 'block';
+        }
+
         confirmBtn.disabled = !hasAtLeastOne;
     }
 
@@ -454,6 +578,12 @@ class ReceptionManager {
 
         console.log('Datos a enviar:', { detalles });
 
+        // Mostrar loader
+        const confirmBtn = document.getElementById('confirmReceptionBtn');
+        const originalText = confirmBtn.innerHTML;
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+
         // Enviar al servidor
         const container = document.getElementById('reabastecimiento-container');
         const url = container.dataset.recibirUrl.replace('0', this.currentReceptionData.id);
@@ -470,8 +600,10 @@ class ReceptionManager {
             .then(data => {
                 if (data.error) {
                     this.showToast(data.error, 'danger');
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = originalText;
                 } else {
-                    this.showToast('Recepción confirmada', 'success');
+                    this.showToast('Recepción confirmada ✓', 'success');
                     
                     // Limpiar borrador
                     const draftKey = `draft_${this.currentReceptionData.id}`;
@@ -481,12 +613,14 @@ class ReceptionManager {
                     setTimeout(() => {
                         this.exitReceptionMode();
                         location.reload();
-                    }, 1500);
+                    }, 1200);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 this.showToast('Error al confirmar recepción', 'danger');
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = originalText;
             });
     }
 
@@ -516,6 +650,15 @@ class ReceptionManager {
         return document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
                document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1] ||
                '';
+    }
+
+    formatCurrency(value) {
+        return new Intl.NumberFormat('es-CO', {
+            style: 'currency',
+            currency: 'COP',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(value);
     }
 }
 

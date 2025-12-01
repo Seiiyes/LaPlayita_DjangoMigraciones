@@ -11,6 +11,71 @@ document.addEventListener('DOMContentLoaded', function () {
     const ELIMINAR_URL = container.dataset.eliminarUrl;
     const PROVEEDORES_SEARCH_URL = container.dataset.proveedoresSearchUrl;
 
+    // ===== MOSTRAR MENSAJE DE ÉXITO SI VIENE DE EDICIÓN =====
+    const successData = sessionStorage.getItem('successMessage');
+    if (successData) {
+        try {
+            const data = JSON.parse(successData);
+            sessionStorage.removeItem('successMessage');
+            
+            const formatCurrency = (value) => {
+                return new Intl.NumberFormat('es-CO', {
+                    style: 'currency',
+                    currency: 'COP',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                }).format(value);
+            };
+            
+            const toastContainer = document.querySelector('.toast-container');
+            if (toastContainer) {
+                const toastId = `toast-${Date.now()}`;
+                const toastHtml = `
+                    <div id="${toastId}" class="toast align-items-center text-white bg-success border-0" role="alert">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <strong>${data.title}</strong><br>
+                                ${data.message}<br>
+                                <small class="text-white-50">Proveedor: ${data.proveedor} | Total: ${formatCurrency(data.total)}</small>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                        </div>
+                    </div>
+                `;
+                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                const toastElement = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastElement, { delay: 2000 });
+                toast.show();
+            }
+        } catch (e) {
+            console.error('Error al procesar mensaje de éxito:', e);
+        }
+    }
+
+    // ===== FILTROS =====
+    const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', function() {
+            const fechaDesde = document.getElementById('fecha_desde').value;
+            const fechaHasta = document.getElementById('fecha_hasta').value;
+            const proveedorId = document.getElementById('filter_proveedor_id').value;
+            
+            let url = '/suppliers/reabastecimientos/?';
+            const params = [];
+            
+            if (fechaDesde) params.push(`fecha_desde=${fechaDesde}`);
+            if (fechaHasta) params.push(`fecha_hasta=${fechaHasta}`);
+            if (proveedorId) params.push(`proveedor_id=${proveedorId}`);
+            
+            if (params.length > 0) {
+                url += params.join('&');
+            }
+            
+            window.location.href = url;
+        });
+    }
+
     // ===== TAB MANAGEMENT =====
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -50,12 +115,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 const proveedor = row.dataset.proveedor || 'N/A';
                 const fecha = row.dataset.fecha || '';
                 const costoRaw = parseFloat(row.dataset.costo) || 0;
-                const costo = '$' + costoRaw.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                const ivaRaw = parseFloat(row.dataset.iva) || 0;
+                const totalReal = costoRaw + ivaRaw;
+                
+                const formatCurrency = (value) => {
+                    return new Intl.NumberFormat('es-CO', {
+                        style: 'currency',
+                        currency: 'COP',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    }).format(value);
+                };
+                
+                const subtotal = formatCurrency(costoRaw);
+                const iva = formatCurrency(ivaRaw);
+                const total = formatCurrency(totalReal);
+                const ivaPorcentaje = costoRaw > 0 ? ((ivaRaw / costoRaw) * 100).toFixed(2) : 0;
                 const productCount = row.dataset.productCount || '0';
                 const statusBadge = getStatusBadge(estado);
-                
-                // Debug
-                console.log(`Orden #${id}: costo=${row.dataset.costo}, costoRaw=${costoRaw}, formateado=${costo}`);
 
                 html += `
                     <div class="order-card ${estado}" data-order-id="${id}">
@@ -79,8 +156,13 @@ document.addEventListener('DOMContentLoaded', function () {
                             </div>
                             <div class="col-md-3">
                                 <div class="text-center">
-                                    <small class="text-muted d-block">Total</small>
-                                    <strong class="d-block">${costo}</strong>
+                                    <small class="text-muted d-block" style="font-size: 0.75rem;">Subtotal</small>
+                                    <strong class="d-block" style="font-size: 0.9rem; color: #6c757d;">${subtotal}</strong>
+                                    <small class="text-muted d-block" style="font-size: 0.75rem;">IVA (${ivaPorcentaje}%): ${iva}</small>
+                                    <div style="border-top: 1px solid #dee2e6; margin-top: 0.5rem; padding-top: 0.5rem;">
+                                        <small class="text-muted d-block" style="font-size: 0.75rem;">Total</small>
+                                        <strong class="d-block text-success">${total}</strong>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -90,6 +172,11 @@ document.addEventListener('DOMContentLoaded', function () {
                                 ${estado === 'solicitado' ? `
                                     <button type="button" class="btn btn-success btn-recibir" data-id="${id}">
                                         <i class="fas fa-truck-loading me-1"></i>Recibir
+                                    </button>
+                                ` : ''}
+                                ${estado === 'solicitado' ? `
+                                    <button type="button" class="btn btn-outline-primary btn-editar" data-id="${id}">
+                                        <i class="fas fa-edit me-1"></i>Editar
                                     </button>
                                 ` : ''}
                                 <button type="button" class="btn btn-outline-secondary btn-detalles" data-id="${id}">
@@ -122,6 +209,12 @@ document.addEventListener('DOMContentLoaded', function () {
         container.innerHTML = html;
         updateTabCounts();
         attachEventListeners();
+        
+        // Ocultar paginación siempre (los datos ya están filtrados en frontend por tabs)
+        const paginationNav = document.querySelector('nav[aria-label="Paginación"]');
+        if (paginationNav) {
+            paginationNav.style.display = 'none';
+        }
     }
 
     function getStatusBadge(estado) {
@@ -190,6 +283,14 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
 
+        // Editar orden
+        document.querySelectorAll('.btn-editar').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const id = this.dataset.id;
+                window.location.href = `/suppliers/reabastecimientos/${id}/editar/`;
+            });
+        });
+
         // Ver detalles
         document.querySelectorAll('.btn-detalles').forEach(btn => {
             btn.addEventListener('click', async function() {
@@ -216,12 +317,14 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
             
             // Populate modal
-            document.getElementById('receptionOrderId').textContent = id;
-            document.getElementById('receptionProveedorName').textContent = data.proveedor_nombre;
+            const orderIdEl = document.getElementById('receptionOrderId');
+            if (orderIdEl) orderIdEl.textContent = id;
             
             // Populate table
             const tbody = document.getElementById('receptionTableBody');
-            tbody.innerHTML = data.detalles.map(detalle => `
+            tbody.innerHTML = data.detalles.map(detalle => {
+                const fechaCaducidad = detalle.fecha_caducidad ? new Date(detalle.fecha_caducidad).toLocaleDateString('es-CO') : 'N/A';
+                return `
                 <tr data-detalle-id="${detalle.id}">
                     <td>${detalle.producto_nombre}</td>
                     <td class="text-center">${detalle.cantidad}</td>
@@ -229,28 +332,33 @@ document.addEventListener('DOMContentLoaded', function () {
                         <input type="number" class="form-control form-control-sm cantidad-input" 
                                value="${detalle.cantidad_recibida}" min="0" max="${detalle.cantidad}">
                     </td>
-                    <td class="text-center">
-                        <input type="date" class="form-control form-control-sm fecha-input" 
-                               value="${detalle.fecha_caducidad || ''}">
-                    </td>
-                    <td class="text-center">
-                        <input type="text" class="form-control form-control-sm lote-input" 
-                               value="${detalle.numero_lote || ''}" placeholder="Lote">
-                    </td>
-                    <td class="text-center">
-                        <span class="product-status pending">
-                            <i class="fas fa-circle"></i>
-                        </span>
-                    </td>
+                    <td class="text-center"><small>${fechaCaducidad}</small></td>
                 </tr>
-            `).join('');
+            `}).join('');
+
+            // Update progress
+            updateReceptionProgress();
 
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('receptionModal'));
             modal.show();
-
+            
             // Attach input listeners
-            attachReceptionInputListeners();
+            const inputs = document.querySelectorAll('#receptionTableBody .cantidad-input');
+            if (inputs && inputs.length > 0) {
+                inputs.forEach(input => {
+                    if (input) {
+                        input.addEventListener('input', updateReceptionProgress);
+                    }
+                });
+            }
+
+            // Attach confirm button listener
+            const confirmBtn = document.getElementById('confirmReceptionBtn');
+            if (confirmBtn) {
+                confirmBtn.onclick = () => confirmReception(id);
+            }
+
             updateReceptionProgress();
 
         } catch (error) {
@@ -258,87 +366,43 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function attachReceptionInputListeners() {
-        const inputs = document.querySelectorAll('.cantidad-input, .fecha-input, .lote-input');
-        inputs.forEach(input => {
-            input.addEventListener('change', updateReceptionProgress);
-            input.addEventListener('input', updateReceptionProgress);
-        });
 
-        // Mark all received
-        document.getElementById('markAllReceivedBtn').addEventListener('click', function() {
-            document.querySelectorAll('.cantidad-input').forEach(input => {
-                const row = input.closest('tr');
-                const solicitado = parseInt(row.querySelector('td:nth-child(2)').textContent);
-                input.value = solicitado;
-            });
-            updateReceptionProgress();
-        });
-
-        // Apply expiry date to all
-        document.getElementById('applyGeneralExpiryBtn').addEventListener('click', function() {
-            const date = document.getElementById('generalExpiryDate').value;
-            if (!date) return;
-            document.querySelectorAll('.fecha-input').forEach(input => {
-                input.value = date;
-            });
-            updateReceptionProgress();
-        });
-
-        // Search products
-        document.getElementById('searchProductInput').addEventListener('input', function() {
-            const query = this.value.toLowerCase();
-            document.querySelectorAll('#receptionTableBody tr').forEach(row => {
-                const productName = row.querySelector('td:first-child').textContent.toLowerCase();
-                row.style.display = productName.includes(query) ? '' : 'none';
-            });
-        });
-
-        // Confirm reception
-        document.getElementById('confirmReceptionBtn').addEventListener('click', confirmReception);
-    }
 
     function updateReceptionProgress() {
-        const rows = document.querySelectorAll('#receptionTableBody tr:not([style*="display: none"])');
+        const rows = document.querySelectorAll('#receptionTableBody tr');
         let completed = 0, partial = 0, pending = 0;
 
         rows.forEach(row => {
-            const solicitado = parseInt(row.querySelector('td:nth-child(2)').textContent);
+            const solicitado = parseInt(row.querySelector('td:nth-child(2)').textContent) || 0;
             const recibido = parseInt(row.querySelector('.cantidad-input').value) || 0;
-            const status = row.querySelector('.product-status');
 
-            if (recibido === solicitado) {
+            if (recibido === solicitado && solicitado > 0) {
                 completed++;
-                status.className = 'product-status complete';
-                status.innerHTML = '<i class="fas fa-check-circle"></i>';
-            } else if (recibido > 0) {
+            } else if (recibido > 0 && recibido < solicitado) {
                 partial++;
-                status.className = 'product-status partial';
-                status.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
             } else {
                 pending++;
-                status.className = 'product-status pending';
-                status.innerHTML = '<i class="fas fa-circle"></i>';
             }
         });
 
         const total = completed + partial + pending;
-        document.getElementById('progressText').textContent = `${completed} de ${total}`;
-        document.getElementById('progressBar').style.width = `${total > 0 ? (completed / total) * 100 : 0}%`;
-        document.getElementById('completedCount').textContent = completed;
-        document.getElementById('partialCount').textContent = partial;
-        document.getElementById('pendingCount').textContent = pending;
+        const progressText = document.getElementById('progressText');
+        const progressBar = document.getElementById('progressBar');
+        const confirmBtn = document.getElementById('confirmReceptionBtn');
+        const discrepancyAlert = document.getElementById('discrepancyAlert');
 
-        // Enable confirm button if at least one product received
-        document.getElementById('confirmReceptionBtn').disabled = (completed + partial) === 0;
+        if (progressText) progressText.textContent = `${completed} de ${total}`;
+        if (progressBar) progressBar.style.width = `${total > 0 ? (completed / total) * 100 : 0}%`;
+        if (confirmBtn) confirmBtn.disabled = (completed + partial) === 0;
 
         // Show warning if partial
-        const mismatchAlert = document.getElementById('quantityMismatchAlert');
-        if (partial > 0) {
-            mismatchAlert.style.display = 'block';
-            document.getElementById('mismatchText').textContent = `${partial} producto(s) con cantidad parcial`;
-        } else {
-            mismatchAlert.style.display = 'none';
+        if (discrepancyAlert) {
+            if (partial > 0) {
+                discrepancyAlert.style.display = 'block';
+                document.getElementById('discrepancyText').textContent = `${partial} producto(s) con cantidad parcial`;
+            } else {
+                discrepancyAlert.style.display = 'none';
+            }
         }
     }
 
@@ -355,6 +419,20 @@ document.addEventListener('DOMContentLoaded', function () {
             
             const data = await response.json();
             
+            const formatCurrency = (value) => {
+                return new Intl.NumberFormat('es-CO', {
+                    style: 'currency',
+                    currency: 'COP',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                }).format(value);
+            };
+            
+            const subtotal = formatCurrency(parseFloat(data.costo_total) || 0);
+            const iva = formatCurrency(parseFloat(data.iva) || 0);
+            const totalReal = formatCurrency((parseFloat(data.costo_total) || 0) + (parseFloat(data.iva) || 0));
+            const ivaPorcentaje = data.iva_porcentaje || 0;
+            
             let html = `
                 <div class="row mb-3">
                     <div class="col-md-6">
@@ -367,13 +445,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>
                 <div class="row mb-3">
-                    <div class="col-md-6">
-                        <small class="text-muted">Total</small>
-                        <p class="fw-bold">${data.costo_total}</p>
+                    <div class="col-md-4">
+                        <small class="text-muted">Subtotal</small>
+                        <p class="fw-bold">${subtotal}</p>
                     </div>
-                    <div class="col-md-6">
-                        <small class="text-muted">IVA</small>
-                        <p class="fw-bold">${data.iva}</p>
+                    <div class="col-md-4">
+                        <small class="text-muted">IVA (${ivaPorcentaje}%)</small>
+                        <p class="fw-bold text-warning">${iva}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Total</small>
+                        <p class="fw-bold text-success">${totalReal}</p>
                     </div>
                 </div>
                 <hr>
@@ -385,16 +467,20 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <th>Producto</th>
                                 <th class="text-center">Solicitado</th>
                                 <th class="text-center">Recibido</th>
+                                <th class="text-center">Caducidad</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${data.detalles.map(d => `
+                            ${data.detalles.map(d => {
+                                const fechaCaducidad = d.fecha_caducidad ? new Date(d.fecha_caducidad).toLocaleDateString('es-CO') : 'N/A';
+                                return `
                                 <tr>
                                     <td>${d.producto_nombre}</td>
                                     <td class="text-center">${d.cantidad}</td>
                                     <td class="text-center">${d.cantidad_recibida}</td>
+                                    <td class="text-center"><small>${fechaCaducidad}</small></td>
                                 </tr>
-                            `).join('')}
+                            `}).join('')}
                         </tbody>
                     </table>
                 </div>

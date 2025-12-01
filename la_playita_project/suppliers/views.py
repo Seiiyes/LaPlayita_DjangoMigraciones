@@ -23,6 +23,7 @@ from users.decorators import check_user_role
 from .models import Proveedor, Reabastecimiento, ReabastecimientoDetalle
 from inventory.models import Producto, Categoria, Lote, MovimientoInventario, TasaIVA
 from inventory.forms import ReabastecimientoForm, ReabastecimientoDetalleFormSet, ProductoForm
+from suppliers.forms import ReabastecimientoDetalleFormSetEdit
 
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
@@ -366,12 +367,17 @@ def reabastecimiento_create(request):
                             producto = detalle_form['producto']
                             
                             subtotal = cantidad * costo_unitario
-                            iva_porcentaje = producto.tasa_iva.porcentaje
-                            iva_detalle = subtotal * (iva_porcentaje / 100)
+                            
+                            # Usar el IVA del formulario, que ahora se calcula en el frontend
+                            iva_detalle = detalle_form.get('iva', 0)
+                            if iva_detalle is None:
+                                # Fallback por si el frontend no envía el IVA
+                                iva_porcentaje = producto.tasa_iva.porcentaje if producto.tasa_iva else 0
+                                iva_detalle = subtotal * (iva_porcentaje / 100)
                             
                             total_costo += subtotal
                             total_iva += iva_detalle
-                            detalle_form['iva'] = iva_detalle
+                            # El valor de 'iva' ya está en detalle_form, no es necesario reasignarlo
                             detalles_a_crear.append(detalle_form)
 
                     if not detalles_a_crear:
@@ -406,14 +412,14 @@ def reabastecimiento_create(request):
         form = ReabastecimientoForm(initial_creation=True)
         formset = ReabastecimientoDetalleFormSet(queryset=ReabastecimientoDetalle.objects.none())
 
-    all_products_data = list(Producto.objects.values('id', 'nombre', 'precio_unitario', 'tasa_iva__porcentaje'))
+    all_products_data = list(Producto.objects.values('id', 'nombre', 'precio_unitario', 'tasa_iva_id', 'tasa_iva__porcentaje'))
     recent_suppliers = Proveedor.objects.filter(
         reabastecimiento__isnull=False
     ).distinct().order_by('-reabastecimiento__fecha')[:5]
     
     # Obtener todas las tasas de IVA de la base de datos
     tasas_iva_queryset = TasaIVA.objects.all().order_by('porcentaje')
-    tasas_iva_list = [{'porcentaje': int(t.porcentaje) if t.porcentaje == int(t.porcentaje) else t.porcentaje, 'nombre': t.nombre} for t in tasas_iva_queryset]
+    tasas_iva_list = [{'id': t.id, 'porcentaje': float(t.porcentaje), 'nombre': t.nombre} for t in tasas_iva_queryset]
     
     context = {
         'form': form,
@@ -427,228 +433,47 @@ def reabastecimiento_create(request):
     return render(request, 'suppliers/reabastecimiento_create.html', context)
 
 
-@never_cache
-@login_required
-@check_user_role(allowed_roles=['Administrador'])
-def reabastecimiento_list(request):
-    """
-    Lista los reabastecimientos con filtrado y búsqueda.
-    """
-    reabs_query = (
-        Reabastecimiento.objects
-        .select_related('proveedor')
-        .prefetch_related(
-            'reabastecimientodetalle_set__producto__categoria',
-            'reabastecimientodetalle_set__lote_set__ventadetalle_set'
-        )
-        .order_by('-fecha')
-    )
 
-    # Filtering logic
-    q = request.GET.get('q')
-    proveedor_id = request.GET.get('proveedor_id')
-    producto_id = request.GET.get('producto_id')
-    estado = request.GET.get('estado')
-    fecha_desde = request.GET.get('fecha_desde')
-    fecha_hasta = request.GET.get('fecha_hasta')
-
-    if q:
-        # Check if q is a number (ID)
-        if q.isdigit():
-            reabs_query = reabs_query.filter(Q(id=q) | Q(proveedor__nombre_empresa__icontains=q) | Q(reabastecimientodetalle__producto__nombre__icontains=q)).distinct()
-        else:
-            reabs_query = reabs_query.filter(Q(proveedor__nombre_empresa__icontains=q) | Q(reabastecimientodetalle__producto__nombre__icontains=q)).distinct()
-
-    if proveedor_id:
-        reabs_query = reabs_query.filter(proveedor_id=proveedor_id)
-    
-    if producto_id:
-        reabs_query = reabs_query.filter(reabastecimientodetalle__producto_id=producto_id).distinct()
-
-    if estado:
-        reabs_query = reabs_query.filter(estado=estado)
-    else:
-        # If no estado is selected, exclude canceled by default
-        reabs_query = reabs_query.exclude(estado=Reabastecimiento.ESTADO_CANCELADO)
-
-    if fecha_desde:
-        reabs_query = reabs_query.filter(fecha__gte=fecha_desde)
-    if fecha_hasta:
-        # To filter up to the end of fecha_hasta day
-        end_of_day = datetime.strptime(fecha_hasta, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
-        reabs_query = reabs_query.filter(fecha__lte=end_of_day)
-    
-    # Apply pagination
-    paginator = Paginator(reabs_query.all(), 10) # Show 10 reabastecimientos per page
-    page_number = request.GET.get('page')
-    try:
-        page_obj = paginator.page(page_number)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        page_obj = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        page_obj = paginator.page(paginator.num_pages)
-
-    for reab in page_obj.object_list: # Iterate through the objects on the current page
-        reab.tiene_ventas = any(
-            lote.ventadetalle_set.exists()
-            for detalle in reab.reabastecimientodetalle_set.all()
-            for lote in detalle.lote_set.all()
-        )
-
-    # Prepare initial values for Select2 in template
-    proveedor_text = ''
-    if proveedor_id:
-        try:
-            proveedor = Proveedor.objects.get(id=proveedor_id)
-            proveedor_text = proveedor.nombre_empresa
-        except Proveedor.DoesNotExist:
-            pass
-
-    producto_text = ''
-    if producto_id:
-        try:
-            producto = Producto.objects.get(id=producto_id)
-            producto_text = producto.nombre
-        except Producto.DoesNotExist:
-            pass
-            
-    context = {
-        'reabastecimientos': page_obj.object_list,
-        'page_obj': page_obj, # Pass the Page object to the template
-        'proveedor_id_selected': proveedor_id,
-        'proveedor_text_selected': proveedor_text,
-        'producto_id_selected': producto_id,
-        'producto_text_selected': producto_text,
-    }
-    return render(request, 'suppliers/reabastecimiento_list.html', context)
-
-@never_cache
-@login_required
-@check_user_role(allowed_roles=['Administrador'])
-def reabastecimiento_create(request):
-    """
-    Crear un reabastecimiento con múltiples detalles en una página dedicada.
-    """
-    if request.method == 'POST':
-        form = ReabastecimientoForm(request.POST)
-        formset = ReabastecimientoDetalleFormSet(request.POST)
-        if form.is_valid() and formset.is_valid():
-            try:
-                with transaction.atomic():
-                    logger.info("Iniciando creación de reabastecimiento")
-                    reab = form.save(commit=False)
-                    reab.estado = Reabastecimiento.ESTADO_SOLICITADO
-                    
-                    total_costo = 0
-                    total_iva = 0
-                    
-                    detalles_a_crear = []
-                    for detalle_form in formset.cleaned_data:
-                        if detalle_form and not detalle_form.get('DELETE'):
-                            cantidad = detalle_form['cantidad']
-                            costo_unitario = detalle_form['costo_unitario']
-                            producto = detalle_form['producto']
-                            
-                            subtotal = cantidad * costo_unitario
-                            
-                            # Usar la tasa de IVA del producto
-                            iva_porcentaje = producto.tasa_iva.porcentaje
-                            iva_detalle = subtotal * (iva_porcentaje / 100)
-                            
-                            total_costo += subtotal
-                            total_iva += iva_detalle
-                            
-                            detalle_form['iva'] = iva_detalle
-                            detalles_a_crear.append(detalle_form)
-
-                    if not detalles_a_crear:
-                        logger.warning("No hay detalles para crear")
-                        pass # El form y formset se re-renderizarán abajo
-
-                    reab.costo_total = total_costo
-                    reab.iva = total_iva
-                    reab.save() # Guardar el objeto principal para obtener un ID
-                    logger.info(f"Reabastecimiento guardado: ID {reab.id}")
-
-                    # Guardar los detalles
-                    for detalle_form_data in detalles_a_crear:
-                        detalle_form_data.pop('DELETE', None)
-                        ReabastecimientoDetalle.objects.create(reabastecimiento=reab, **detalle_form_data)
-                    logger.info(f"Detalles guardados: {len(detalles_a_crear)}")
-
-                    # Enviar correo si aplica
-                    if reab.estado == Reabastecimiento.ESTADO_SOLICITADO:
-                        logger.info(f"Intentando enviar correo para reabastecimiento {reab.id}")
-                        try:
-                            result = send_supply_request_email(reab, request)
-                            logger.info(f"Resultado del envío de correo: {result}")
-                        except Exception as email_error:
-                            logger.error(f"Error al enviar correo: {email_error}", exc_info=True)
-                    
-                    logger.info("Reabastecimiento creado exitosamente")
-                    # Redirigir a la lista tras el éxito
-                    return redirect('suppliers:reabastecimiento_list')
-
-            except Exception as e:
-                logger.error(f"Error al crear reabastecimiento: {e}", exc_info=True)
-                # Aquí puedes manejar el error, por ejemplo, agregándolo a los errores del formulario
-                # y re-renderizando la página.
-                form.add_error(None, f"Error inesperado al guardar: {e}")
-        
-        # Si el form o formset no son válidos, o si hubo un error, se re-renderiza la página con los errores.
-
-    else: # request.method == 'GET'
-        form = ReabastecimientoForm(initial_creation=True)
-        formset = ReabastecimientoDetalleFormSet(queryset=ReabastecimientoDetalle.objects.none())
-
-    # Contexto para GET y para POST con errores
-    all_products_data = list(Producto.objects.values('id', 'nombre', 'precio_unitario'))
-    categorias = Categoria.objects.all()
-
-    context = {
-        'form': form,
-        'formset': formset,
-        'all_products_json': json.dumps(all_products_data, cls=DjangoJSONEncoder),
-        'categorias': categorias,
-        'search_suppliers_url': reverse('suppliers:search_suppliers_ajax'), # Added URL
-        'search_products_url': reverse('suppliers:search_products_ajax'),   # Added URL
-    }
-    return render(request, 'suppliers/reabastecimiento_create.html', context)
 
 @never_cache
 @login_required
 @check_user_role(allowed_roles=['Administrador'])
 def reabastecimiento_editar(request, pk):
-    """Vista para obtener datos de un reabastecimiento para editar."""
+    """Vista para renderizar la página de edición de un reabastecimiento."""
     try:
-        reab = Reabastecimiento.objects.prefetch_related('reabastecimientodetalle_set__producto').get(pk=pk)
+        reab = Reabastecimiento.objects.prefetch_related('reabastecimientodetalle_set__producto__tasa_iva').get(pk=pk)
         
-        # New: Check if any lot associated with this restock has sales
+        # Check if any lot associated with this restock has sales
         if Lote.objects.filter(reabastecimiento_detalle__reabastecimiento=reab, ventadetalle__isnull=False).exists():
-            return JsonResponse({'error': 'No se puede editar, tiene productos vendidos.'}, status=400)
+            return render(request, 'suppliers/error.html', {'error': 'No se puede editar, tiene productos vendidos.'}, status=400)
         
         if reab.estado == Reabastecimiento.ESTADO_RECIBIDO:
-            return JsonResponse({'error': 'No se puede editar un reabastecimiento recibido.'}, status=400)
+            return render(request, 'suppliers/error.html', {'error': 'No se puede editar un reabastecimiento recibido.'}, status=400)
 
-        data = {
-            'id': reab.id, 'proveedor_id': reab.proveedor_id, 'fecha': reab.fecha.isoformat(),
-            'forma_pago': reab.forma_pago, 'observaciones': reab.observaciones, 'estado': reab.estado,
-            'iva': str(reab.iva),
-            'detalles': [{
-                'id': d.id, 'producto_id': d.producto_id, 'producto_nombre': d.producto.nombre,
-                'cantidad': d.cantidad, 'cantidad_recibida': d.cantidad_recibida,
-                'costo_unitario': str(d.costo_unitario),
-                'iva': str(d.iva),
-                'fecha_caducidad': d.fecha_caducidad.isoformat() if d.fecha_caducidad else None
-            } for d in reab.reabastecimientodetalle_set.all()]
+        # Debug: Verificar IVA guardado en BD
+        logger.info(f"[EDITAR] Reabastecimiento {pk}: IVA total = {reab.iva}")
+        for detalle in reab.reabastecimientodetalle_set.all():
+            logger.info(f"[EDITAR] Detalle {detalle.id}: producto={detalle.producto.nombre}, iva={detalle.iva}, cantidad={detalle.cantidad}, costo={detalle.costo_unitario}")
+        
+        form = ReabastecimientoForm(instance=reab)
+        formset = ReabastecimientoDetalleFormSetEdit(instance=reab)
+        
+        all_products_data = list(Producto.objects.values('id', 'nombre', 'precio_unitario', 'tasa_iva_id', 'tasa_iva__porcentaje'))
+        tasas_iva_queryset = TasaIVA.objects.all().order_by('porcentaje')
+        tasas_iva_list = [{'id': t.id, 'porcentaje': float(t.porcentaje), 'nombre': t.nombre} for t in tasas_iva_queryset]
+        
+        context = {
+            'reabastecimiento': reab,
+            'form': form,
+            'formset': formset,
+            'all_products_json': json.dumps(all_products_data, cls=DjangoJSONEncoder),
+            'tasas_iva_json': json.dumps(tasas_iva_list, cls=DjangoJSONEncoder),
         }
-        return JsonResponse(data)
+        return render(request, 'suppliers/reabastecimiento_editar.html', context)
     except Reabastecimiento.DoesNotExist:
-        return JsonResponse({'error': 'Reabastecimiento no encontrado'}, status=404)
+        return render(request, 'suppliers/error.html', {'error': 'Reabastecimiento no encontrado'}, status=404)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return render(request, 'suppliers/error.html', {'error': str(e)}, status=500)
 
 @never_cache
 @login_required
@@ -665,38 +490,80 @@ def reabastecimiento_update(request, pk):
                 return JsonResponse({'error': 'No se puede editar un reabastecimiento recibido.'}, status=400)
 
             form = ReabastecimientoForm(request.POST, instance=reab)
-            formset = ReabastecimientoDetalleFormSet(request.POST, instance=reab)
+            formset = ReabastecimientoDetalleFormSetEdit(request.POST, instance=reab)
+            
+            logger.info(f"[UPDATE] Form valid: {form.is_valid()}, Formset valid: {formset.is_valid()}")
+            if not form.is_valid():
+                logger.error(f"[UPDATE] Form errors: {form.errors}")
+            if not formset.is_valid():
+                logger.error(f"[UPDATE] Formset errors: {formset.errors}")
+                for idx, f in enumerate(formset.forms):
+                    if f.errors:
+                        logger.error(f"[UPDATE] Form {idx} errors: {f.errors}")
 
             if form.is_valid() and formset.is_valid():
+                from decimal import Decimal
+                
                 reab_instance = form.save(commit=False)
                 
-                total_costo = 0
-                total_iva = 0
+                total_costo = Decimal('0')
+                total_iva = Decimal('0')
                 
-                # Guardar el formset para que se procesen los detalles
-                detalles = formset.save(commit=False)
-
-                for detalle in detalles:
-                    # Calcular subtotal e iva para cada detalle
-                    subtotal = detalle.cantidad * detalle.costo_unitario
-                    tasa_iva_porcentaje = detalle.producto.tasa_iva.porcentaje
-                    detalle.iva = subtotal * (tasa_iva_porcentaje / 100)
-                    detalle.save()
+                logger.info(f"[UPDATE] Procesando {len(formset.forms)} detalles")
+                
+                # Procesar los detalles
+                for idx, detalle_form in enumerate(formset.forms):
+                    logger.info(f"[UPDATE] Detalle {idx}: cleaned_data={detalle_form.cleaned_data}, DELETE={detalle_form.cleaned_data.get('DELETE') if detalle_form.cleaned_data else 'N/A'}")
                     
-                    total_costo += subtotal
-                    total_iva += detalle.iva
-
-                # Procesar también los formularios que se van a eliminar
-                for form_detalle in formset.deleted_forms:
-                    # Si hay lógica adicional al eliminar, va aquí
-                    pass
-
+                    if detalle_form.cleaned_data and not detalle_form.cleaned_data.get('DELETE'):
+                        detalle = detalle_form.save(commit=False)
+                        
+                        # Calcular subtotal
+                        subtotal = detalle.cantidad * detalle.costo_unitario
+                        
+                        # Obtener el IVA del formulario
+                        iva_valor = detalle_form.cleaned_data.get('iva')
+                        
+                        logger.info(f"[UPDATE] Detalle {idx}: iva_valor={iva_valor}, subtotal={subtotal}")
+                        
+                        # Usar el IVA del formulario si está presente (incluso si es 0)
+                        if iva_valor is not None:
+                            # El IVA viene del formulario, usarlo tal cual
+                            iva_detalle = Decimal(str(iva_valor))
+                            logger.info(f"[UPDATE] Detalle {idx}: Usando IVA del formulario: {iva_detalle}")
+                        else:
+                            # Calcular IVA basado en el porcentaje del producto
+                            if detalle.producto and detalle.producto.tasa_iva:
+                                tasa_iva_porcentaje = Decimal(str(detalle.producto.tasa_iva.porcentaje))
+                                iva_detalle = subtotal * (tasa_iva_porcentaje / Decimal('100'))
+                                logger.info(f"[UPDATE] Detalle {idx}: Calculando IVA: {iva_detalle}")
+                            else:
+                                iva_detalle = Decimal('0')
+                                logger.info(f"[UPDATE] Detalle {idx}: Sin tasa IVA, IVA=0")
+                        
+                        detalle.iva = iva_detalle
+                        detalle.fecha_caducidad = detalle_form.cleaned_data.get('fecha_caducidad')
+                        logger.info(f"[UPDATE] Detalle {idx}: Guardando - iva={detalle.iva}, fecha_caducidad={detalle.fecha_caducidad}")
+                        detalle.save()
+                        
+                        total_costo += subtotal
+                        total_iva += iva_detalle
+                    elif detalle_form.cleaned_data and detalle_form.cleaned_data.get('DELETE'):
+                        # Eliminar el detalle
+                        if detalle_form.instance.pk:
+                            logger.info(f"[UPDATE] Detalle {idx}: Eliminando detalle {detalle_form.instance.pk}")
+                            detalle_form.instance.delete()
+                
+                logger.info(f"[UPDATE] Totales finales: costo_total={total_costo}, iva={total_iva}")
+                
                 reab_instance.costo_total = total_costo
                 reab_instance.iva = total_iva
                 reab_instance.save()
+                
+                logger.info(f"[UPDATE] Reabastecimiento {reab_instance.id} guardado exitosamente")
 
                 if reab_instance.estado == Reabastecimiento.ESTADO_SOLICITADO:
-                    send_supply_request_email(request, reab_instance)
+                    send_supply_request_email(reab_instance, request)
 
                 return JsonResponse({
                     'id': reab_instance.id,
@@ -1042,17 +909,30 @@ def reabastecimiento_detail_api(request, pk):
         
         # Build detalles array using ORM
         detalles = []
+        iva_porcentaje_total = 0
         for detalle in reabastecimiento.reabastecimientodetalle_set.all():
+            # Calcular el porcentaje de IVA
+            subtotal = float(detalle.cantidad or 0) * float(detalle.costo_unitario or 0)
+            iva_porcentaje = 0
+            if subtotal > 0:
+                iva_porcentaje = (float(detalle.iva or 0) / subtotal) * 100
+            
             detalles.append({
                 'id': detalle.id,
                 'cantidad': int(detalle.cantidad or 0),
                 'cantidad_recibida': int(detalle.cantidad_recibida or 0),
                 'costo_unitario': float(detalle.costo_unitario or 0),
                 'iva': float(detalle.iva or 0),
+                'iva_porcentaje': round(iva_porcentaje, 2),
                 'fecha_caducidad': detalle.fecha_caducidad.isoformat() if detalle.fecha_caducidad else '',
                 'numero_lote': detalle.numero_lote or '',
                 'producto_nombre': detalle.producto.nombre if detalle.producto else 'Producto desconocido',
             })
+        
+        # Calcular el porcentaje de IVA total
+        iva_porcentaje_total = 0
+        if float(reabastecimiento.costo_total or 0) > 0:
+            iva_porcentaje_total = (float(reabastecimiento.iva or 0) / float(reabastecimiento.costo_total or 0)) * 100
         
         data = {
             'id': reabastecimiento.id,
@@ -1064,6 +944,7 @@ def reabastecimiento_detail_api(request, pk):
             'observaciones': reabastecimiento.observaciones or '',
             'costo_total': float(reabastecimiento.costo_total or 0),
             'iva': float(reabastecimiento.iva or 0),
+            'iva_porcentaje': round(iva_porcentaje_total, 2),
             'detalles': detalles,
             'total_detalles': len(detalles),
         }
@@ -1175,168 +1056,6 @@ def api_search_productos(request):
 
 
 
-
-# ===== VISTAS DE REABASTECIMIENTO =====
-
-@login_required
-@check_user_role(allowed_roles=['Administrador'])
-def reabastecimiento_list(request):
-    """
-    Vista para listar todos los reabastecimientos con paginación.
-    """
-    reabastecimientos = Reabastecimiento.objects.all().order_by('-fecha')
-    
-    # Filtros
-    estado = request.GET.get('estado')
-    if estado:
-        reabastecimientos = reabastecimientos.filter(estado=estado)
-    
-    proveedor_id = request.GET.get('proveedor_id')
-    if proveedor_id:
-        reabastecimientos = reabastecimientos.filter(proveedor_id=proveedor_id)
-    
-    fecha_desde = request.GET.get('fecha_desde')
-    if fecha_desde:
-        reabastecimientos = reabastecimientos.filter(fecha__gte=fecha_desde)
-    
-    fecha_hasta = request.GET.get('fecha_hasta')
-    if fecha_hasta:
-        reabastecimientos = reabastecimientos.filter(fecha__lte=fecha_hasta)
-    
-    # Paginación
-    paginator = Paginator(reabastecimientos, 10)
-    page = request.GET.get('page')
-    try:
-        reabastecimientos = paginator.page(page)
-    except PageNotAnInteger:
-        reabastecimientos = paginator.page(1)
-    except EmptyPage:
-        reabastecimientos = paginator.page(paginator.num_pages)
-    
-    return render(request, 'suppliers/reabastecimiento_list.html', {
-        'reabastecimientos': reabastecimientos,
-        'page_obj': reabastecimientos,
-    })
-
-
-@login_required
-@check_user_role(allowed_roles=['Administrador'])
-def reabastecimiento_create(request):
-    """
-    Vista para crear un nuevo reabastecimiento.
-    """
-    if request.method == 'POST':
-        form = ReabastecimientoForm(request.POST)
-        formset = ReabastecimientoDetalleFormSet(request.POST, instance=None)
-        
-        if form.is_valid() and formset.is_valid():
-            reabastecimiento = form.save(commit=False)
-            
-            # Calcular costo_total e iva
-            total_costo = 0
-            total_iva = 0
-            
-            for detalle_form in formset.cleaned_data:
-                if detalle_form and not detalle_form.get('DELETE'):
-                    cantidad = detalle_form.get('cantidad', 0)
-                    costo_unitario = detalle_form.get('costo_unitario', 0)
-                    subtotal = cantidad * costo_unitario
-                    total_costo += subtotal
-                    
-                    # Calcular IVA si el producto tiene tasa_iva
-                    producto = detalle_form.get('producto')
-                    if producto and hasattr(producto, 'tasa_iva'):
-                        iva_porcentaje = producto.tasa_iva.porcentaje
-                        total_iva += subtotal * (iva_porcentaje / 100)
-            
-            reabastecimiento.costo_total = total_costo
-            reabastecimiento.iva = total_iva
-            reabastecimiento.save()
-            
-            formset.instance = reabastecimiento
-            formset.save()
-            return redirect('suppliers:reabastecimiento_list')
-    else:
-        form = ReabastecimientoForm()
-        formset = ReabastecimientoDetalleFormSet()
-    
-    all_products_data = list(Producto.objects.values('id', 'nombre', 'precio_unitario'))
-    
-    return render(request, 'suppliers/reabastecimiento_create.html', {
-        'form': form,
-        'formset': formset,
-        'all_products_json': json.dumps(all_products_data, cls=DjangoJSONEncoder),
-    })
-
-
-@login_required
-@check_user_role(allowed_roles=['Administrador'])
-def reabastecimiento_editar(request, pk):
-    """
-    Vista para editar un reabastecimiento.
-    """
-    reabastecimiento = get_object_or_404(Reabastecimiento, pk=pk)
-    
-    if request.method == 'POST':
-        form = ReabastecimientoForm(request.POST, instance=reabastecimiento)
-        formset = ReabastecimientoDetalleFormSet(request.POST, instance=reabastecimiento)
-        
-        if form.is_valid() and formset.is_valid():
-            form.save()
-            formset.save()
-            return redirect('suppliers:reabastecimiento_list')
-    else:
-        form = ReabastecimientoForm(instance=reabastecimiento)
-        formset = ReabastecimientoDetalleFormSet(instance=reabastecimiento)
-    
-    all_products_data = list(Producto.objects.values('id', 'nombre', 'precio_unitario'))
-    
-    return render(request, 'suppliers/reabastecimiento_editar.html', {
-        'form': form,
-        'formset': formset,
-        'reabastecimiento': reabastecimiento,
-        'all_products_json': json.dumps(all_products_data, cls=DjangoJSONEncoder),
-    })
-
-
-@login_required
-@check_user_role(allowed_roles=['Administrador'])
-@require_POST
-def reabastecimiento_update(request, pk):
-    """
-    Vista para actualizar un reabastecimiento vía AJAX.
-    """
-    try:
-        reabastecimiento = get_object_or_404(Reabastecimiento, pk=pk)
-        data = json.loads(request.body)
-        
-        if 'forma_pago' in data:
-            reabastecimiento.forma_pago = data['forma_pago']
-        if 'observaciones' in data:
-            reabastecimiento.observaciones = data['observaciones']
-        
-        reabastecimiento.save()
-        return JsonResponse({'success': True})
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-
-
-@login_required
-@check_user_role(allowed_roles=['Administrador'])
-@require_POST
-def reabastecimiento_eliminar(request, pk):
-    """
-    Vista para eliminar un reabastecimiento.
-    """
-    try:
-        reabastecimiento = get_object_or_404(Reabastecimiento, pk=pk)
-        reabastecimiento.delete()
-        return JsonResponse({'success': True})
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-
 @login_required
 @check_user_role(allowed_roles=['Administrador'])
 def reabastecimiento_row_api(request, pk):
@@ -1349,6 +1068,40 @@ def reabastecimiento_row_api(request, pk):
             'r': reabastecimiento
         }, request=request)
         return JsonResponse({'html': html})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@check_user_role(allowed_roles=['Administrador'])
+def reabastecimiento_detail_api(request, pk):
+    """
+    API endpoint para obtener detalles de un reabastecimiento en JSON.
+    """
+    try:
+        reab = get_object_or_404(Reabastecimiento, pk=pk)
+        detalles = reab.reabastecimientodetalle_set.all()
+        
+        data = {
+            'id': reab.pk,
+            'proveedor_nombre': reab.proveedor.nombre_empresa,
+            'estado': reab.estado,
+            'costo_total': str(reab.costo_total),
+            'iva': str(reab.iva),
+            'detalles': [
+                {
+                    'id': d.pk,
+                    'producto_nombre': d.producto.nombre,
+                    'cantidad': d.cantidad,
+                    'cantidad_recibida': d.cantidad_recibida,
+                    'costo_unitario': str(d.costo_unitario),
+                    'fecha_caducidad': d.fecha_caducidad.isoformat() if d.fecha_caducidad else None,
+                    'numero_lote': d.numero_lote or '',
+                }
+                for d in detalles
+            ]
+        }
+        return JsonResponse(data)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 

@@ -396,8 +396,13 @@ def dashboard_reportes(request):
     
     # Datos de inventario para accesos rápidos
     total_productos = Producto.objects.count()
-    productos_bajos_stock = Producto.objects.filter(stock_actual__lt=F('stock_minimo')).count()
-    productos_agotados = Producto.objects.filter(stock_actual=0).count()
+    
+    # Listas de productos con alertas
+    lista_productos_stock_bajo = Producto.objects.filter(stock_actual__lt=F('stock_minimo')).order_by('stock_actual')[:10]
+    productos_bajos_stock = lista_productos_stock_bajo.count()
+    
+    lista_productos_agotados = Producto.objects.filter(stock_actual=0).order_by('nombre')[:10]
+    productos_agotados = lista_productos_agotados.count()
     
     # Valor total del inventario
     from django.db.models import Sum as DbSum
@@ -423,9 +428,10 @@ def dashboard_reportes(request):
         venta__fecha_venta__gte=hace_30_dias
     ).values('producto_id').distinct()
     
-    productos_sin_movimiento = Producto.objects.exclude(
+    lista_productos_sin_movimiento = Producto.objects.exclude(
         id__in=productos_vendidos
-    ).filter(stock_actual__gt=0).count()
+    ).filter(stock_actual__gt=0).order_by('nombre')[:10]
+    productos_sin_movimiento = lista_productos_sin_movimiento.count()
     
     # Ventas del día
     ventas_hoy = Venta.objects.filter(fecha_venta__gte=hoy_inicio)
@@ -530,6 +536,24 @@ def dashboard_reportes(request):
     
     hora_pico = max(ventas_por_hora_analisis.items(), key=lambda x: x[1])[0] if ventas_por_hora_analisis else 0
     
+    # Ventas por fecha (últimos 30 días) para el gráfico
+    import json
+    from collections import defaultdict
+    
+    ventas_por_fecha_dict = defaultdict(lambda: {'total': Decimal('0'), 'cantidad': 0})
+    
+    for venta in Venta.objects.filter(fecha_venta__gte=hace_30_dias):
+        fecha_str = venta.fecha_venta.date().strftime('%Y-%m-%d')
+        ventas_por_fecha_dict[fecha_str]['total'] += venta.total_venta
+        ventas_por_fecha_dict[fecha_str]['cantidad'] += 1
+    
+    # Ordenar por fecha
+    ventas_ordenadas = sorted(ventas_por_fecha_dict.items())
+    
+    # Preparar datos para el gráfico
+    ventas_fechas = [fecha for fecha, _ in ventas_ordenadas]
+    ventas_totales = [float(datos['total']) for _, datos in ventas_ordenadas]
+    
     context = {
         'total_hoy': float(total_hoy),
         'cantidad_hoy': cantidad_hoy,
@@ -556,6 +580,11 @@ def dashboard_reportes(request):
         'productos_sin_movimiento': productos_sin_movimiento,
         'ingresos_30dias': float(ingresos_30dias),
         'costos_30dias': float(costos_30dias),
+        'ventas_fechas_json': json.dumps(ventas_fechas),
+        'ventas_totales_json': json.dumps(ventas_totales),
+        'lista_productos_stock_bajo': lista_productos_stock_bajo,
+        'lista_productos_agotados': lista_productos_agotados,
+        'lista_productos_sin_movimiento': lista_productos_sin_movimiento,
     }
     
     return render(request, 'pos/dashboard_reportes.html', context)

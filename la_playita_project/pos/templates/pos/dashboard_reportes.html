@@ -1,113 +1,132 @@
 {% extends "core/base.html" %}
 {% load static %}
 
-{% block title %}Dashboard de Reportes - La Playita{% endblock %}
+{% block title %}Dashboard - La Playita{% endblock %}
 
 {% block extra_css %}
 <style>
-    :root {
-        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    .dashboard-container {
+        padding: 2rem 0;
     }
     
-    body {
-        background-color: #f5f7fa;
-    }
-    
-    .metric-card {
+    /* Accesos Rápidos */
+    .quick-access-card {
         border: none;
         border-radius: 15px;
         transition: all 0.3s ease;
-        overflow: hidden;
-        position: relative;
+        cursor: pointer;
+        height: 100%;
+        text-decoration: none;
+        display: block;
+        color: white !important;
     }
     
-    .metric-card:hover {
+    .quick-access-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        color: white !important;
     }
     
-    .metric-card.primary {
-        background: var(--primary-gradient);
+    .quick-access-card .card-body {
+        padding: 2rem;
+        text-align: center;
+        color: white !important;
+    }
+    
+    .quick-access-card i {
+        font-size: 3.5rem;
+        margin-bottom: 1rem;
+        display: block;
+        color: white !important;
+    }
+    
+    .quick-access-card h5 {
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: white !important;
+    }
+    
+    .quick-access-card small {
+        display: block;
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+    
+    /* KPIs */
+    .kpi-card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        height: 100%;
+        position: relative;
         color: white;
     }
     
-    .metric-card.success {
-        background: var(--success-gradient);
-        color: white;
+    .kpi-card .card-body {
+        padding: 1.5rem;
+        position: relative;
+        z-index: 1;
     }
     
-    .metric-card.warning {
-        background: var(--warning-gradient);
-        color: white;
-    }
-    
-    .metric-card.info {
-        background: var(--info-gradient);
-        color: white;
-    }
-    
-    .metric-icon {
+    .kpi-icon {
         position: absolute;
-        right: 20px;
-        top: 20px;
+        right: 1rem;
+        top: 1rem;
         font-size: 3rem;
-        opacity: 0.3;
+        opacity: 0.2;
     }
     
-    .metric-value {
-        font-size: 2.5rem;
-        font-weight: bold;
-        margin: 10px 0;
-    }
-    
-    .metric-label {
-        font-size: 0.9rem;
+    .kpi-label {
+        font-size: 0.875rem;
         opacity: 0.9;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
     }
     
-    .metric-change {
-        font-size: 0.85rem;
-        margin-top: 5px;
+    .kpi-value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
     }
     
+    .kpi-detail {
+        font-size: 0.875rem;
+        opacity: 0.9;
+    }
+    
+    /* Alertas */
+    .alert-card {
+        border: none;
+        border-radius: 15px;
+        transition: all 0.3s ease;
+    }
+    
+    .alert-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    /* Gráficas */
     .chart-card {
         border: none;
         border-radius: 15px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        transition: all 0.3s ease;
-    }
-    
-    .chart-card:hover {
-        box-shadow: 0 5px 20px rgba(0,0,0,0.12);
     }
     
     .chart-container {
         position: relative;
         height: 350px;
-        padding: 20px;
+        padding: 1rem;
     }
     
-    .table-card {
-        border: none;
-        border-radius: 15px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        overflow: hidden;
+    /* Rankings */
+    .ranking-table {
+        margin-bottom: 0;
     }
     
-    .table-card .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 15px 20px;
-    }
-    
-    .table-hover tbody tr:hover {
-        background-color: rgba(102, 126, 234, 0.05);
+    .ranking-table td, .ranking-table th {
+        padding: 0.75rem;
+        vertical-align: middle;
     }
     
     .badge-rank {
@@ -135,181 +154,101 @@
         color: white;
     }
     
-    .page-header {
-        background: white;
-        border-radius: 15px;
-        padding: 25px;
-        margin-bottom: 30px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    }
-    
-    .quick-access-card {
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-    
-    .quick-access-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-    
-    .filter-tabs {
-        background: white;
-        border-radius: 15px;
-        padding: 15px;
-        margin-bottom: 30px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    }
-    
-    .filter-tabs .btn {
-        border-radius: 10px;
-        margin: 0 5px;
-        transition: all 0.3s ease;
-    }
-    
-    .filter-tabs .btn.active {
-        background: var(--primary-gradient);
+    .accordion-button:not(.collapsed) {
+        background-color: #667eea;
         color: white;
-        border: none;
     }
     
-    @media (max-width: 768px) {
-        .metric-value {
-            font-size: 1.8rem;
-        }
-        
-        .chart-container {
-            height: 250px;
-        }
+    .accordion-button:focus {
+        box-shadow: none;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid dashboard-container">
     <!-- Header -->
-    <div class="page-header">
-        <div class="d-flex justify-content-between align-items-center flex-wrap">
-            <div>
-                <h2 class="mb-1"><i class="bi bi-graph-up-arrow me-2"></i>Panel Principal</h2>
-                <p class="text-muted mb-0">Bienvenido, {{ request.user.first_name|default:request.user.username }}</p>
-            </div>
-            <div class="mt-3 mt-md-0">
-                <a href="{% url 'pos:listar_ventas' %}" class="btn btn-outline-primary me-2">
-                    <i class="bi bi-list-ul me-1"></i>Ver Ventas
-                </a>
-                <a href="{% url 'pos:pos_view' %}" class="btn btn-primary">
-                    <i class="bi bi-plus-circle me-1"></i>Nueva Venta
-                </a>
-            </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-house-door me-2"></i>Panel Principal</h2>
+            <p class="text-muted mb-0">Bienvenido, {{ request.user.first_name|default:request.user.username }}</p>
+        </div>
+        <div>
+            <a href="{% url 'pos:pos_view' %}" class="btn btn-primary">
+                <i class="bi bi-cash-register me-2"></i>Nueva Venta
+            </a>
         </div>
     </div>
 
-    <!-- Accesos Rápidos -->
+    <!-- SECCIÓN 1: ACCESOS RÁPIDOS -->
     <div class="row g-3 mb-4">
         <div class="col-md-6 col-lg-3">
-            <a href="{% url 'pos:pos_view' %}" class="text-decoration-none">
-                <div class="card quick-access-card border-0 h-100" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
-                    <div class="card-body text-white text-center">
-                        <i class="bi bi-cash-register" style="font-size: 3rem;"></i>
-                        <h5 class="mt-3 mb-0">Punto de Venta</h5>
-                        <p class="mb-0 small opacity-75">Iniciar nueva venta</p>
-                    </div>
+            <a href="{% url 'pos:pos_view' %}" class="card quick-access-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                <div class="card-body">
+                    <i class="bi bi-cash-register"></i>
+                    <h5>Punto de Venta</h5>
+                    <small>Iniciar nueva venta</small>
                 </div>
             </a>
         </div>
         
         <div class="col-md-6 col-lg-3">
-            <a href="{% url 'inventory:inventario_list' %}" class="text-decoration-none">
-                <div class="card quick-access-card border-0 h-100" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-                    <div class="card-body text-white text-center">
-                        <i class="bi bi-box-seam" style="font-size: 3rem;"></i>
-                        <h5 class="mt-3 mb-0">Inventario</h5>
-                        <p class="mb-0 small opacity-75">{{ total_productos }} productos</p>
-                    </div>
+            <a href="{% url 'inventory:inventario_list' %}" class="card quick-access-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="card-body">
+                    <i class="bi bi-box-seam"></i>
+                    <h5>Inventario</h5>
+                    <small>{{ total_productos }} productos</small>
                 </div>
             </a>
         </div>
         
         <div class="col-md-6 col-lg-3">
-            <a href="{% url 'inventory:alertas_stock' %}" class="text-decoration-none">
-                <div class="card quick-access-card border-0 h-100" style="background: {% if productos_bajos_stock > 0 %}linear-gradient(135deg, #f093fb 0%, #f5576c 100%){% else %}linear-gradient(135deg, #667eea 0%, #764ba2 100%){% endif %};">
-                    <div class="card-body text-white text-center">
-                        <i class="bi bi-exclamation-triangle" style="font-size: 3rem;"></i>
-                        <h5 class="mt-3 mb-0">Alertas de Stock</h5>
-                        <p class="mb-0 small opacity-75">{{ productos_bajos_stock }} productos</p>
-                    </div>
+            <a href="{% url 'inventory:alertas_stock' %}" class="card quick-access-card" style="background: {% if productos_bajos_stock > 0 %}linear-gradient(135deg, #f093fb 0%, #f5576c 100%){% else %}linear-gradient(135deg, #667eea 0%, #764ba2 100%){% endif %};">
+                <div class="card-body">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <h5>Alertas de Stock</h5>
+                    <small>{{ productos_bajos_stock }} productos</small>
                 </div>
             </a>
         </div>
         
         <div class="col-md-6 col-lg-3">
-            <a href="{% url 'clients:cliente_list' %}" class="text-decoration-none">
-                <div class="card quick-access-card border-0 h-100" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
-                    <div class="card-body text-white text-center">
-                        <i class="bi bi-people" style="font-size: 3rem;"></i>
-                        <h5 class="mt-3 mb-0">Clientes</h5>
-                        <p class="mb-0 small opacity-75">Gestionar clientes</p>
-                    </div>
+            <a href="{% url 'clients:cliente_list' %}" class="card quick-access-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <div class="card-body">
+                    <i class="bi bi-gift"></i>
+                    <h5>Canjeables</h5>
+                    <small>{{ total_clientes }} clientes</small>
                 </div>
             </a>
         </div>
     </div>
 
-
-
-    <!-- KPIs PRINCIPALES - Métricas Diarias Críticas -->
-    <div class="row g-4 mb-4">
+    <!-- SECCIÓN 2: KPIs PRINCIPALES -->
+    <div class="row g-3 mb-4">
         <div class="col-lg-3 col-md-6">
-            <div class="card metric-card primary h-100">
-                <div class="card-body position-relative">
-                    <i class="bi bi-cash-coin metric-icon"></i>
-                    <div class="metric-label">Ventas Hoy</div>
-                    <div class="metric-value">${{ total_hoy|floatformat:0 }}</div>
-                    <div class="metric-change">
-                        <i class="bi bi-arrow-up"></i> {{ cantidad_hoy }} transacciones
+            <div class="card kpi-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body">
+                    <i class="bi bi-cash-coin kpi-icon"></i>
+                    <div class="kpi-label">Ventas Hoy</div>
+                    <div class="kpi-value">${{ total_hoy|floatformat:0 }}</div>
+                    <div class="kpi-detail">
+                        <i class="bi bi-receipt"></i> {{ cantidad_hoy }} transacciones
                     </div>
                 </div>
             </div>
         </div>
         
         <div class="col-lg-3 col-md-6">
-            <div class="card metric-card success h-100">
-                <div class="card-body position-relative">
-                    <i class="bi bi-receipt metric-icon"></i>
-                    <div class="metric-label">Ticket Promedio</div>
-                    <div class="metric-value">${{ ticket_promedio|floatformat:0 }}</div>
-                    <div class="metric-change">
-                        <i class="bi bi-calculator"></i> Por transacción
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6">
-            <div class="card metric-card warning h-100">
-                <div class="card-body position-relative">
-                    <i class="bi bi-graph-up-arrow metric-icon"></i>
-                    <div class="metric-label">Margen de Ganancia</div>
-                    <div class="metric-value">{{ margen_porcentaje|floatformat:1 }}%</div>
-                    <div class="metric-change">
-                        <i class="bi bi-currency-dollar"></i> ${{ ganancia_bruta|floatformat:0 }} ganancia
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6">
-            <div class="card metric-card info h-100">
-                <div class="card-body position-relative">
-                    <i class="bi bi-calendar-month metric-icon"></i>
-                    <div class="metric-label">Ventas 30 Días</div>
-                    <div class="metric-value">${{ total_30dias|floatformat:0 }}</div>
-                    <div class="metric-change">
+            <div class="card kpi-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                <div class="card-body">
+                    <i class="bi bi-calendar-month kpi-icon"></i>
+                    <div class="kpi-label">Ventas del Mes</div>
+                    <div class="kpi-value">${{ total_30dias|floatformat:0 }}</div>
+                    <div class="kpi-detail">
                         {% if crecimiento > 0 %}
-                            <i class="bi bi-arrow-up-circle text-white"></i> +{{ crecimiento|floatformat:1 }}%
+                            <i class="bi bi-arrow-up-circle"></i> +{{ crecimiento|floatformat:1 }}%
                         {% elif crecimiento < 0 %}
-                            <i class="bi bi-arrow-down-circle text-white"></i> {{ crecimiento|floatformat:1 }}%
+                            <i class="bi bi-arrow-down-circle"></i> {{ crecimiento|floatformat:1 }}%
                         {% else %}
                             <i class="bi bi-dash-circle"></i> 0%
                         {% endif %}
@@ -318,115 +257,104 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Análisis de Rentabilidad (30 días) -->
-    <div class="row g-4 mb-4">
-        <div class="col-lg-12">
-            <div class="card table-card">
-                <div class="card-header" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
-                    <h6 class="mb-0 text-white"><i class="bi bi-currency-dollar me-2"></i>Análisis de Rentabilidad (30 días)</h6>
-                </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="card kpi-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3 mb-3">
-                            <div class="p-3 bg-light rounded">
-                                <small class="text-muted d-block">Ingresos Totales</small>
-                                <h5 class="mb-0 text-success">${{ ingresos_30dias|floatformat:0 }}</h5>
-                                <small class="text-muted">Ventas brutas</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="p-3 bg-light rounded">
-                                <small class="text-muted d-block">Costos Totales</small>
-                                <h5 class="mb-0 text-danger">${{ costos_30dias|floatformat:0 }}</h5>
-                                <small class="text-muted">Costo de productos</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="p-3 bg-primary text-white rounded">
-                                <small class="d-block opacity-75">Ganancia Bruta</small>
-                                <h5 class="mb-0 fw-bold">${{ ganancia_bruta|floatformat:0 }}</h5>
-                                <small class="opacity-75">Ingresos - Costos</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="p-3 bg-success text-white rounded">
-                                <small class="d-block opacity-75">Margen de Ganancia</small>
-                                <h5 class="mb-0 fw-bold">{{ margen_porcentaje|floatformat:1 }}%</h5>
-                                <small class="opacity-75">Rentabilidad</small>
-                            </div>
-                        </div>
+                    <i class="bi bi-calculator kpi-icon"></i>
+                    <div class="kpi-label">Ticket Promedio</div>
+                    <div class="kpi-value">${{ ticket_promedio|floatformat:0 }}</div>
+                    <div class="kpi-detail">
+                        <i class="bi bi-cart"></i> Por transacción
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="card kpi-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="card-body">
+                    <i class="bi bi-graph-up-arrow kpi-icon"></i>
+                    <div class="kpi-label">Margen de Ganancia</div>
+                    <div class="kpi-value">{{ margen_porcentaje|floatformat:1 }}%</div>
+                    <div class="kpi-detail">
+                        <i class="bi bi-currency-dollar"></i> ${{ ganancia_bruta|floatformat:0 }}
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ALERTAS CRÍTICAS -->
+    <!-- SECCIÓN 3: ALERTAS CRÍTICAS -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
-            <div class="card border-0 {% if productos_bajos_stock > 0 %}bg-warning{% else %}bg-success{% endif %} text-white">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-1">Stock Bajo</h6>
-                        <h3 class="mb-0">{{ productos_bajos_stock }}</h3>
-                        <small>productos requieren atención</small>
-                    </div>
-                    <div>
-                        <a href="{% url 'inventory:alertas_stock' %}" class="btn btn-light btn-sm">
-                            <i class="bi bi-arrow-right"></i> Reabastecer
-                        </a>
-                    </div>
+            <div class="card alert-card {% if productos_bajos_stock > 0 %}bg-warning{% else %}bg-success{% endif %} text-white">
+                <div class="card-body">
+                    <h6 class="mb-2"><i class="bi bi-exclamation-triangle me-2"></i>Stock Bajo</h6>
+                    <h3 class="mb-2">{{ productos_bajos_stock }}</h3>
+                    {% if lista_productos_stock_bajo %}
+                        <div class="mt-3" style="max-height: 120px; overflow-y: auto;">
+                            <small class="d-block mb-1 opacity-75">Productos:</small>
+                            {% for producto in lista_productos_stock_bajo %}
+                                <small class="d-block">• {{ producto.nombre }} ({{ producto.stock_actual }})</small>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <small>Todos los productos tienen stock adecuado</small>
+                    {% endif %}
                 </div>
             </div>
         </div>
         
         <div class="col-md-4">
-            <div class="card border-0 {% if productos_agotados > 0 %}bg-danger{% else %}bg-success{% endif %} text-white">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-1">Productos Agotados</h6>
-                        <h3 class="mb-0">{{ productos_agotados }}</h3>
-                        <small>sin stock disponible</small>
-                    </div>
-                    <div>
-                        <a href="{% url 'inventory:inventario_list' %}" class="btn btn-light btn-sm">
-                            <i class="bi bi-arrow-right"></i> Ver Inventario
-                        </a>
-                    </div>
+            <div class="card alert-card {% if productos_agotados > 0 %}bg-danger{% else %}bg-success{% endif %} text-white">
+                <div class="card-body">
+                    <h6 class="mb-2"><i class="bi bi-x-circle me-2"></i>Productos Agotados</h6>
+                    <h3 class="mb-2">{{ productos_agotados }}</h3>
+                    {% if lista_productos_agotados %}
+                        <div class="mt-3" style="max-height: 120px; overflow-y: auto;">
+                            <small class="d-block mb-1 opacity-75">Productos:</small>
+                            {% for producto in lista_productos_agotados %}
+                                <small class="d-block">• {{ producto.nombre }}</small>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <small>No hay productos agotados</small>
+                    {% endif %}
                 </div>
             </div>
         </div>
         
         <div class="col-md-4">
-            <div class="card border-0 {% if productos_sin_movimiento > 0 %}bg-danger{% else %}bg-success{% endif %} text-white">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-1">Sin Movimiento</h6>
-                        <h3 class="mb-0">{{ productos_sin_movimiento }}</h3>
-                        <small>productos sin ventas (30d)</small>
-                    </div>
-                    <div>
-                        <a href="{% url 'inventory:inventario_list' %}" class="btn btn-light btn-sm">
-                            <i class="bi bi-arrow-right"></i> Revisar
-                        </a>
-                    </div>
+            <div class="card alert-card {% if productos_sin_movimiento > 5 %}bg-danger{% elif productos_sin_movimiento > 0 %}bg-warning{% else %}bg-success{% endif %} text-white">
+                <div class="card-body">
+                    <h6 class="mb-2"><i class="bi bi-pause-circle me-2"></i>Sin Movimiento</h6>
+                    <h3 class="mb-2">{{ productos_sin_movimiento }}</h3>
+                    {% if lista_productos_sin_movimiento %}
+                        <div class="mt-3" style="max-height: 120px; overflow-y: auto;">
+                            <small class="d-block mb-1 opacity-75">Productos (30 días):</small>
+                            {% for producto in lista_productos_sin_movimiento %}
+                                <small class="d-block">• {{ producto.nombre }}</small>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <small>Todos los productos tienen movimiento</small>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Gráficos -->
+    <!-- SECCIÓN 4: GRÁFICAS -->
     <div class="row g-4 mb-4">
         <div class="col-lg-8">
             <div class="card chart-card">
                 <div class="card-body">
                     <h5 class="card-title mb-3">
-                        <i class="bi bi-bar-chart me-2"></i>Ventas por Período
+                        <i class="bi bi-graph-up me-2"></i>Ventas de los Últimos 30 Días
                     </h5>
                     <div class="chart-container">
-                        <canvas id="chartVentasPorPeriodo"></canvas>
+                        <canvas id="chartVentas30Dias"></canvas>
                     </div>
                 </div>
             </div>
@@ -436,34 +364,18 @@
             <div class="card chart-card">
                 <div class="card-body">
                     <h5 class="card-title mb-3">
-                        <i class="bi bi-pie-chart me-2"></i>Métodos de Pago
+                        <i class="bi bi-trophy me-2"></i>Top 5 Productos
                     </h5>
                     <div class="chart-container">
-                        <canvas id="chartMetodosPago"></canvas>
+                        <canvas id="chartTopProductos"></canvas>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Gráfico de Ventas por Hora -->
-    <div class="row g-4 mb-4">
-        <div class="col-12">
-            <div class="card chart-card">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">
-                        <i class="bi bi-clock me-2"></i>Ventas por Hora del Día
-                    </h5>
-                    <div class="chart-container">
-                        <canvas id="chartVentasPorHora"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SECCIONES COLAPSABLES - Análisis Detallado -->
-    <div class="accordion mb-4" id="accordionAnalisis">
+    <!-- SECCIÓN 5: RANKINGS -->
+    <div class="accordion" id="accordionRankings">
         <!-- Top Productos -->
         <div class="accordion-item">
             <h2 class="accordion-header">
@@ -471,24 +383,23 @@
                     <i class="bi bi-trophy me-2"></i>Top 5 Productos Más Vendidos
                 </button>
             </h2>
-            <div id="collapseProductos" class="accordion-collapse collapse" data-bs-parent="#accordionAnalisis">
+            <div id="collapseProductos" class="accordion-collapse collapse" data-bs-parent="#accordionRankings">
                 <div class="accordion-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
+                        <table class="table ranking-table table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 50px;">#</th>
+                                    <th style="width: 60px;">#</th>
                                     <th>Producto</th>
                                     <th class="text-center">Cantidad</th>
                                     <th class="text-end">Ingresos</th>
-                                    <th style="width: 100px;">Acción</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for producto in top_productos %}
                                 <tr>
                                     <td>
-                                        <span class="badge-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}bg-secondary{% endif %}">
+                                        <span class="badge-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}bg-secondary text-white{% endif %}">
                                             {{ forloop.counter }}
                                         </span>
                                     </td>
@@ -497,15 +408,10 @@
                                         <span class="badge bg-primary">{{ producto.cantidad_total }}</span>
                                     </td>
                                     <td class="text-end fw-bold">${{ producto.ingresos|floatformat:0 }}</td>
-                                    <td>
-                                        <a href="{% url 'inventory:inventario_list' %}" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i> Ver
-                                        </a>
-                                    </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-3">Sin datos disponibles</td>
+                                    <td colspan="4" class="text-center text-muted py-3">Sin datos disponibles</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -522,13 +428,13 @@
                     <i class="bi bi-person-badge me-2"></i>Top 5 Vendedores
                 </button>
             </h2>
-            <div id="collapseVendedores" class="accordion-collapse collapse" data-bs-parent="#accordionAnalisis">
+            <div id="collapseVendedores" class="accordion-collapse collapse" data-bs-parent="#accordionRankings">
                 <div class="accordion-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
+                        <table class="table ranking-table table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 50px;">#</th>
+                                    <th style="width: 60px;">#</th>
                                     <th>Vendedor</th>
                                     <th class="text-center">Ventas</th>
                                     <th class="text-end">Total</th>
@@ -538,7 +444,7 @@
                                 {% for vendedor in top_vendedores %}
                                 <tr>
                                     <td>
-                                        <span class="badge-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}bg-secondary{% endif %}">
+                                        <span class="badge-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}bg-secondary text-white{% endif %}">
                                             {{ forloop.counter }}
                                         </span>
                                     </td>
@@ -573,201 +479,13 @@
                     <i class="bi bi-people me-2"></i>Top 5 Clientes
                 </button>
             </h2>
-            <div id="collapseClientes" class="accordion-collapse collapse" data-bs-parent="#accordionAnalisis">
+            <div id="collapseClientes" class="accordion-collapse collapse" data-bs-parent="#accordionRankings">
                 <div class="accordion-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
+                        <table class="table ranking-table table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 50px;">#</th>
-                                    <th>Cliente</th>
-                                    <th class="text-center">Compras</th>
-                                    <th class="text-end">Total</th>
-                                    <th style="width: 100px;">Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for cliente in top_clientes %}
-                                <tr>
-                                    <td>
-                                        <span class="badge-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}bg-secondary{% endif %}">
-                                            {{ forloop.counter }}
-                                        </span>
-                                    </td>
-                                    <td>{{ cliente.cliente__nombres }} {{ cliente.cliente__apellidos }}</td>
-                                    <td class="text-center">
-                                        <span class="badge bg-warning text-dark">{{ cliente.cantidad }}</span>
-                                    </td>
-                                    <td class="text-end fw-bold">${{ cliente.total_compras|floatformat:0 }}</td>
-                                    <td>
-                                        <a href="{% url 'clients:cliente_list' %}" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i> Ver
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="5" class="text-center text-muted py-3">Sin datos disponibles</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tablas de Análisis (Canales) -->
-    <div class="row g-4 mb-4">
-        <div class="col-lg-12">
-            <div class="card table-card">
-                <div class="card-header">
-                    <h6 class="mb-0"><i class="bi bi-shop me-2"></i>Canales de Venta</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width: 50px;">#</th>
-                                    <th>Producto</th>
-                                    <th class="text-center">Cantidad</th>
-                                    <th class="text-end">Ingresos</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for producto in top_productos %}
-                                <tr>
-                                    <td>
-                                        <span class="badge-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}bg-secondary{% endif %}">
-                                            {{ forloop.counter }}
-                                        </span>
-                                    </td>
-                                    <td>{{ producto.producto__nombre }}</td>
-                                    <td class="text-center">
-                                        <span class="badge bg-primary">{{ producto.cantidad_total }}</span>
-                                    </td>
-                                    <td class="text-end fw-bold">${{ producto.ingresos|floatformat:0 }}</td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted py-3">Sin datos disponibles</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-6">
-            <div class="card table-card">
-                <div class="card-header">
-                    <h6 class="mb-0"><i class="bi bi-person-badge me-2"></i>Top 5 Vendedores</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width: 50px;">#</th>
-                                    <th>Vendedor</th>
-                                    <th class="text-center">Ventas</th>
-                                    <th class="text-end">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for vendedor in top_vendedores %}
-                                <tr>
-                                    <td>
-                                        <span class="badge-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}bg-secondary{% endif %}">
-                                            {{ forloop.counter }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {% if vendedor.usuario__first_name %}
-                                            {{ vendedor.usuario__first_name }} {{ vendedor.usuario__last_name }}
-                                        {% else %}
-                                            {{ vendedor.usuario__username }}
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge bg-success">{{ vendedor.cantidad }}</span>
-                                    </td>
-                                    <td class="text-end fw-bold">${{ vendedor.total_ventas|floatformat:0 }}</td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted py-3">Sin datos disponibles</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Canales de Venta y Top Clientes -->
-    <div class="row g-4">
-        <div class="col-lg-6">
-            <div class="card table-card">
-                <div class="card-header">
-                    <h6 class="mb-0"><i class="bi bi-shop me-2"></i>Canales de Venta</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Canal</th>
-                                    <th class="text-center">Cantidad</th>
-                                    <th class="text-end">Total</th>
-                                    <th class="text-end">%</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for canal in canales_venta %}
-                                <tr>
-                                    <td>
-                                        <span class="badge bg-info">{{ canal.canal_venta|title }}</span>
-                                    </td>
-                                    <td class="text-center">{{ canal.cantidad }}</td>
-                                    <td class="text-end fw-bold">${{ canal.total|floatformat:0 }}</td>
-                                    <td class="text-end">
-                                        {% if total_30dias > 0 %}
-                                            {% widthratio canal.total total_30dias 100 %}%
-                                        {% else %}
-                                            0%
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted py-3">Sin datos disponibles</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-6">
-            <div class="card table-card">
-                <div class="card-header">
-                    <h6 class="mb-0"><i class="bi bi-people me-2"></i>Top 5 Clientes</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width: 50px;">#</th>
+                                    <th style="width: 60px;">#</th>
                                     <th>Cliente</th>
                                     <th class="text-center">Compras</th>
                                     <th class="text-end">Total</th>
@@ -777,7 +495,7 @@
                                 {% for cliente in top_clientes %}
                                 <tr>
                                     <td>
-                                        <span class="badge-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}bg-secondary{% endif %}">
+                                        <span class="badge-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}bg-secondary text-white{% endif %}">
                                             {{ forloop.counter }}
                                         </span>
                                     </td>
@@ -805,50 +523,55 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-    // Configuración global de Chart.js
-    Chart.defaults.font.family = "'Inter', sans-serif";
+    // Configuración global
+    Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
     Chart.defaults.color = '#6c757d';
     
-    let chartVentas, chartMetodos, chartHoras;
-    
-    // Cargar datos iniciales
-    cargarGraficos();
-    
-    function cargarGraficos() {
-        cargarGraficoVentasPorPeriodo();
-        cargarGraficoMetodos(30);
-        cargarGraficoHoras(7);
-    }
-    
-    function cargarGraficoVentasPorPeriodo() {
-        const ctx = document.getElementById('chartVentasPorPeriodo').getContext('2d');
+    // Gráfico 1: Ventas últimos 30 días (Línea)
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('chartVentas30Dias');
         
-        // Datos directos del template
-        const datos = {
-            labels: ['Hoy', 'Últimos 7 Días', 'Últimos 30 Días'],
-            valores: [{{ total_hoy|default:0 }}, {{ total_7dias|default:0 }}, {{ total_30dias|default:0 }}],
-            cantidades: [{{ cantidad_hoy|default:0 }}, {{ cantidad_7dias|default:0 }}, {{ cantidad_30dias|default:0 }}]
-        };
+        if (!ctx) {
+            console.error('Canvas chartVentas30Dias no encontrado');
+            return;
+        }
         
-        chartVentas = new Chart(ctx, {
-            type: 'bar',
+        // Datos desde el servidor
+        const ventasFechas = {{ ventas_fechas_json|safe }};
+        const ventasTotales = {{ ventas_totales_json|safe }};
+        
+        console.log('Fechas:', ventasFechas);
+        console.log('Totales:', ventasTotales);
+        
+        if (ventasFechas.length === 0) {
+            const context = ctx.getContext('2d');
+            context.font = '14px Arial';
+            context.fillStyle = '#6c757d';
+            context.textAlign = 'center';
+            context.fillText('No hay datos de ventas disponibles', ctx.width / 2, ctx.height / 2);
+            return;
+        }
+        
+        new Chart(ctx.getContext('2d'), {
+            type: 'line',
             data: {
-                labels: datos.labels,
+                labels: ventasFechas.map(f => {
+                    const date = new Date(f);
+                    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+                }),
                 datasets: [{
-                    label: 'Ventas ($)',
-                    data: datos.valores,
-                    backgroundColor: [
-                        'rgba(102, 126, 234, 0.8)',
-                        'rgba(17, 153, 142, 0.8)',
-                        'rgba(240, 147, 251, 0.8)'
-                    ],
-                    borderColor: [
-                        '#667eea',
-                        '#11998e',
-                        '#f093fb'
-                    ],
-                    borderWidth: 2,
-                    borderRadius: 8
+                    label: 'Ventas',
+                    data: ventasTotales,
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#667eea',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
                 }]
             },
             options: {
@@ -863,11 +586,7 @@
                         bodyFont: { size: 13 },
                         callbacks: {
                             label: function(context) {
-                                const cantidad = datos.cantidades[context.dataIndex];
-                                return [
-                                    'Ventas: $' + context.parsed.y.toLocaleString(),
-                                    'Transacciones: ' + cantidad
-                                ];
+                                return 'Ventas: $' + context.parsed.y.toLocaleString('es-ES');
                             }
                         }
                     }
@@ -877,7 +596,7 @@
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return '$' + value.toLocaleString();
+                                return '$' + value.toLocaleString('es-ES');
                             }
                         },
                         grid: {
@@ -892,122 +611,101 @@
                 }
             }
         });
-    }
+    });
     
-    function cargarGraficoMetodos(dias) {
-        fetch(`/pos/api/comparativa-metodos-pago/?dias=${dias}`)
-            .then(r => r.json())
-            .then(data => {
-                const ctx = document.getElementById('chartMetodosPago').getContext('2d');
-                
-                if (chartMetodos) {
-                    chartMetodos.destroy();
-                }
-                
-                const colors = [
-                    'rgba(102, 126, 234, 0.8)',
-                    'rgba(17, 153, 142, 0.8)',
-                    'rgba(240, 147, 251, 0.8)',
-                    'rgba(79, 172, 254, 0.8)',
-                    'rgba(255, 193, 7, 0.8)'
-                ];
-                
-                chartMetodos = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: data.metodos.map(m => m.charAt(0).toUpperCase() + m.slice(1).replace('_', ' ')),
-                        datasets: [{
-                            data: data.totales,
-                            backgroundColor: colors.slice(0, data.metodos.length),
-                            borderColor: '#fff',
-                            borderWidth: 3
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    padding: 15,
-                                    font: { size: 12 }
-                                }
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(0,0,0,0.8)',
-                                padding: 12,
-                                callbacks: {
-                                    label: function(context) {
-                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        const percentage = ((context.parsed / total) * 100).toFixed(1);
-                                        return context.label + ': $' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
-                                    }
-                                }
+    // Gráfico 2: Top 5 Productos (Barras Horizontales)
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx2 = document.getElementById('chartTopProductos');
+        
+        if (!ctx2) {
+            console.error('Canvas chartTopProductos no encontrado');
+            return;
+        }
+        
+        // Datos desde el servidor
+        const topProductosData = [
+            {% for producto in top_productos %}
+            {
+                nombre: '{{ producto.producto__nombre|truncatechars:20|escapejs }}',
+                cantidad: {{ producto.cantidad_total|default:0 }}
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        console.log('Top Productos Data:', topProductosData);
+        
+        if (topProductosData.length === 0) {
+            const context = ctx2.getContext('2d');
+            context.font = '14px Arial';
+            context.fillStyle = '#6c757d';
+            context.textAlign = 'center';
+            context.fillText('No hay datos disponibles', ctx2.width / 2, ctx2.height / 2);
+            return;
+        }
+        
+        const productosNombres = topProductosData.map(p => p.nombre);
+        const productosCantidades = topProductosData.map(p => p.cantidad);
+        
+        new Chart(ctx2.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: productosNombres,
+                datasets: [{
+                    label: 'Cantidad Vendida',
+                    data: productosCantidades,
+                    backgroundColor: [
+                        'rgba(102, 126, 234, 0.8)',
+                        'rgba(17, 153, 142, 0.8)',
+                        'rgba(240, 147, 251, 0.8)',
+                        'rgba(79, 172, 254, 0.8)',
+                        'rgba(255, 193, 7, 0.8)'
+                    ],
+                    borderColor: [
+                        '#667eea',
+                        '#11998e',
+                        '#f093fb',
+                        '#4facfe',
+                        '#ffc107'
+                    ],
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return 'Vendidos: ' + context.parsed.x;
                             }
                         }
                     }
-                });
-            });
-    }
-    
-    function cargarGraficoHoras(dias) {
-        fetch(`/pos/api/ventas-por-hora/?dias=${dias}`)
-            .then(r => r.json())
-            .then(data => {
-                const ctx = document.getElementById('chartVentasPorHora').getContext('2d');
-                
-                if (chartHoras) {
-                    chartHoras.destroy();
-                }
-                
-                chartHoras = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: data.horas,
-                        datasets: [{
-                            label: 'Cantidad de Ventas',
-                            data: data.cantidades,
-                            backgroundColor: 'rgba(17, 153, 142, 0.7)',
-                            borderColor: 'rgba(17, 153, 142, 1)',
-                            borderWidth: 2,
-                            borderRadius: 8
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                backgroundColor: 'rgba(0,0,0,0.8)',
-                                padding: 12,
-                                callbacks: {
-                                    label: function(context) {
-                                        return 'Ventas: ' + context.parsed.y;
-                                    }
-                                }
-                            }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            precision: 0
                         },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    stepSize: 1
-                                },
-                                grid: {
-                                    color: 'rgba(0,0,0,0.05)'
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    display: false
-                                }
-                            }
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
                         }
                     }
-                });
-            });
-    }
+                }
+            }
+        });
+    });
 </script>
 {% endblock %}

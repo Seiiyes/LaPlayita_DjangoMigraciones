@@ -19,6 +19,10 @@ class ReabastecimientoForm {
     }
 
     init() {
+        // Disable HTML5 validation to prevent "not focusable" errors
+        this.form.setAttribute('novalidate', 'novalidate');
+        
+        this.initializeProveedorSelect();
         this.populateIvaSelects();
         this.setupEventListeners();
         this.validateForm();
@@ -31,13 +35,21 @@ class ReabastecimientoForm {
         });
     }
     
+    initializeProveedorSelect() {
+        // NO usar Select2 para el proveedor, solo deshabilitar autocompletado nativo
+        if (this.proveedorSelect) {
+            this.proveedorSelect.setAttribute('autocomplete', 'off');
+            this.proveedorSelect.setAttribute('autocomplete', 'new-password'); // Truco para deshabilitar autocompletado
+        }
+    }
+    
     populateIvaSelects() {
         document.querySelectorAll('.iva-select').forEach(select => {
+            // Solo poblar si el select solo tiene el placeholder (1 opción)
+            if (select.options.length > 1) return;
+            
             // Guardar el valor seleccionado si existe
             const selectedValue = select.value;
-            
-            // Limpiar opciones manteniendo la primera
-            while (select.options.length > 1) select.remove(1);
             
             // Usar this.tasasIva que viene del contexto de Django
             const tasas = this.tasasIva?.length > 0 ? this.tasasIva : [];
@@ -45,7 +57,7 @@ class ReabastecimientoForm {
             tasas.forEach(tasa => {
                 const option = document.createElement('option');
                 option.value = tasa.id; // Usar el ID de la tasa como valor
-                option.textContent = `${tasa.porcentaje}%`; // Solo el porcentaje
+                option.textContent = tasa.nombre; // Solo el nombre (ya incluye el porcentaje)
                 option.dataset.porcentaje = tasa.porcentaje; // Guardar el porcentaje en un data attribute
                 select.appendChild(option);
             });
@@ -101,6 +113,7 @@ class ReabastecimientoForm {
         document.addEventListener('change', (e) => {
             if (e.target.classList.contains('producto-select')) {
                 this.handleProductSelection(e.target);
+                this.updateProductCount(); // Actualizar contador al seleccionar producto
             }
         });
 
@@ -131,6 +144,12 @@ class ReabastecimientoForm {
 
         // Cancel button
         this.cancelarBtn.addEventListener('click', (e) => this.handleCancel(e));
+        
+        // Guardar como borrador button
+        const guardarBorradorBtn = document.getElementById('guardarBorradorBtn');
+        if (guardarBorradorBtn) {
+            guardarBorradorBtn.addEventListener('click', (e) => this.handleSaveDraft(e));
+        }
 
         // Form submission
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
@@ -167,17 +186,8 @@ class ReabastecimientoForm {
         this.managementForm.value = totalForms + 1;
         newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         
-        const ivaSelect = newRow.querySelector('.iva-select');
-        if (ivaSelect) {
-            const tasas = this.tasasIva?.length > 0 ? this.tasasIva : [];
-            tasas.forEach(tasa => {
-                const option = document.createElement('option');
-                option.value = tasa.id; // Usar el ID de la tasa como valor
-                option.textContent = `${tasa.porcentaje}%`; // Solo el porcentaje
-                option.dataset.porcentaje = tasa.porcentaje; // Guardar el porcentaje
-                ivaSelect.appendChild(option);
-            });
-        }
+        // Poblar el select de IVA de la nueva fila
+        this.populateIvaSelects();
         
         // Setup Tab navigation para la nueva fila
         this.setupRowTabNavigation(newRow);
@@ -362,6 +372,9 @@ class ReabastecimientoForm {
         document.getElementById('gran-subtotal').textContent = this.formatCurrency(grandSubtotal);
         document.getElementById('gran-iva').textContent = this.formatCurrency(grandIva);
         document.getElementById('gran-total').textContent = this.formatCurrency(grandTotal);
+        
+        // Actualizar vista móvil
+        this.syncMobileView();
     }
 
     formatCurrency(value) {
@@ -424,17 +437,27 @@ class ReabastecimientoForm {
                 errorType = 'success';
             }
         } else if (field.type === 'date') {
-            const today = new Date().toISOString().split('T')[0];
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const selectedDate = field.value ? new Date(field.value + 'T00:00:00') : null;
+            
             if (!field.value) {
                 isValid = false;
                 errorMsg = 'Fecha requerida';
                 errorType = 'error';
-            } else if (field.value < today) {
+            } else if (selectedDate < today) {
                 isValid = false;
                 errorMsg = 'Fecha no puede ser pasada';
                 errorType = 'error';
             } else {
-                errorType = 'success';
+                // Advertencia si la fecha es muy cercana (menos de 7 días)
+                const diffDays = Math.ceil((selectedDate - today) / (1000 * 60 * 60 * 24));
+                if (diffDays < 7) {
+                    errorMsg = `Caducidad cercana (${diffDays} días)`;
+                    errorType = 'warning';
+                } else {
+                    errorType = 'success';
+                }
             }
         }
 
@@ -458,20 +481,25 @@ class ReabastecimientoForm {
     }
 
     showFieldError(field, message, type) {
-        let errorEl = field.nextElementSibling;
-        if (!errorEl || !errorEl.classList.contains('field-error-msg')) {
-            errorEl = document.createElement('small');
-            errorEl.className = 'field-error-msg d-block mt-1';
-            field.parentNode.insertBefore(errorEl, field.nextSibling);
-        }
-        errorEl.textContent = message;
+        // Primero limpiar cualquier error existente
+        this.clearFieldError(field);
+        
+        // Crear nuevo elemento de error
+        const errorEl = document.createElement('small');
         errorEl.className = `field-error-msg d-block mt-1 text-${type === 'error' ? 'danger' : 'warning'}`;
+        errorEl.textContent = message;
+        
+        // Insertar después del campo
+        field.parentNode.insertBefore(errorEl, field.nextSibling);
     }
 
     clearFieldError(field) {
-        const errorEl = field.nextElementSibling;
-        if (errorEl && errorEl.classList.contains('field-error-msg')) {
-            errorEl.remove();
+        // Buscar y eliminar TODOS los mensajes de error después del campo
+        let nextEl = field.nextElementSibling;
+        while (nextEl && nextEl.classList.contains('field-error-msg')) {
+            const toRemove = nextEl;
+            nextEl = nextEl.nextElementSibling;
+            toRemove.remove();
         }
     }
 
@@ -491,15 +519,24 @@ class ReabastecimientoForm {
         totalChecks++;
 
         const rows = this.detalleTable.querySelectorAll('tbody tr.formset-row');
-        if (rows.length === 0) {
+        
+        // Filtrar solo las filas que tienen un producto seleccionado
+        const rowsWithProduct = Array.from(rows).filter(row => {
+            const producto = row.querySelector('.producto-select');
+            return producto && producto.value && producto.value !== '';
+        });
+
+        if (rowsWithProduct.length === 0) {
             isValid = false;
         } else {
-            validCount += rows.length;
+            validCount += rowsWithProduct.length;
         }
-        totalChecks += rows.length;
+        totalChecks += rowsWithProduct.length;
 
         let errorCount = 0;
-        rows.forEach(row => {
+        
+        // Solo validar filas con producto seleccionado
+        rowsWithProduct.forEach(row => {
             const producto = row.querySelector('.producto-select');
             const cantidad = row.querySelector('.cantidad-input');
             const costo = row.querySelector('.costo-unitario-input');
@@ -518,6 +555,22 @@ class ReabastecimientoForm {
             row.classList.toggle('row-valid', rowValid);
         });
 
+        // Limpiar validación de filas vacías (sin producto)
+        rows.forEach(row => {
+            const producto = row.querySelector('.producto-select');
+            if (!producto || !producto.value || producto.value === '') {
+                // Limpiar clases de validación
+                row.classList.remove('row-error', 'row-valid');
+                
+                // Limpiar validación de todos los campos de la fila
+                const fields = row.querySelectorAll('.producto-select, .cantidad-input, .costo-unitario-input, [type="date"]');
+                fields.forEach(field => {
+                    field.classList.remove('is-invalid', 'is-valid');
+                    this.clearFieldError(field);
+                });
+            }
+        });
+
         // Actualizar barra de validación
         const percentage = totalChecks > 0 ? Math.round(((totalChecks - errorCount) / totalChecks) * 100) : 0;
         const validationBar = document.getElementById('formValidationBar');
@@ -532,9 +585,109 @@ class ReabastecimientoForm {
     }
 
     updateProductCount() {
-        const rows = this.detalleTable.querySelectorAll('tbody tr.formset-row');
+        // Solo contar filas visibles en el tbody principal (no el template oculto)
+        const tbody = this.detalleTable.querySelector('tbody');
+        const rows = tbody ? tbody.querySelectorAll('tr.formset-row') : [];
         this.managementForm.value = rows.length;
-        document.getElementById('product-count').textContent = rows.length;
+        
+        // Contar solo filas con producto seleccionado (no filas vacías)
+        let count = 0;
+        rows.forEach(row => {
+            const productoSelect = row.querySelector('.producto-select');
+            if (productoSelect) {
+                const value = productoSelect.value;
+                const selectedIndex = productoSelect.selectedIndex;
+                
+                // Verificar que tenga un valor válido (no vacío y no el placeholder)
+                if (value && value !== '' && selectedIndex > 0) {
+                    count++;
+                }
+            }
+        });
+        
+        const countElement = document.getElementById('product-count');
+        if (countElement) {
+            countElement.textContent = count;
+        }
+        this.syncMobileView();
+    }
+    
+    syncMobileView() {
+        // Sincronizar vista móvil con la tabla
+        const mobileView = document.getElementById('mobileCardView');
+        if (!mobileView) return;
+        
+        const rows = this.detalleTable.querySelectorAll('tbody tr.formset-row');
+        let html = '';
+        
+        rows.forEach((row, index) => {
+            const productoSelect = row.querySelector('.producto-select');
+            const cantidadInput = row.querySelector('.cantidad-input');
+            const costoInput = row.querySelector('.costo-unitario-input');
+            const ivaSelect = row.querySelector('.iva-select');
+            const fechaInput = row.querySelector('[type="date"]');
+            const subtotalDisplay = row.querySelector('.subtotal-display');
+            
+            const productoNombre = productoSelect.options[productoSelect.selectedIndex]?.text || 'Seleccionar producto';
+            const cantidad = cantidadInput.value || '0';
+            const costo = costoInput.value || '0';
+            const iva = ivaSelect.options[ivaSelect.selectedIndex]?.text || '--';
+            const fecha = fechaInput.value || '';
+            const subtotal = subtotalDisplay.textContent || '$0';
+            
+            html += `
+                <div class="mobile-product-card" data-row-index="${index}">
+                    <div class="card-header">
+                        <strong>Producto ${index + 1}</strong>
+                        <button type="button" class="btn btn-sm btn-outline-danger mobile-delete-btn" data-row-index="${index}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <label>Producto</label>
+                        <div class="text-muted">${productoNombre}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 form-group">
+                            <label>Cantidad</label>
+                            <div class="fw-bold">${cantidad}</div>
+                        </div>
+                        <div class="col-6 form-group">
+                            <label>Costo Unit.</label>
+                            <div class="fw-bold">$${parseFloat(costo || 0).toLocaleString('es-CO')}</div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 form-group">
+                            <label>IVA</label>
+                            <div>${iva}</div>
+                        </div>
+                        <div class="col-6 form-group">
+                            <label>Caducidad</label>
+                            <div>${fecha || 'No especificada'}</div>
+                        </div>
+                    </div>
+                    <div class="subtotal-badge">
+                        Total: ${subtotal}
+                    </div>
+                </div>
+            `;
+        });
+        
+        if (rows.length === 0) {
+            html = '<div class="text-center text-muted py-4">No hay productos agregados</div>';
+        }
+        
+        mobileView.innerHTML = html;
+        
+        // Agregar event listeners para botones de eliminar en móvil
+        mobileView.querySelectorAll('.mobile-delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const rowIndex = parseInt(btn.dataset.rowIndex);
+                const tableRow = this.detalleTable.querySelectorAll('tbody tr.formset-row')[rowIndex];
+                if (tableRow) this.deleteRow(tableRow);
+            });
+        });
     }
 
     updateAddRowButton() {
@@ -543,6 +696,44 @@ class ReabastecimientoForm {
         this.addRowBtn.title = hasSupplier ? 'Agregar producto (Tab al final)' : 'Selecciona un proveedor primero';
     }
 
+    handleSaveDraft(e) {
+        e.preventDefault();
+        console.log('[BORRADOR] Iniciando guardado de borrador...');
+        
+        // Validar que al menos haya un proveedor
+        if (!this.proveedorSelect.value) {
+            console.log('[BORRADOR] Error: No hay proveedor seleccionado');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Proveedor requerido',
+                text: 'Debes seleccionar un proveedor para guardar el borrador.',
+                confirmButtonColor: '#0d6efd'
+            });
+            return;
+        }
+        
+        const rows = this.detalleTable.querySelectorAll('tbody:not(#empty-form-template) tr.formset-row');
+        console.log(`[BORRADOR] Filas encontradas: ${rows.length}`);
+        
+        // Cambiar el estado a borrador
+        const estadoInput = this.form.querySelector('[name="estado"]');
+        if (estadoInput) {
+            estadoInput.value = 'borrador';
+            console.log('[BORRADOR] Estado cambiado a: borrador');
+        } else {
+            console.error('[BORRADOR] No se encontró el campo de estado');
+        }
+        
+        const guardarBtn = document.getElementById('guardarBorradorBtn');
+        if (guardarBtn) {
+            guardarBtn.disabled = true;
+            guardarBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+        }
+        
+        console.log('[BORRADOR] Enviando formulario...');
+        this.form.submit();
+    }
+    
     handleCancel(e) {
         e.preventDefault();
         const hasData = this.detalleTable.querySelectorAll('tbody tr.formset-row').length > 0 ||
@@ -581,8 +772,16 @@ class ReabastecimientoForm {
                 this.showToast('Corrige los errores marcados en rojo', 'danger');
             }
         } else {
+            // Mostrar confirmación antes de guardar
+            e.preventDefault();
+            const rows = this.detalleTable.querySelectorAll('tbody tr.formset-row');
+            const productCount = rows.length;
+            const total = document.getElementById('gran-total').textContent;
+            
+            // Enviar directamente sin confirmación adicional para mayor velocidad
             this.guardarBtn.disabled = true;
-            this.guardarBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+            this.guardarBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+            this.form.submit();
         }
     }
 
@@ -643,37 +842,259 @@ class SmartProductSearch {
     }
 
     setupSearchListeners() {
-        document.addEventListener('focus', (e) => {
-            if (e.target.classList.contains('producto-select')) {
-                this.initializeSelect2(e.target);
-            }
-        }, true);
-    }
-
-    initializeSelect2(selectElement) {
-        if (selectElement.dataset.select2Initialized) return;
-
-        $(selectElement).select2({
-            placeholder: 'Buscar producto...',
-            allowClear: true,
-            width: '100%',
-            data: this.productos.map(p => ({
-                id: p.id,
-                text: `${p.nombre} (${p.precio_unitario ? '$' + p.precio_unitario : 'N/A'})`
-            })),
-            matcher: (params, data) => {
-                if (!params.term) return data;
-                const term = params.term.toLowerCase();
-                if (data.text.toLowerCase().includes(term)) return data;
-                return null;
-            }
-        });
-
-        selectElement.dataset.select2Initialized = true;
+        // Ya no usamos Select2, solo select nativo
+        // Los selects nativos funcionan mejor para este caso
     }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     const form = new ReabastecimientoForm();
     new SmartProductSearch(form.productos);
+    
+    // Exponer función global para importación desde Excel
+    window.addProductosFromExcel = function(productos) {
+        console.log('[EXCEL IMPORT] Agregando productos al formulario:', productos);
+        
+        // Limpiar TODAS las filas existentes antes de importar
+        const tbody = form.detalleTable.querySelector('tbody');
+        const existingRows = tbody.querySelectorAll('tr.formset-row');
+        console.log('[EXCEL IMPORT] Limpiando todas las filas existentes:', existingRows.length);
+        existingRows.forEach(row => {
+            row.remove();
+        });
+        
+        // Resetear el contador de formularios a 0
+        form.managementForm.value = 0;
+        console.log('[EXCEL IMPORT] Contador de formularios reseteado a 0');
+        
+        // Guardar referencia al template ANTES de empezar a clonar
+        const template = document.getElementById('empty-form-template');
+        if (!template) {
+            console.error('[EXCEL IMPORT] No se encontró el template');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudo encontrar el template del formulario',
+                confirmButtonColor: '#dc3545'
+            });
+            return;
+        }
+        
+        // Verificar que tenemos el tbody correcto de la tabla principal
+        const mainTbody = form.detalleTable.querySelector('tbody');
+        console.log('[EXCEL IMPORT] Tbody principal encontrado:', !!mainTbody);
+        console.log('[EXCEL IMPORT] ID de la tabla:', form.detalleTable.id);
+        
+        const templateRow = template.querySelector('tr');
+        if (!templateRow) {
+            console.error('[EXCEL IMPORT] No se encontró el <tr> en el template');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'El template del formulario está corrupto',
+                confirmButtonColor: '#dc3545'
+            });
+            return;
+        }
+        
+        // Guardar una copia del template para poder clonar múltiples veces
+        const templateClone = templateRow.cloneNode(true);
+        
+        // Función para llenar una fila con datos
+        const fillRow = (rowIndex, producto) => {
+            return new Promise((resolve) => {
+                console.log(`[EXCEL IMPORT] Procesando producto ${rowIndex + 1}:`, producto);
+                
+                // Clonar desde la copia guardada
+                const newRow = templateClone.cloneNode(true);
+                const totalForms = parseInt(form.managementForm.value);
+                
+                // Asegurar que la fila sea visible desde el inicio
+                newRow.style.display = 'table-row';
+                newRow.classList.remove('d-none');
+                newRow.classList.add('formset-row');
+                
+                // Actualizar nombres e IDs
+                newRow.querySelectorAll('input, select').forEach(field => {
+                    const name = field.name;
+                    if (name) {
+                        field.name = name.replace(/__prefix__/g, totalForms);
+                        field.id = field.id ? field.id.replace(/__prefix__/g, totalForms) : '';
+                    }
+                });
+                
+                // Agregar al DOM - Asegurarse de usar el tbody correcto (no el del template)
+                const allTbodies = document.querySelectorAll('tbody');
+                console.log(`[EXCEL IMPORT] Total de tbody encontrados: ${allTbodies.length}`);
+                
+                // El primer tbody es el de la tabla principal, el segundo es el del template oculto
+                const tbody = form.detalleTable.querySelector('tbody:not(#empty-form-template)');
+                if (!tbody) {
+                    console.error('[EXCEL IMPORT] No se encontró el tbody de la tabla principal');
+                    resolve();
+                    return;
+                }
+                
+                console.log(`[EXCEL IMPORT] Usando tbody:`, tbody.parentElement.id);
+                tbody.appendChild(newRow);
+                const newTotalForms = totalForms + 1;
+                form.managementForm.value = newTotalForms;
+                
+                console.log(`[EXCEL IMPORT] Fila ${rowIndex + 1} creada y agregada al DOM`);
+                console.log(`[EXCEL IMPORT] TOTAL_FORMS actualizado a: ${newTotalForms}`);
+                console.log(`[EXCEL IMPORT] Fila visible:`, newRow.style.display, newRow.classList.contains('formset-row'));
+                console.log(`[EXCEL IMPORT] Total filas en tbody principal:`, tbody.querySelectorAll('tr').length);
+                
+                // Verificar los nombres de los campos
+                const productoField = newRow.querySelector('select[name*="producto"]');
+                const cantidadField = newRow.querySelector('input[name*="cantidad"]');
+                console.log(`[EXCEL IMPORT] Nombres de campos - Producto: ${productoField?.name}, Cantidad: ${cantidadField?.name}`);
+                
+                // Esperar un momento para que se renderice
+                setTimeout(() => {
+                    // Buscar campos en la nueva fila
+                    const productoSelect = newRow.querySelector('select[name*="producto"]');
+                    const cantidadInput = newRow.querySelector('input[name*="cantidad"]');
+                    const costoInput = newRow.querySelector('input[name*="costo_unitario"]');
+                    const ivaSelect = newRow.querySelector('select.iva-select');
+                    const fechaInput = newRow.querySelector('input[name*="fecha_caducidad"]');
+                    
+                    console.log(`[EXCEL IMPORT] Campos encontrados:`, {
+                        producto: !!productoSelect,
+                        cantidad: !!cantidadInput,
+                        costo: !!costoInput,
+                        iva: !!ivaSelect,
+                        fecha: !!fechaInput
+                    });
+                    
+                    // Llenar producto - primero poblar opciones
+                    if (productoSelect) {
+                        // Limpiar opciones existentes
+                        productoSelect.innerHTML = '<option value="">Seleccionar producto...</option>';
+                        
+                        // Agregar todas las opciones de productos
+                        form.productos.forEach(p => {
+                            const option = document.createElement('option');
+                            option.value = p.id;
+                            option.textContent = p.nombre;
+                            productoSelect.appendChild(option);
+                        });
+                        
+                        // Ahora seleccionar el producto
+                        productoSelect.value = producto.producto_id;
+                        console.log(`[EXCEL IMPORT] Producto seleccionado: ${producto.producto_id} (${producto.producto_nombre})`);
+                        productoSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    
+                    // Llenar cantidad
+                    if (cantidadInput) {
+                        cantidadInput.value = producto.cantidad;
+                        console.log(`[EXCEL IMPORT] Cantidad: ${producto.cantidad}`);
+                        cantidadInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    
+                    // Llenar costo
+                    if (costoInput) {
+                        costoInput.value = producto.costo_unitario;
+                        console.log(`[EXCEL IMPORT] Costo: ${producto.costo_unitario}`);
+                        costoInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    
+                    // Poblar y seleccionar IVA
+                    if (ivaSelect) {
+                        // Poblar opciones de IVA
+                        form.populateIvaSelects();
+                        
+                        if (producto.tasa_iva_id) {
+                            setTimeout(() => {
+                                ivaSelect.value = producto.tasa_iva_id;
+                                console.log(`[EXCEL IMPORT] IVA: ${producto.tasa_iva_id}`);
+                                ivaSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                            }, 100);
+                        }
+                    }
+                    
+                    // Llenar fecha
+                    if (fechaInput && producto.fecha_caducidad) {
+                        fechaInput.value = producto.fecha_caducidad;
+                        console.log(`[EXCEL IMPORT] Fecha: ${producto.fecha_caducidad}`);
+                    }
+                    
+                    console.log(`[EXCEL IMPORT] Producto ${rowIndex + 1} completado`);
+                    
+                    // Forzar actualización visual y asegurar visibilidad
+                    newRow.style.display = 'table-row';
+                    newRow.style.visibility = 'visible';
+                    newRow.classList.add('formset-row');
+                    newRow.classList.remove('d-none');
+                    
+                    // Hacer scroll a la fila si es necesario
+                    if (rowIndex === 0) {
+                        newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    
+                    // Esperar antes de resolver
+                    setTimeout(() => {
+                        resolve();
+                    }, 200);
+                }, 300);
+            });
+        };
+        
+        // Procesar productos secuencialmente
+        const processProductos = async () => {
+            for (let i = 0; i < productos.length; i++) {
+                await fillRow(i, productos[i]);
+            }
+            
+            // Actualizar totales al final
+            setTimeout(() => {
+                console.log('[EXCEL IMPORT] Actualizando totales y validación...');
+                
+                // Forzar recálculo de totales
+                form.calculateTotals();
+                form.updateProductCount();
+                form.validateForm();
+                
+                // Poblar todos los selects de IVA
+                form.populateIvaSelects();
+                
+                // Verificar que las filas sean visibles
+                const rows = document.querySelectorAll('tr.formset-row');
+                console.log(`[EXCEL IMPORT] Total de filas en el DOM: ${rows.length}`);
+                
+                rows.forEach((row, idx) => {
+                    const productoSelect = row.querySelector('select[name*="producto"]');
+                    const cantidadInput = row.querySelector('input[name*="cantidad"]');
+                    console.log(`[EXCEL IMPORT] Fila ${idx}: Producto=${productoSelect?.value}, Cantidad=${cantidadInput?.value}`);
+                    
+                    // Asegurar visibilidad completa
+                    row.style.display = 'table-row';
+                    row.style.visibility = 'visible';
+                    row.classList.add('formset-row');
+                    row.classList.remove('d-none');
+                });
+                
+                // Hacer scroll a la tabla de productos
+                const productosSection = document.querySelector('.reab-section');
+                if (productosSection) {
+                    productosSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                
+                // Verificar el estado final del formset
+                const finalTotalForms = form.managementForm.value;
+                console.log(`[EXCEL IMPORT] ✓ Todos los productos agregados exitosamente`);
+                console.log(`[EXCEL IMPORT] Estado final - TOTAL_FORMS: ${finalTotalForms}`);
+                
+                // Listar todos los campos del formset
+                for (let i = 0; i < finalTotalForms; i++) {
+                    const productoField = document.querySelector(`[name="reabastecimientodetalle_set-${i}-producto"]`);
+                    const cantidadField = document.querySelector(`[name="reabastecimientodetalle_set-${i}-cantidad"]`);
+                    console.log(`[EXCEL IMPORT] Formset ${i}: producto=${productoField?.value}, cantidad=${cantidadField?.value}`);
+                }
+            }, 500);
+        };
+        
+        processProductos();
+    };
 });

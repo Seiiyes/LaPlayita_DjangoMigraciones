@@ -46,10 +46,25 @@
                             title="Editar esta orden">
                         <i class="fas fa-edit me-1"></i> Editar
                     </button>
-                    {# TODO: Add Cancel/Delete button here if applicable #}
                 {% elif reabastecimiento.estado == 'recibido' %}
                     <span class="text-success fw-bold"><i class="fas fa-check-circle me-1"></i> Recibida completamente</span>
                 {% endif %}
+                
+                <!-- Botones de descarga -->
+                <div class="btn-group btn-group-sm ms-2" role="group">
+                    <a href="{% url 'suppliers:reabastecimiento_download_pdf' reabastecimiento.id %}" 
+                       class="btn btn-outline-danger btn-sm" 
+                       title="Descargar PDF"
+                       target="_blank">
+                        <i class="fas fa-file-pdf me-1"></i> PDF
+                    </a>
+                    <a href="{% url 'suppliers:reabastecimiento_download_excel' reabastecimiento.id %}" 
+                       class="btn btn-outline-success btn-sm" 
+                       title="Descargar Excel"
+                       target="_blank">
+                        <i class="fas fa-file-excel me-1"></i> Excel
+                    </a>
+                </div>
             </div>
         </div>
     </div>

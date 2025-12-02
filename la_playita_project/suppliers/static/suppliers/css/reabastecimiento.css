@@ -5,8 +5,15 @@
     max-width: 1200px;
 }
 
+.reab-container > .card {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
 .reab-header {
     background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
 }
 
 .reab-section {
@@ -200,10 +207,12 @@
 
 /* ===== RESUMEN MEJORADO ===== */
 .reab-summary {
-    background: #f8f9fa;
+    background: rgba(248, 249, 250, 0.95);
     border-radius: 0.5rem;
     padding: 1.5rem;
     margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(222, 226, 230, 0.8);
 }
 
 .reab-summary-item {
@@ -252,12 +261,14 @@
 .reab-sticky-footer {
     position: sticky;
     bottom: 0;
-    background: white;
-    border-top: 2px solid #dee2e6;
+    background: rgba(255, 255, 255, 0.98);
+    border-top: 2px solid rgba(222, 226, 230, 0.8);
     padding: 1rem;
     margin: 0 -1rem -1rem -1rem;
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
     z-index: 100;
+    will-change: transform;
+    transform: translateZ(0);
 }
 
 .reab-sticky-footer .btn {
@@ -473,31 +484,43 @@
 }
 
 .order-card {
-    border: 1px solid #dee2e6;
-    border-radius: 0.5rem;
+    border: 1px solid rgba(222, 226, 230, 0.8);
+    border-radius: 0.75rem;
     padding: 1.25rem;
-    transition: all 0.2s ease;
-    background: white;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    will-change: transform;
+    transform: translateZ(0);
 }
 
 .order-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    transform: translateY(-3px) translateZ(0);
 }
 
+.order-card.borrador {
+    border-left: 4px solid #6c757d;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.92));
+}
+
+.order-card.solicitado,
 .order-card.pending {
     border-left: 4px solid #ffc107;
-    background: linear-gradient(to right, rgba(255, 193, 7, 0.02), transparent);
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.92));
 }
 
+.order-card.recibido,
 .order-card.received {
     border-left: 4px solid #28a745;
-    background: linear-gradient(to right, rgba(40, 167, 69, 0.02), transparent);
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.92));
 }
 
+.order-card.cancelado,
 .order-card.canceled {
     border-left: 4px solid #dc3545;
-    background: linear-gradient(to right, rgba(220, 53, 69, 0.02), transparent);
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.92));
 }
 
 .order-card h6 {
@@ -818,6 +841,51 @@ select:focus {
     outline-offset: 2px;
 }
 
+/* ===== MOBILE CARD VIEW ===== */
+.mobile-card-view {
+    display: none;
+}
+
+.mobile-product-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-product-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.mobile-product-card .form-group {
+    margin-bottom: 0.75rem;
+}
+
+.mobile-product-card label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.mobile-product-card .subtotal-badge {
+    background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
     .reab-table {
@@ -880,6 +948,15 @@ select:focus {
 }
 
 @media (max-width: 576px) {
+    /* Ocultar tabla y mostrar vista de tarjetas */
+    .table-responsive {
+        display: none !important;
+    }
+    
+    .mobile-card-view {
+        display: block !important;
+    }
+    
     .reab-table {
         font-size: 0.75rem;
     }
@@ -894,18 +971,19 @@ select:focus {
 
     .form-control-sm,
     .form-select-sm {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.3rem;
-        min-height: 30px;
+        font-size: 16px !important;
+        padding: 0.5rem 0.75rem;
+        min-height: 44px;
     }
 
     .btn-group-sm .btn {
-        padding: 0.2rem 0.3rem;
-        font-size: 0.65rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        min-height: 44px;
     }
 
     .btn-group-sm .btn i {
-        margin-right: 0 !important;
+        margin-right: 0.25rem !important;
     }
 
     .reab-sticky-footer {
@@ -918,17 +996,19 @@ select:focus {
 
     .reab-sticky-footer .btn {
         min-width: 80px;
-        font-size: 0.8rem;
-        padding: 0.4rem 0.6rem;
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+        min-height: 44px;
     }
 
     .tab-btn {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.75rem;
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+        min-height: 44px;
     }
 
     .tab-btn .badge {
-        display: none;
+        display: inline-block;
     }
 
     .order-card {
@@ -945,8 +1025,20 @@ select:focus {
     }
 
     .reception-table input {
-        font-size: 0.7rem;
-        padding: 0.2rem 0.25rem;
+        font-size: 16px;
+        padding: 0.5rem 0.375rem;
+        min-height: 44px;
+    }
+    
+    /* Mejorar resumen en móvil */
+    .card-body .row.g-3 {
+        row-gap: 1rem !important;
+    }
+    
+    .card-body .row.g-3 > div {
+        padding: 0.75rem;
+        background: #f8f9fa;
+        border-radius: 0.5rem;
     }
 }
 
@@ -982,6 +1074,56 @@ select {
 
 .order-card {
     animation: slideIn 0.3s ease;
+}
+
+/* ===== MESSAGES CONTAINER ===== */
+.messages-container {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    width: 90%;
+    max-width: 600px;
+}
+
+.messages-container .alert {
+    animation: slideDown 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: none;
+    border-radius: 0.5rem;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.messages-container .alert-success {
+    background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+    color: white;
+}
+
+.messages-container .alert-danger,
+.messages-container .alert-error {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+}
+
+.messages-container .alert-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+    color: #000;
+}
+
+.messages-container .alert-info {
+    background: linear-gradient(135deg, #0dcaf0 0%, #0d6efd 100%);
+    color: white;
 }
 
 /* ===== UTILITIES ===== */
@@ -1223,5 +1365,1100 @@ select {
     to {
         opacity: 1;
         transform: translateX(0);
+    }
+}
+
+/* ===== MEJORAS DE ACCESIBILIDAD ADICIONALES ===== */
+input[type="number"]:focus,
+input[type="text"]:focus,
+input[type="date"]:focus,
+select:focus {
+    outline: 2px solid #0d6efd;
+    outline-offset: 2px;
+}
+
+.btn:focus,
+button:focus {
+    outline: 2px solid #0d6efd;
+    outline-offset: 2px;
+}
+
+.badge {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+button:not(:disabled),
+.btn:not(:disabled) {
+    cursor: pointer;
+}
+
+button:disabled,
+.btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* ===== MEJORAS VISUALES PARA ESTADO DE BORRADOR ===== */
+.order-card.borrador .badge {
+    animation: pulse-draft 2s infinite;
+}
+
+@keyframes pulse-draft {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* ===== MEJORAS PARA FONDO CON IMAGEN ===== */
+
+/* Cards principales con mejor contraste */
+#reabastecimiento-container > .card {
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* Tabs con mejor visibilidad */
+.card-body.p-0.border-bottom {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+}
+
+.tab-btn {
+    background: transparent;
+}
+
+.tab-btn:hover {
+    background-color: rgba(13, 110, 253, 0.08);
+}
+
+.tab-btn.active {
+    background-color: rgba(13, 110, 253, 0.12);
+}
+
+/* Barra de búsqueda con mejor contraste */
+.search-bar .input-group {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.search-bar input {
+    background: white !important;
+}
+
+/* Filtros con mejor visibilidad */
+.filter-collapse .card {
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* Modal con mejor contraste */
+.modal-content {
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    background: linear-gradient(135deg, rgba(248, 249, 250, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+}
+
+/* Tabla con mejor legibilidad */
+.reab-table {
+    background: white;
+}
+
+.reab-table thead {
+    background: linear-gradient(135deg, rgba(248, 249, 250, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+}
+
+.reab-table tbody tr {
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.reab-table tbody tr:hover {
+    background: rgba(13, 110, 253, 0.05);
+}
+
+/* Resumen optimizado */
+.card.border-0.shadow-sm.mb-4 {
+    background: rgba(255, 255, 255, 0.98) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid rgba(222, 226, 230, 0.5) !important;
+}
+
+/* Mobile cards con mejor contraste */
+.mobile-product-card {
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(222, 226, 230, 0.6);
+}
+
+/* Badges con mejor visibilidad */
+.badge {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    font-weight: 600;
+}
+
+/* Botones con mejor contraste */
+.btn {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    font-weight: 500;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    will-change: transform;
+}
+
+.btn:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px) translateZ(0);
+}
+
+.btn:active {
+    transform: translateY(0) translateZ(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Inputs con mejor visibilidad */
+.form-control,
+.form-select {
+    background: white;
+    border: 1px solid rgba(222, 226, 230, 0.8);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.form-control:focus,
+.form-select:focus {
+    background: white;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+}
+
+/* Toast container con mejor posición */
+.toast-container {
+    z-index: 10000;
+}
+
+.toast {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* Mensajes de éxito con glassmorphism */
+.messages-container .alert {
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Empty state con mejor contraste */
+.empty-state {
+    background: rgba(248, 249, 250, 0.95);
+    backdrop-filter: blur(8px);
+    border-radius: 0.75rem;
+    padding: 3rem 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Progress bar con mejor visibilidad */
+.progress {
+    background-color: rgba(233, 236, 239, 0.95);
+    backdrop-filter: blur(8px);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Sombras más pronunciadas para mejor separación del fondo */
+.card,
+.order-card,
+.mobile-product-card {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Hover effects más pronunciados */
+.order-card:hover,
+.mobile-product-card:hover {
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2), 0 8px 20px rgba(0, 0, 0, 0.15);
+    transform: translateY(-4px) translateZ(0);
+}
+
+/* ===== OPTIMIZACIONES DE PERFORMANCE ===== */
+
+/* Forzar aceleración por hardware en elementos animados */
+.order-card,
+.btn,
+.reab-sticky-footer,
+.mobile-product-card,
+.tab-btn {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+/* Optimizar scroll */
+* {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Reducir repaints en scroll */
+.orders-container {
+    contain: layout style paint;
+}
+
+.order-card {
+    contain: layout style paint;
+}
+
+/* Optimizar imágenes y fondos */
+img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+
+/* Prevenir layout shifts */
+.reab-table,
+.orders-container,
+.card {
+    min-height: 0;
+}
+
+/* Optimizar animaciones */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* GPU acceleration para elementos críticos */
+.reab-header,
+.reab-sticky-footer,
+.order-card,
+.modal-content {
+    transform: translate3d(0, 0, 0);
+    will-change: auto;
+}
+
+/* Optimizar hover states */
+.order-card:hover,
+.btn:hover {
+    will-change: transform, box-shadow;
+}
+
+/* Después del hover, remover will-change */
+.order-card:not(:hover),
+.btn:not(:hover) {
+    will-change: auto;
+}
+
+/* Contenedor con scroll optimizado */
+.orders-container {
+    overflow-anchor: auto;
+}
+
+/* Prevenir CLS en imágenes */
+img,
+svg {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Optimizar tabla para scroll */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    contain: layout style paint;
+}
+
+/* Reducir complejidad de sombras en scroll */
+@media (hover: none) {
+    .order-card {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    }
+    
+    .btn {
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+}
+
+
+/* ===== PREVENCIÓN DE CLS (CUMULATIVE LAYOUT SHIFT) ===== */
+
+/* Reservar espacio para el header */
+.d-flex.justify-content-between.align-items-center.mb-4 {
+    min-height: 100px;
+}
+
+/* Reservar espacio para tabs */
+.card-body.p-0.border-bottom {
+    min-height: 60px;
+}
+
+/* Reservar espacio para búsqueda */
+.search-bar {
+    min-height: 80px;
+}
+
+/* Reservar espacio para cards de órdenes */
+.order-card {
+    min-height: 180px;
+}
+
+/* Prevenir shifts en badges */
+.badge {
+    display: inline-block;
+    min-width: 80px;
+    text-align: center;
+}
+
+/* Prevenir shifts en botones */
+.btn {
+    min-height: 38px;
+}
+
+.btn-lg {
+    min-height: 48px;
+}
+
+.btn-sm {
+    min-height: 31px;
+}
+
+/* Prevenir shifts en inputs */
+.form-control,
+.form-select {
+    min-height: 38px;
+}
+
+.form-control-sm,
+.form-select-sm {
+    min-height: 31px;
+}
+
+.form-control-lg,
+.form-select-lg {
+    min-height: 48px;
+}
+
+/* Prevenir shifts en la tabla */
+.reab-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.reab-table th,
+.reab-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Prevenir shifts en el resumen */
+.card.border-0.shadow-sm.mb-4 {
+    min-height: 120px;
+}
+
+/* Prevenir shifts en el sticky footer */
+.reab-sticky-footer {
+    height: 80px;
+    min-height: 80px;
+}
+
+/* Prevenir shifts en modales */
+.modal-dialog {
+    margin: 1.75rem auto;
+}
+
+.modal-content {
+    min-height: 200px;
+}
+
+/* Prevenir shifts en alerts */
+.alert {
+    min-height: 50px;
+}
+
+/* Prevenir shifts en progress bars */
+.progress {
+    height: 6px;
+    min-height: 6px;
+}
+
+/* Prevenir shifts en iconos */
+i.fas,
+i.far,
+i.fab {
+    display: inline-block;
+    width: 1em;
+    text-align: center;
+}
+
+/* Prevenir shifts en el contador de productos */
+#product-count {
+    min-width: 30px;
+    display: inline-block;
+    text-align: center;
+}
+
+/* Prevenir shifts en totales */
+#gran-subtotal,
+#gran-iva,
+#gran-total {
+    min-width: 80px;
+    display: inline-block;
+    text-align: right;
+}
+
+/* Prevenir shifts en la barra de validación */
+#formValidationBar {
+    transition: width 0.3s ease;
+}
+
+/* Skeleton loading para prevenir CLS */
+.order-card.loading {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Aspect ratio para imágenes */
+img[src*="logo"] {
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+}
+
+/* Prevenir shifts en listas vacías */
+.empty-state {
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Prevenir shifts en spinners */
+.spinner-border,
+.spinner-grow {
+    width: 1rem;
+    height: 1rem;
+    display: inline-block;
+}
+
+/* Prevenir shifts en tooltips */
+.tooltip {
+    position: absolute;
+    z-index: 1070;
+}
+
+/* Prevenir shifts en dropdowns */
+.dropdown-menu {
+    position: absolute;
+    z-index: 1000;
+    min-width: 10rem;
+}
+
+/* Prevenir shifts en paginación */
+.pagination {
+    min-height: 40px;
+}
+
+.page-link {
+    min-width: 40px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* ===== OPTIMIZACIONES ESPECÍFICAS PARA VISTA DE CREAR ===== */
+
+
+
+/* Optimizar tabla de detalles */
+#detalleTable {
+    contain: layout;
+}
+
+#detalleTable tbody {
+    contain: layout style;
+}
+
+#detalleTable tbody tr {
+    contain: layout style paint;
+}
+
+/* Reducir complejidad visual durante scroll */
+@media (hover: none) {
+    .formset-row {
+        box-shadow: none !important;
+    }
+}
+
+/* Optimizar inputs */
+.reab-table input,
+.reab-table select {
+    will-change: auto;
+}
+
+.reab-table input:focus,
+.reab-table select:focus {
+    will-change: contents;
+}
+
+/* Optimizar resumen en vivo */
+.card.border-0.shadow-sm.mb-4 {
+    contain: layout style;
+}
+
+#product-count,
+#gran-subtotal,
+#gran-iva,
+#gran-total {
+    contain: layout style paint;
+}
+
+/* Optimizar barra de progreso */
+#formValidationBar {
+    contain: layout style paint;
+    will-change: width;
+}
+
+/* Lazy loading de filas */
+.formset-row.lazy-load {
+    content-visibility: auto;
+    contain-intrinsic-size: 50px;
+}
+
+/* Optimizar animaciones de agregar fila */
+.formset-row {
+    animation-duration: 0.2s;
+}
+
+/* Reducir repaints en validación */
+.is-valid,
+.is-invalid {
+    contain: layout style paint;
+}
+
+/* Optimizar modal de nuevo proveedor */
+.modal-body {
+    contain: layout style;
+}
+
+/* Optimizar botones de acción */
+.btn-group {
+    contain: layout;
+}
+
+/* Skeleton para carga inicial */
+.reab-section.loading {
+    min-height: 200px;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+/* Optimizar quick supplier buttons */
+.recent-suppliers {
+    contain: layout;
+}
+
+.quick-supplier-btn {
+    contain: layout style paint;
+}
+
+/* Optimizar vista móvil */
+#mobileCardView {
+    contain: layout style;
+}
+
+.mobile-product-card {
+    contain: layout style paint;
+    content-visibility: auto;
+    contain-intrinsic-size: 250px;
+}
+
+/* Reducir complejidad en dispositivos lentos */
+@media (max-width: 768px) {
+    .reab-table input,
+    .reab-table select {
+        box-shadow: none !important;
+    }
+    
+    .formset-row {
+        animation: none;
+    }
+    
+    .btn:hover {
+        transform: none;
+    }
+}
+
+/* Optimizar para dispositivos de bajo rendimiento */
+@media (prefers-reduced-motion: reduce) {
+    .formset-row,
+    .btn,
+    .order-card {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* Optimizar rendering de iconos */
+.fas,
+.far,
+.fab {
+    contain: layout style paint;
+}
+
+/* Prevenir layout shifts en la tabla */
+.reab-table th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: white;
+}
+
+/* Optimizar empty form template */
+#empty-form-template {
+    display: none;
+    contain: strict;
+}
+
+/* Optimizar tooltips y popovers */
+.tooltip,
+.popover {
+    contain: layout style paint;
+}
+
+/* GPU acceleration para elementos críticos */
+#reabastecimientoForm {
+    transform: translateZ(0);
+}
+
+.reab-section {
+    transform: translateZ(0);
+}
+
+
+
+
+/* ===== DESHABILITAR AUTOCOMPLETADO NATIVO DEL NAVEGADOR ===== */
+#id_proveedor_select {
+    autocomplete: off;
+}
+
+/* Ocultar dropdown de autocompletado nativo */
+#id_proveedor_select::-webkit-calendar-picker-indicator,
+#id_proveedor_select::-webkit-list-button {
+    display: none !important;
+}
+
+/* Ocultar datalist nativo */
+#id_proveedor_select + datalist,
+datalist {
+    display: none !important;
+}
+
+/* Prevenir que el navegador muestre sugerencias */
+input[autocomplete="off"]::-webkit-contacts-auto-fill-button,
+input[autocomplete="off"]::-webkit-credentials-auto-fill-button {
+    visibility: hidden;
+    display: none !important;
+    pointer-events: none;
+    height: 0;
+    width: 0;
+    margin: 0;
+}
+
+/* ===== MEJORAR ALINEACIÓN DEL RESUMEN ===== */
+.card-body .row.g-2 > div > div {
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.card-body .row.g-2 h5 {
+    line-height: 1.2;
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#product-count {
+    background: none !important;
+    color: #0d6efd !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    font-weight: 700 !important;
+}
+
+
+/* ===== CORREGIR POSICIONAMIENTO DEL DROPDOWN DE SELECT2 ===== */
+/* Asegurar que el dropdown se posicione correctamente */
+.select2-dropdown {
+    position: absolute !important;
+    z-index: 9999 !important;
+    background: white !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 0.375rem !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    margin-top: 4px !important;
+}
+
+/* Asegurar que el dropdown no se superponga incorrectamente */
+.select2-container--default.select2-container--open .select2-dropdown {
+    display: block !important;
+}
+
+/* Ocultar dropdown cuando no está abierto */
+.select2-container--default:not(.select2-container--open) + .select2-dropdown {
+    display: none !important;
+}
+
+/* Asegurar que los resultados estén dentro del dropdown */
+.select2-results {
+    max-height: 300px !important;
+    overflow-y: auto !important;
+}
+
+/* Mejorar el estilo de las opciones */
+.select2-results__option {
+    padding: 8px 12px !important;
+    font-size: 0.9rem !important;
+}
+
+.select2-results__option--highlighted {
+    background-color: #0d6efd !important;
+    color: white !important;
+}
+
+/* Asegurar que el contenedor tenga posición relativa */
+.select2-container {
+    position: relative !important;
+}
+
+/* Prevenir que el dropdown aparezca en lugares incorrectos */
+body > .select2-container--open {
+    position: static !important;
+}
+
+/* Asegurar que el dropdown se renderice en el lugar correcto */
+.select2-container--open .select2-dropdown--below {
+    top: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+}
+
+.select2-container--open .select2-dropdown--above {
+    bottom: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+}
+
+
+/* ===== ASEGURAR POSICIONAMIENTO CORRECTO DEL CONTENEDOR DE PRODUCTO ===== */
+/* El contenedor del select de producto debe tener posición relativa */
+.reab-table td {
+    position: relative;
+}
+
+/* Asegurar que el dropdown de Select2 se posicione relativo a su celda */
+.reab-table td .select2-container {
+    position: relative !important;
+    width: 100% !important;
+}
+
+/* El dropdown debe aparecer sobre otros elementos pero dentro del flujo correcto */
+.select2-container--open + .select2-container--dropdown {
+    position: absolute !important;
+    top: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 9999 !important;
+}
+
+/* Asegurar que el dropdown tenga el ancho correcto */
+.select2-dropdown {
+    min-width: 100% !important;
+    width: auto !important;
+}
+
+/* Mejorar la visibilidad del dropdown */
+.select2-container--default .select2-results__option {
+    padding: 10px 12px !important;
+    cursor: pointer !important;
+}
+
+.select2-container--default .select2-results__option:hover {
+    background-color: #f8f9fa !important;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #0d6efd !important;
+    color: white !important;
+}
+
+/* Asegurar que la búsqueda dentro del dropdown sea visible */
+.select2-dropdown .select2-search {
+    padding: 8px !important;
+    background: #f8f9fa !important;
+}
+
+.select2-dropdown .select2-search__field {
+    width: 100% !important;
+    padding: 8px 12px !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 0.375rem !important;
+    font-size: 0.9rem !important;
+}
+
+.select2-dropdown .select2-search__field:focus {
+    border-color: #0d6efd !important;
+    outline: none !important;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
+}
+
+/* Ocultar dropdown cuando el contenedor no está abierto */
+.select2-container:not(.select2-container--open) ~ .select2-dropdown,
+.select2-dropdown:not(.select2-dropdown--below):not(.select2-dropdown--above) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* Solo mostrar dropdown cuando el contenedor está explícitamente abierto */
+.select2-container--open ~ .select2-dropdown,
+.select2-container.select2-container--open + .select2-dropdown {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Prevenir que aparezcan dropdowns huérfanos */
+body > .select2-dropdown:not(.select2-dropdown--below):not(.select2-dropdown--above) {
+    display: none !important;
+}
+
+/* Mejorar el comportamiento del botón de limpiar */
+.select2-selection__clear {
+    font-size: 1.2rem !important;
+    font-weight: bold !important;
+    color: #6c757d !important;
+    margin-right: 8px !important;
+}
+
+.select2-selection__clear:hover {
+    color: #dc3545 !important;
+}
+
+
+/* ===== OCULTAR PLACEHOLDER Y ELEMENTOS SUELTOS DE SELECT2 ===== */
+/* Ocultar el placeholder cuando hay un valor seleccionado */
+.select2-container--default .select2-selection--single .select2-selection__rendered .select2-selection__placeholder {
+    display: none !important;
+}
+
+/* Prevenir que aparezcan nodos de texto sueltos */
+.reab-table td::after,
+.reab-table td::before {
+    content: none !important;
+    display: none !important;
+}
+
+
+/* ===== SOLUCIÓN DEFINITIVA PARA OCULTAR "Buscar producto..." ===== */
+/* Ocultar cualquier span que contenga el texto del placeholder */
+.reab-table td span.select2-selection__placeholder,
+.reab-table span.select2-selection__placeholder {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Ocultar el contenedor del placeholder cuando no está en uso */
+.select2-container--default .select2-selection--single .select2-selection__placeholder {
+    opacity: 0 !important;
+    position: absolute !important;
+    left: -9999px !important;
+}
+
+
+
+/* ===== DESHABILITAR COMPLETAMENTE SELECT2 ===== */
+/* Ocultar todos los elementos de Select2 */
+.select2-container,
+.select2-dropdown,
+.select2-search,
+.select2-results,
+.select2-selection__placeholder {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    width: 0 !important;
+    position: absolute !important;
+    left: -9999px !important;
+}
+
+/* Asegurar que los selects nativos sean visibles */
+select.form-select,
+select.producto-select {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    width: 100% !important;
+    position: relative !important;
+    left: auto !important;
+}
+
+
+/* ===== ALINEACIÓN DEL BOTÓN DE AGREGAR PROVEEDOR ===== */
+/* Asegurar que el input-group mantenga los elementos en línea */
+.input-group {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+}
+
+.input-group .form-select {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+.input-group .btn {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-left: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.375rem 0.75rem !important;
+}
+
+.input-group .btn i {
+    margin: 0 !important;
+}
+
+/* Asegurar que el botón tenga la misma altura que el select */
+.input-group .form-select,
+.input-group .btn {
+    min-height: 38px !important;
+}
+
+
+/* ===== CENTRAR VALORES DEL RESUMEN ===== */
+/* Asegurar que los valores estén centrados */
+#product-count,
+#gran-subtotal,
+#gran-iva,
+#gran-total {
+    text-align: center !important;
+    display: block !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+}
+
+/* Asegurar que los contenedores también estén centrados */
+.card-body .row.g-2 > div > div {
+    text-align: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.card-body .row.g-2 h5 {
+    text-align: center !important;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+.card-body .row.g-2 small {
+    text-align: center !important;
+    width: 100% !important;
+}
+
+
+/* ===== MEJORAR BOTÓN DE NUEVO PROVEEDOR ===== */
+/* Hacer el botón más descriptivo */
+.input-group .btn[data-bs-target="#nuevoProveedorModal"] {
+    white-space: nowrap !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+}
+
+.input-group .btn[data-bs-target="#nuevoProveedorModal"]:hover {
+    background-color: #0d6efd !important;
+    color: white !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3) !important;
+}
+
+.input-group .btn[data-bs-target="#nuevoProveedorModal"] i {
+    font-size: 0.9rem !important;
+}
+
+/* Tooltip mejorado */
+.input-group .btn[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #212529;
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    z-index: 1000;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Flecha del tooltip */
+.input-group .btn[title]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #212529;
+    z-index: 1000;
+    margin-bottom: -6px;
+}
+
+/* En móvil, mostrar siempre el texto */
+@media (max-width: 991px) {
+    .input-group .btn[data-bs-target="#nuevoProveedorModal"] {
+        min-width: 44px !important;
     }
 }

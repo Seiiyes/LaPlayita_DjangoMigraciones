@@ -31,11 +31,13 @@ class Proveedor(models.Model):
 
 
 class Reabastecimiento(models.Model):
+    ESTADO_BORRADOR = 'borrador'
     ESTADO_SOLICITADO = 'solicitado'
     ESTADO_RECIBIDO = 'recibido'
     ESTADO_CANCELADO = 'cancelado'
 
     ESTADO_CHOICES = [
+        (ESTADO_BORRADOR, 'Borrador'),
         (ESTADO_SOLICITADO, 'Solicitado'),
         (ESTADO_RECIBIDO, 'Recibido'),
         (ESTADO_CANCELADO, 'Cancelado'),

@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         reabastecimientos.forEach(row => {
             const estado = row.dataset.estado;
-            const shouldShow = (tabName === 'pendientes' && estado === 'solicitado') ||
+            const shouldShow = (tabName === 'pendientes' && (estado === 'borrador' || estado === 'solicitado')) ||
                               (tabName === 'historial' && (estado === 'recibido' || estado === 'cancelado'));
             
             if (shouldShow) {
@@ -169,12 +169,17 @@ document.addEventListener('DOMContentLoaded', function () {
                         <div class="mt-3 pt-3 border-top d-flex gap-2 justify-content-between align-items-center">
                             <div>${statusBadge}</div>
                             <div class="btn-group btn-group-sm" role="group">
+                                ${estado === 'borrador' ? `
+                                    <button type="button" class="btn btn-primary btn-enviar" data-id="${id}">
+                                        <i class="fas fa-paper-plane me-1"></i>Enviar
+                                    </button>
+                                ` : ''}
                                 ${estado === 'solicitado' ? `
                                     <button type="button" class="btn btn-success btn-recibir" data-id="${id}">
                                         <i class="fas fa-truck-loading me-1"></i>Recibir
                                     </button>
                                 ` : ''}
-                                ${estado === 'solicitado' ? `
+                                ${(estado === 'solicitado' || estado === 'borrador') ? `
                                     <button type="button" class="btn btn-outline-primary btn-editar" data-id="${id}">
                                         <i class="fas fa-edit me-1"></i>Editar
                                     </button>
@@ -182,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <button type="button" class="btn btn-outline-secondary btn-detalles" data-id="${id}">
                                     <i class="fas fa-eye me-1"></i>Ver
                                 </button>
-                                ${estado === 'solicitado' ? `
+                                ${(estado === 'solicitado' || estado === 'borrador') ? `
                                     <button type="button" class="btn btn-outline-danger btn-eliminar" data-id="${id}">
                                         <i class="fas fa-trash me-1"></i>
                                     </button>
@@ -219,6 +224,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function getStatusBadge(estado) {
         const badges = {
+            'borrador': '<span class="badge bg-secondary"><i class="fas fa-file me-1"></i>Borrador</span>',
             'solicitado': '<span class="badge bg-warning text-dark"><i class="fas fa-hourglass-half me-1"></i>Solicitado</span>',
             'recibido': '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Recibido</span>',
             'cancelado': '<span class="badge bg-danger"><i class="fas fa-ban me-1"></i>Cancelado</span>'
@@ -227,7 +233,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function updateTabCounts() {
-        const pendientes = document.querySelectorAll('[data-estado="solicitado"]').length;
+        const borradores = document.querySelectorAll('[data-estado="borrador"]').length;
+        const solicitados = document.querySelectorAll('[data-estado="solicitado"]').length;
+        const pendientes = borradores + solicitados;
         const historial = document.querySelectorAll('[data-estado="recibido"], [data-estado="cancelado"]').length;
         
         document.getElementById('count-pendientes').textContent = pendientes;
@@ -275,6 +283,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ===== EVENT LISTENERS =====
     function attachEventListeners() {
+        // Enviar borrador
+        document.querySelectorAll('.btn-enviar').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const id = this.dataset.id;
+                await enviarBorrador(id);
+            });
+        });
+        
         // Recibir orden
         document.querySelectorAll('.btn-recibir').forEach(btn => {
             btn.addEventListener('click', async function() {
@@ -323,7 +339,13 @@ document.addEventListener('DOMContentLoaded', function () {
             // Populate table
             const tbody = document.getElementById('receptionTableBody');
             tbody.innerHTML = data.detalles.map(detalle => {
-                const fechaCaducidad = detalle.fecha_caducidad ? new Date(detalle.fecha_caducidad).toLocaleDateString('es-CO') : 'N/A';
+                // Parsear fecha como local para evitar problemas de zona horaria
+                let fechaCaducidad = 'N/A';
+                if (detalle.fecha_caducidad) {
+                    const [year, month, day] = detalle.fecha_caducidad.split('-');
+                    const date = new Date(year, month - 1, day);
+                    fechaCaducidad = date.toLocaleDateString('es-CO');
+                }
                 return `
                 <tr data-detalle-id="${detalle.id}">
                     <td>${detalle.producto_nombre}</td>
@@ -419,6 +441,10 @@ document.addEventListener('DOMContentLoaded', function () {
             
             const data = await response.json();
             
+            console.log('[VER DETALLES] Datos recibidos de la API:', data);
+            console.log('[VER DETALLES] IVA:', data.iva, 'Costo Total:', data.costo_total, 'IVA %:', data.iva_porcentaje);
+            console.log('[VER DETALLES] Todas las claves del objeto:', Object.keys(data));
+            
             const formatCurrency = (value) => {
                 return new Intl.NumberFormat('es-CO', {
                     style: 'currency',
@@ -472,7 +498,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         </thead>
                         <tbody>
                             ${data.detalles.map(d => {
-                                const fechaCaducidad = d.fecha_caducidad ? new Date(d.fecha_caducidad).toLocaleDateString('es-CO') : 'N/A';
+                                // Parsear fecha como local para evitar problemas de zona horaria
+                                let fechaCaducidad = 'N/A';
+                                if (d.fecha_caducidad) {
+                                    const [year, month, day] = d.fecha_caducidad.split('-');
+                                    const date = new Date(year, month - 1, day);
+                                    fechaCaducidad = date.toLocaleDateString('es-CO');
+                                }
                                 return `
                                 <tr>
                                     <td>${d.producto_nombre}</td>
@@ -482,6 +514,34 @@ document.addEventListener('DOMContentLoaded', function () {
                                 </tr>
                             `}).join('')}
                         </tbody>
+                    </table>
+                </div>
+                <hr>
+                <div class="d-flex gap-2 justify-content-end">
+                    <a href="/suppliers/reabastecimientos/${id}/download/pdf/" 
+                       class="btn btn-outline-danger btn-sm" 
+                       target="_blank"
+                       title="Descargar PDF">
+                        <i class="fas fa-file-pdf me-1"></i> Descargar PDF
+                    </a>
+                    <a href="/suppliers/reabastecimientos/${id}/download/excel/" 
+                       class="btn btn-outline-success btn-sm" 
+                       target="_blank"
+                       title="Descargar Excel">
+                        <i class="fas fa-file-excel me-1"></i> Descargar Excel
+                    </a>
+                </div>
+                <div style="display: none;">
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Producto</th>
+                                <th class="text-center">Solicitado</th>
+                                <th class="text-center">Recibido</th>
+                                <th class="text-center">Caducidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                     </table>
                 </div>
             `;
@@ -498,6 +558,67 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    async function enviarBorrador(id) {
+        // Mostrar loading inmediatamente
+        Swal.fire({
+            title: 'Enviando orden...',
+            text: 'Por favor espera',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const response = await fetch(`/suppliers/reabastecimientos/${id}/enviar-borrador/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Error al enviar');
+            }
+
+            // Actualizar la tarjeta en la interfaz
+            const card = document.querySelector(`[data-order-id="${id}"]`);
+            if (card) {
+                const row = document.querySelector(`[data-reabastecimiento-id="${id}"]`);
+                if (row) {
+                    row.dataset.estado = 'solicitado';
+                }
+            }
+            
+            // Recargar la vista actual
+            const activeTab = document.querySelector('.tab-btn.active');
+            if (activeTab) {
+                populateTab(activeTab.dataset.tab);
+            }
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Orden enviada!',
+                text: data.message,
+                timer: 2000,
+                timerProgressBar: true,
+                showConfirmButton: false
+            });
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message,
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    }
+    
     async function deleteOrder(id) {
         const result = await Swal.fire({
             title: '¿Eliminar orden?',

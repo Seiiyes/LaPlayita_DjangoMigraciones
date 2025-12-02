@@ -36,7 +36,12 @@
                 <h2 class="h4 mb-0"><i class="fas fa-truck me-2"></i>Nueva Orden de Reabastecimiento</h2>
                 <small class="text-white-50">Crea y gestiona órdenes de compra rápidamente</small>
             </div>
-            <a href="{% url 'suppliers:reabastecimiento_list' %}" class="btn btn-close btn-close-white" aria-label="Cerrar"></a>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#importExcelModal" title="Cargar desde Excel">
+                    <i class="fas fa-file-excel me-1"></i>Carga Masiva
+                </button>
+                <a href="{% url 'suppliers:reabastecimiento_list' %}" class="btn btn-close btn-close-white" aria-label="Cerrar"></a>
+            </div>
         </div>
         <div class="card-body p-4">
             <form method="post" action="{% url 'suppliers:reabastecimiento_create' %}" id="reabastecimientoForm" data-formset-prefix="{{ formset.prefix }}">
@@ -65,9 +70,10 @@
                         <div class="col-md-6">
                             <label class="form-label fw-bold" for="id_proveedor_select">{{ form.proveedor.label }}</label>
                             <div class="input-group">
-                                {% render_field form.proveedor class="form-select select2-field" required="required" id="id_proveedor_select" aria-label="Seleccionar proveedor" %}
-                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#nuevoProveedorModal" title="Crear Nuevo Proveedor">
-                                    <i class="fas fa-plus"></i>
+                                {% render_field form.proveedor class="form-select" required="required" id="id_proveedor_select" aria-label="Seleccionar proveedor" %}
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#nuevoProveedorModal" title="Crear Nuevo Proveedor" aria-label="Crear Nuevo Proveedor">
+                                    <i class="fas fa-plus me-1"></i>
+                                    <span class="d-none d-lg-inline">Nuevo</span>
                                 </button>
                             </div>
                         </div>
@@ -89,27 +95,27 @@
                 <!-- SECCIÓN 2: RESUMEN EN VIVO -->
                 <div class="card border-0 shadow-sm mb-4" role="region" aria-label="Resumen de la orden">
                     <div class="card-body p-3">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <div class="text-center">
+                        <div class="row g-2">
+                            <div class="col-6 col-md-3">
+                                <div class="text-center p-2 border rounded">
                                     <small class="text-muted d-block mb-1"><i class="fas fa-box me-1"></i>Productos</small>
                                     <h5 class="mb-0" id="product-count">0</h5>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="text-center">
+                            <div class="col-6 col-md-3">
+                                <div class="text-center p-2 border rounded">
                                     <small class="text-muted d-block mb-1"><i class="fas fa-calculator me-1"></i>Subtotal</small>
                                     <h5 class="mb-0" id="gran-subtotal">$0</h5>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="text-center">
+                            <div class="col-6 col-md-3">
+                                <div class="text-center p-2 border rounded">
                                     <small class="text-muted d-block mb-1"><i class="fas fa-percent me-1"></i>IVA</small>
                                     <h5 class="mb-0 text-warning" id="gran-iva">$0</h5>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="text-center p-2 bg-success bg-opacity-10 rounded">
+                            <div class="col-6 col-md-3">
+                                <div class="text-center p-2 bg-success bg-opacity-10 border border-success rounded">
                                     <small class="text-muted d-block mb-1"><i class="fas fa-money-bill me-1"></i>Total</small>
                                     <h5 class="mb-0 text-success" id="gran-total">$0</h5>
                                 </div>
@@ -141,6 +147,13 @@
                     </div>
 
                     {{ formset.management_form }}
+                    
+                    <!-- Vista móvil con tarjetas -->
+                    <div class="mobile-card-view" id="mobileCardView">
+                        <!-- Las tarjetas se generarán dinámicamente -->
+                    </div>
+                    
+                    <!-- Vista de escritorio con tabla -->
                     <div class="table-responsive">
                         <table class="table table-sm reab-table" id="detalleTable" role="grid" aria-label="Detalles de productos a reabastecerse">
                             <thead class="table-light">
@@ -158,14 +171,14 @@
                                 {% for f in formset.forms %}
                                 <tr class="formset-row" id="detalle-row-{{ forloop.counter0 }}" role="row">
                                     <td role="gridcell">{% render_field f.producto class="form-select form-select-sm select2-field producto-select" aria-label="Producto fila {{ forloop.counter }}" %}</td>
-                                    <td class="text-center" role="gridcell">{% render_field f.cantidad class="form-control form-control-sm cantidad-input text-center" required="required" aria-label="Cantidad fila {{ forloop.counter }}" placeholder="0" %}</td>
-                                    <td class="text-center" role="gridcell">{% render_field f.costo_unitario class="form-control form-control-sm costo-unitario-input text-center" required="required" aria-label="Costo unitario fila {{ forloop.counter }}" placeholder="0" %}</td>
+                                    <td class="text-center" role="gridcell">{% render_field f.cantidad class="form-control form-control-sm cantidad-input text-center" aria-label="Cantidad fila {{ forloop.counter }}" placeholder="0" %}</td>
+                                    <td class="text-center" role="gridcell">{% render_field f.costo_unitario class="form-control form-control-sm costo-unitario-input text-center" aria-label="Costo unitario fila {{ forloop.counter }}" placeholder="0" %}</td>
                                     <td class="text-center" role="gridcell">
                 <select class="form-select form-select-sm iva-select text-center" name="{{ f.iva.html_name }}" aria-label="IVA fila {{ forloop.counter }}">
                                             <option value="">--</option>
                                         </select>
                                     </td>
-                                    <td class="text-center" role="gridcell">{% render_field f.fecha_caducidad class="form-control form-control-sm" required="required" aria-label="Fecha de caducidad fila {{ forloop.counter }}" %}</td>
+                                    <td class="text-center" role="gridcell">{% render_field f.fecha_caducidad class="form-control form-control-sm" aria-label="Fecha de caducidad fila {{ forloop.counter }}" %}</td>
                                     <td class="text-center fw-bold" role="gridcell">
                                         <span class="subtotal-display">$0</span>
                                     </td>
@@ -227,8 +240,11 @@
                             <button type="button" class="btn btn-outline-secondary" id="cancelarBtn" aria-label="Cancelar y volver a la lista">
                                 <i class="fas fa-times me-2"></i>Cancelar
                             </button>
+                            <button type="button" class="btn btn-outline-primary" id="guardarBorradorBtn" aria-label="Guardar como borrador">
+                                <i class="fas fa-file me-2"></i>Guardar Borrador
+                            </button>
                             <button type="submit" class="btn btn-success" id="guardarReabastecimientoBtn" aria-label="Guardar solicitud de reabastecimiento">
-                                <i class="fas fa-save me-2"></i>Guardar Solicitud
+                                <i class="fas fa-paper-plane me-2"></i>Enviar Solicitud
                             </button>
                         </div>
                     </div>
@@ -242,9 +258,75 @@
 {% include 'suppliers/_modal_nuevo_proveedor.html' %}
 {% include 'suppliers/_modal_nuevo_producto.html' %}
 {% include 'inventory/_nueva_categoria_modal.html' %}
+
+<!-- Modal de Importación Excel -->
+<div class="modal fade" id="importExcelModal" tabindex="-1" aria-labelledby="importExcelModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="importExcelModalLabel">
+                    <i class="fas fa-file-excel me-2"></i>Carga Masiva desde Excel
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>¿Cómo funciona?</strong>
+                    <ol class="mb-0 mt-2">
+                        <li>Descarga la plantilla Excel haciendo clic en el botón de abajo</li>
+                        <li>Completa los datos de los productos (código o nombre, cantidad, costo, fecha de caducidad)</li>
+                        <li>Sube el archivo completado</li>
+                        <li>El sistema validará los datos y pre-llenará el formulario automáticamente</li>
+                    </ol>
+                </div>
+
+                <div class="text-center mb-4">
+                    <a href="{% url 'suppliers:download_template_excel' %}" class="btn btn-outline-success btn-lg" target="_blank">
+                        <i class="fas fa-download me-2"></i>Descargar Plantilla Excel
+                    </a>
+                </div>
+
+                <hr>
+
+                <form id="importExcelForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="excelFileInput" class="form-label fw-bold">
+                            <i class="fas fa-upload me-1"></i>Subir Archivo Excel
+                        </label>
+                        <input type="file" class="form-control" id="excelFileInput" name="excel_file" accept=".xlsx,.xls" required>
+                        <small class="text-muted">Formatos aceptados: .xlsx, .xls</small>
+                    </div>
+
+                    <div id="importProgress" class="d-none">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                                <span class="visually-hidden">Procesando...</span>
+                            </div>
+                            <span>Procesando archivo...</span>
+                        </div>
+                    </div>
+
+                    <div id="importResults" class="d-none">
+                        <!-- Los resultados se mostrarán aquí -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="processExcelBtn">
+                    <i class="fas fa-check me-1"></i>Procesar Archivo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script data-productos type="application/json">{{ all_products_json|default:"[]"|safe }}</script>
 <script data-tasas-iva type="application/json">{{ tasas_iva_json|default:"[]"|safe }}</script>
@@ -276,5 +358,133 @@
         }
     });
 </script>
-<script src="{% static 'suppliers/js/reabastecimiento_create_v2.js' %}"></script>
+<script src="{% static 'suppliers/js/reabastecimiento_create_v2.js' %}" defer></script>
+<script src="{% static 'suppliers/js/reabastecimiento_create_optimized.js' %}" defer></script>
+
+<script>
+// Manejo de importación Excel
+document.addEventListener('DOMContentLoaded', function() {
+    const processBtn = document.getElementById('processExcelBtn');
+    const fileInput = document.getElementById('excelFileInput');
+    const importProgress = document.getElementById('importProgress');
+    const importResults = document.getElementById('importResults');
+    const modal = document.getElementById('importExcelModal');
+    
+    processBtn.addEventListener('click', async function() {
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Archivo requerido',
+                text: 'Por favor selecciona un archivo Excel',
+                confirmButtonColor: '#0d6efd'
+            });
+            return;
+        }
+        
+        // Mostrar progreso
+        importProgress.classList.remove('d-none');
+        importResults.classList.add('d-none');
+        processBtn.disabled = true;
+        
+        // Crear FormData
+        const formData = new FormData();
+        formData.append('excel_file', file);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        try {
+            const response = await fetch('{% url "suppliers:import_excel_reabastecimiento" %}', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            // Ocultar progreso
+            importProgress.classList.add('d-none');
+            processBtn.disabled = false;
+            
+            if (result.success) {
+                // Mostrar resultados exitosos
+                let html = '<div class="alert alert-success">';
+                html += `<i class="fas fa-check-circle me-2"></i><strong>¡Éxito!</strong> Se procesaron ${result.data.length} productos correctamente.`;
+                html += '</div>';
+                
+                if (result.warnings && result.warnings.length > 0) {
+                    html += '<div class="alert alert-warning"><strong>Advertencias:</strong><ul class="mb-0">';
+                    result.warnings.forEach(w => html += `<li>${w}</li>`);
+                    html += '</ul></div>';
+                }
+                
+                importResults.innerHTML = html;
+                importResults.classList.remove('d-none');
+                
+                // Cerrar modal primero
+                const modalInstance = bootstrap.Modal.getInstance(modal);
+                modalInstance.hide();
+                
+                // Pre-llenar formulario después de cerrar el modal
+                setTimeout(() => {
+                    fillFormWithExcelData(result.data);
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Datos cargados!',
+                        text: `Se agregaron ${result.data.length} productos al formulario`,
+                        timer: 2500,
+                        showConfirmButton: false
+                    });
+                }, 500);
+                
+            } else {
+                // Mostrar errores
+                let html = '<div class="alert alert-danger"><strong>Errores encontrados:</strong><ul class="mb-0">';
+                result.errors.forEach(e => html += `<li>${e}</li>`);
+                html += '</ul></div>';
+                
+                if (result.warnings && result.warnings.length > 0) {
+                    html += '<div class="alert alert-warning"><strong>Advertencias:</strong><ul class="mb-0">';
+                    result.warnings.forEach(w => html += `<li>${w}</li>`);
+                    html += '</ul></div>';
+                }
+                
+                importResults.innerHTML = html;
+                importResults.classList.remove('d-none');
+            }
+            
+        } catch (error) {
+            console.error('Error al procesar Excel:', error);
+            importProgress.classList.add('d-none');
+            processBtn.disabled = false;
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Ocurrió un error al procesar el archivo',
+                confirmButtonColor: '#dc3545'
+            });
+        }
+    });
+    
+    // Limpiar al cerrar modal
+    modal.addEventListener('hidden.bs.modal', function() {
+        fileInput.value = '';
+        importProgress.classList.add('d-none');
+        importResults.classList.add('d-none');
+        importResults.innerHTML = '';
+    });
+});
+
+function fillFormWithExcelData(productos) {
+    // Esta función será llamada por el script principal de reabastecimiento
+    // para agregar los productos al formulario
+    if (typeof window.addProductosFromExcel === 'function') {
+        window.addProductosFromExcel(productos);
+    } else {
+        console.error('La función addProductosFromExcel no está disponible');
+    }
+}
+</script>
+
 {% endblock %}

@@ -101,8 +101,9 @@
                 <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>ID</th>
+                            <th>Número de Caso</th>
                             <th>Tipo</th>
+                            <th>Prioridad</th>
                             <th>Cliente</th>
                             <th>Registrado por</th>
                             <th>Estado</th>
@@ -113,10 +114,21 @@
                     <tbody>
                         {% for p in pqrs %}
                         <tr id="pqrs-{{ p.id }}">
-                            <td>#{{ p.id }}</td>
+                            <td><strong>{{ p.numero_caso }}</strong></td>
                             <td>{{ p.get_tipo_display }}</td>
+                            <td>
+                                {% if p.prioridad == 'urgente' %}
+                                    <span class="badge bg-danger">{{ p.get_prioridad_display }}</span>
+                                {% elif p.prioridad == 'alta' %}
+                                    <span class="badge bg-warning text-dark">{{ p.get_prioridad_display }}</span>
+                                {% elif p.prioridad == 'media' %}
+                                    <span class="badge bg-info">{{ p.get_prioridad_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ p.get_prioridad_display }}</span>
+                                {% endif %}
+                            </td>
                             <td>{{ p.cliente.nombres }} {{ p.cliente.apellidos }}</td>
-                            <td>{{ p.usuario.get_full_name|default:p.usuario.username }}</td>
+                            <td>{{ p.creado_por.get_full_name|default:p.creado_por.username }}</td>
                             <td><span class="badge {{ p.estado|status_badge }}">{{ p.get_estado_display }}</span></td>
                             <td>{{ p.fecha_creacion|date:"d/m/Y H:i" }}</td>
                             <td class="text-center">
@@ -132,7 +144,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center">No se encontraron PQRS.</td>
+                            <td colspan="8" class="text-center">No se encontraron PQRS.</td>
                         </tr>
                         {% endfor %}
                     </tbody>

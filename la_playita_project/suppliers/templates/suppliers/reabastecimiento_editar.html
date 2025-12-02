@@ -27,38 +27,34 @@
     }
 </style>
 <style>
+    /* Estilos simples para el select de IVA */
     .iva-select {
-        border: 2px solid #e9ecef !important;
+        border: 1px solid #dee2e6 !important;
         border-radius: 0.375rem !important;
-        transition: all 0.3s ease !important;
-        font-weight: 600 !important;
-        color: #2c3e50 !important;
-        background-color: #f8f9fa !important;
+        font-weight: 500 !important;
+        color: #212529 !important;
+        background-color: #fff !important;
+        cursor: pointer !important;
     }
     
     .iva-select:hover {
         border-color: #0d6efd !important;
-        background-color: #fff !important;
-        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15) !important;
     }
     
     .iva-select:focus {
         border-color: #0d6efd !important;
-        background-color: #fff !important;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
         outline: 0 !important;
     }
     
     .iva-select option {
         padding: 0.5rem;
         background-color: #fff;
-        color: #2c3e50;
+        color: #212529;
     }
     
-    .iva-select option:checked {
-        background: linear-gradient(#0d6efd, #0d6efd);
-        background-color: #0d6efd !important;
-        color: white;
+    .iva-select option:first-child {
+        color: #6c757d;
     }
 </style>
 {% endblock %}
@@ -175,7 +171,8 @@
                                     <td class="text-center" role="gridcell">{% render_field f.cantidad class="form-control form-control-sm cantidad-input text-center" required="required" aria-label="Cantidad fila {{ forloop.counter }}" placeholder="0" %}</td>
                                     <td class="text-center" role="gridcell">{% render_field f.costo_unitario class="form-control form-control-sm costo-unitario-input text-center" required="required" aria-label="Costo unitario fila {{ forloop.counter }}" placeholder="0" %}</td>
                                     <td class="text-center" role="gridcell">
-                                        <select class="form-select form-select-sm iva-select text-center" name="{{ f.iva.html_name }}" data-producto-id="{{ f.instance.producto_id }}" data-tasa-iva-id="{{ f.instance.producto.tasa_iva_id }}" data-iva-value="{{ f.instance.iva }}" aria-label="IVA fila {{ forloop.counter }}">
+                                        {% render_field f.iva class="iva-field" type="hidden" %}
+                                        <select class="form-select form-select-sm iva-select text-center" data-row-index="{{ forloop.counter0 }}" data-producto-id="{{ f.instance.producto_id }}" data-tasa-iva-id="{{ f.instance.producto.tasa_iva_id }}" data-iva-value="{{ f.instance.iva }}" aria-label="IVA fila {{ forloop.counter }}">
                                             <option value="">Seleccionar IVA</option>
                                         </select>
                                     </td>
@@ -254,6 +251,25 @@
     document.addEventListener('input', function(e) {
         if (e.target.classList.contains('cantidad-input') || 
             e.target.classList.contains('costo-unitario-input')) {
+            // Recalcular el IVA cuando cambian cantidad o costo
+            const row = e.target.closest('tr');
+            const ivaSelect = row.querySelector('.iva-select');
+            const ivaField = row.querySelector('.iva-field');
+            const cantidadInput = row.querySelector('.cantidad-input');
+            const costoInput = row.querySelector('.costo-unitario-input');
+            
+            if (ivaSelect && ivaField && cantidadInput && costoInput) {
+                const selectedOption = ivaSelect.options[ivaSelect.selectedIndex];
+                if (selectedOption && selectedOption.dataset.porcentaje) {
+                    const cantidad = parseFloat(cantidadInput.value) || 0;
+                    const costo = parseFloat(costoInput.value) || 0;
+                    const subtotal = cantidad * costo;
+                    const ivaPorcentaje = parseFloat(selectedOption.dataset.porcentaje);
+                    const iva = subtotal * (ivaPorcentaje / 100);
+                    ivaField.value = iva.toFixed(2);
+                }
+            }
+            
             calculateTotals();
         }
     });
@@ -266,9 +282,8 @@
         if (e.target.classList.contains('iva-select')) {
             // Actualizar el campo oculto con el nuevo IVA seleccionado
             const row = e.target.closest('tr');
-            // Buscar el campo de IVA en la misma celda que el select
             const ivaCell = e.target.closest('td');
-            const ivaField = ivaCell.querySelector('input[name*="iva"]');
+            const ivaField = ivaCell.querySelector('.iva-field');
             const cantidadInput = row.querySelector('.cantidad-input');
             const costoInput = row.querySelector('.costo-unitario-input');
             
@@ -278,7 +293,7 @@
                 const selectedOption = e.target.options[e.target.selectedIndex];
                 
                 // Validar que la opción seleccionada tenga un porcentaje válido
-                if (!selectedOption.dataset.porcentaje) {
+                if (!selectedOption || !selectedOption.dataset.porcentaje) {
                     console.log(`IVA: Opción sin porcentaje seleccionada, no se actualiza`);
                     return;
                 }
@@ -287,8 +302,8 @@
                 
                 const subtotal = cantidad * costo;
                 const iva = subtotal * (ivaPorcentaje / 100);
-                ivaField.value = iva;
-                console.log(`IVA actualizado: campo=${ivaField.name}, porcentaje=${ivaPorcentaje}, iva=${iva}`);
+                ivaField.value = iva.toFixed(2);
+                console.log(`IVA actualizado: campo=${ivaField.name}, porcentaje=${ivaPorcentaje}%, subtotal=${subtotal}, iva=${iva}`);
             }
             
             calculateTotals();
@@ -320,7 +335,7 @@
             tasasIVAData.forEach(tasa => {
                 const option = document.createElement('option');
                 option.value = tasa.id;
-                option.textContent = `${tasa.porcentaje}%`;
+                option.textContent = tasa.nombre; // Solo el nombre (ya incluye el porcentaje)
                 option.dataset.porcentaje = tasa.porcentaje;
                 ivaSelect.appendChild(option);
             });
@@ -340,7 +355,6 @@
             const cantidadInput = row.querySelector('.cantidad-input');
             const costoInput = row.querySelector('.costo-unitario-input');
             const ivaField = row.querySelector('.iva-field');
-            const ivaSelect = row.querySelector('.iva-select');
             const subtotalDisplay = row.querySelector('.subtotal-display');
 
             if (cantidadInput && costoInput) {
@@ -348,17 +362,8 @@
                 const costo = parseFloat(costoInput.value) || 0;
                 const subtotal = cantidad * costo;
                 
-                let iva = 0;
-                
-                // Si hay un select de IVA con opción seleccionada, usar ese
-                if (ivaSelect && ivaSelect.selectedIndex > 0) {
-                    const selectedOption = ivaSelect.options[ivaSelect.selectedIndex];
-                    const ivaPorcentaje = parseFloat(selectedOption?.dataset?.porcentaje) || 0;
-                    iva = subtotal * (ivaPorcentaje / 100);
-                } else if (ivaField && ivaField.value) {
-                    // Si no hay select seleccionado, usar el valor del campo oculto
-                    iva = parseFloat(ivaField.value) || 0;
-                }
+                // Leer el IVA del campo oculto
+                const iva = parseFloat(ivaField?.value) || 0;
                 
                 const total = subtotal + iva;
 
@@ -497,7 +502,12 @@
             
             if (data.error) {
                 console.log('Error:', data.error);
-                showErrorNotification('Error', data.error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.error,
+                    confirmButtonColor: '#dc3545'
+                });
             } else if (data.errors) {
                 let errorMsg = 'Errores en el formulario:\n';
                 for (let field in data.errors) {
@@ -511,16 +521,31 @@
                         }
                     });
                 }
-                showErrorNotification('Errores de validación', errorMsg);
-            } else {
-                // Éxito - guardar en sessionStorage y redirigir inmediatamente
-                sessionStorage.setItem('successMessage', JSON.stringify({
-                    title: '¡Éxito!',
-                    message: `Reabastecimiento #${data.id} actualizado correctamente`,
-                    proveedor: data.proveedor,
-                    total: data.costo_total
-                }));
-                window.location.href = "{% url 'suppliers:reabastecimiento_list' %}";
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Errores de validación',
+                    text: errorMsg,
+                    confirmButtonColor: '#dc3545'
+                });
+            } else if (data.success) {
+                // Éxito - mostrar SweetAlert y luego redirigir
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Orden actualizada!',
+                    html: `
+                        <div class="text-start">
+                            <p class="mb-2"><strong>Orden #${data.id}</strong></p>
+                            <p class="mb-2">Proveedor: ${data.proveedor}</p>
+                            <p class="mb-0">Total: ${parseFloat(data.costo_total + data.iva).toLocaleString('es-CO', {style: 'currency', currency: 'COP', minimumFractionDigits: 0})}</p>
+                        </div>
+                    `,
+                    timer: 2500,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    willClose: () => {
+                        window.location.href = "{% url 'suppliers:reabastecimiento_list' %}";
+                    }
+                });
             }
         })
         .catch(error => {

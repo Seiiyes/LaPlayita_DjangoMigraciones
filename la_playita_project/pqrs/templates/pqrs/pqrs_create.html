@@ -5,6 +5,8 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'pqrs/css/pqrs.css' %}">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 {% endblock %}
 
 {% block content %}
@@ -31,14 +33,27 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <label for="id_tipo" class="form-label">{{ form.tipo.label }}</label>
                         {{ form.tipo }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="id_categoria" class="form-label">{{ form.categoria.label }}</label>
+                        {{ form.categoria }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="id_prioridad" class="form-label">{{ form.prioridad.label }}</label>
+                        {{ form.prioridad }}
                     </div>
                 </div>
                 <div class="mb-3">
                     <label for="id_descripcion" class="form-label">{{ form.descripcion.label }}</label>
                     {{ form.descripcion }}
+                    <div class="form-text">
+                        Describa detalladamente el caso del cliente.
+                        <span id="charCount" class="float-end text-muted">0 / 1000 caracteres</span>
+                    </div>
+                    <div id="descripcionError" class="invalid-feedback"></div>
                 </div>
                 <div class="d-flex justify-content-end">
                     <a href="{% url 'pqrs:pqrs_list' %}" class="btn btn-secondary me-2">
@@ -55,7 +70,7 @@
 
 <!-- Modal Nuevo Cliente -->
 <div class="modal fade" id="nuevoClienteModal" tabindex="-1" aria-labelledby="nuevoClienteModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="nuevoClienteModalLabel">Nuevo Cliente</h5>
@@ -63,12 +78,42 @@
             </div>
             <div class="modal-body">
                 <form id="nuevoClienteForm">
-                    <!-- Fields for new client -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="clienteNombres" class="form-label">Nombres *</label>
+                            <input type="text" class="form-control" id="clienteNombres" name="nombres" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="clienteApellidos" class="form-label">Apellidos *</label>
+                            <input type="text" class="form-control" id="clienteApellidos" name="apellidos" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="clienteDocumento" class="form-label">Documento *</label>
+                            <input type="text" class="form-control" id="clienteDocumento" name="documento" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="clienteTelefono" class="form-label">Teléfono *</label>
+                            <input type="tel" class="form-control" id="clienteTelefono" name="telefono" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="clienteCorreo" class="form-label">Correo Electrónico *</label>
+                        <input type="email" class="form-control" id="clienteCorreo" name="correo" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="clienteDireccion" class="form-label">Dirección</label>
+                        <input type="text" class="form-control" id="clienteDireccion" name="direccion">
+                    </div>
                 </form>
+                <div id="clienteMessage"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="guardarClienteBtn">Guardar</button>
+                <button type="button" class="btn btn-primary" id="guardarClienteBtn">
+                    <i class="bi bi-save"></i> Guardar Cliente
+                </button>
             </div>
         </div>
     </div>
@@ -76,9 +121,159 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Logic for saving new client via AJAX
+    // Inicializar Select2 para el select de clientes
+    $('#cliente').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Buscar cliente por nombre o documento...',
+        allowClear: true,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron resultados";
+            },
+            searching: function() {
+                return "Buscando...";
+            }
+        }
+    });
+    
+    // Guardar nuevo cliente
+    const guardarClienteBtn = document.getElementById('guardarClienteBtn');
+    const nuevoClienteForm = document.getElementById('nuevoClienteForm');
+    const clienteMessage = document.getElementById('clienteMessage');
+    
+    guardarClienteBtn.addEventListener('click', async function() {
+        const formData = new FormData(nuevoClienteForm);
+        
+        // Validar campos requeridos
+        if (!formData.get('nombres') || !formData.get('apellidos') || !formData.get('documento') || 
+            !formData.get('telefono') || !formData.get('correo')) {
+            clienteMessage.innerHTML = '<div class="alert alert-warning">Por favor complete todos los campos obligatorios.</div>';
+            return;
+        }
+        
+        clienteMessage.innerHTML = '<div class="alert alert-info">Guardando cliente...</div>';
+        guardarClienteBtn.disabled = true;
+        
+        try {
+            const response = await fetch('/clients/api/crear/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                clienteMessage.innerHTML = '<div class="alert alert-success">Cliente creado exitosamente.</div>';
+                
+                // Agregar el nuevo cliente al select
+                const newOption = new Option(
+                    `${data.cliente.nombres} ${data.cliente.apellidos} (${data.cliente.documento})`,
+                    data.cliente.id,
+                    true,
+                    true
+                );
+                $('#cliente').append(newOption).trigger('change');
+                
+                // Cerrar modal después de 1 segundo
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('nuevoClienteModal')).hide();
+                    nuevoClienteForm.reset();
+                    clienteMessage.innerHTML = '';
+                    guardarClienteBtn.disabled = false;
+                }, 1000);
+            } else {
+                clienteMessage.innerHTML = '<div class="alert alert-danger">' + (data.error || 'Error al crear el cliente.') + '</div>';
+                guardarClienteBtn.disabled = false;
+            }
+        } catch (error) {
+            clienteMessage.innerHTML = '<div class="alert alert-danger">Error de conexión.</div>';
+            guardarClienteBtn.disabled = false;
+        }
+    });
+    
+    // Validación en tiempo real
+    const form = document.getElementById('pqrsForm');
+    const clienteSelect = document.getElementById('cliente');
+    const tipoSelect = document.getElementById('id_tipo');
+    const descripcionTextarea = document.getElementById('id_descripcion');
+    const charCount = document.getElementById('charCount');
+    
+    // Contador de caracteres
+    descripcionTextarea.addEventListener('input', function() {
+        const length = this.value.length;
+        charCount.textContent = `${length} / 1000 caracteres`;
+        
+        if (length > 1000) {
+            this.classList.add('is-invalid');
+            charCount.classList.add('text-danger');
+        } else if (length < 10) {
+            this.classList.add('is-invalid');
+            charCount.classList.remove('text-danger');
+        } else {
+            this.classList.remove('is-invalid');
+            charCount.classList.remove('text-danger');
+        }
+    });
+    
+    // Validación al enviar
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        
+        // Validar cliente
+        if (!clienteSelect.value) {
+            e.preventDefault();
+            isValid = false;
+            Swal.fire({
+                icon: 'error',
+                title: 'Cliente requerido',
+                text: 'Por favor seleccione un cliente.'
+            });
+            return;
+        }
+        
+        // Validar tipo
+        if (!tipoSelect.value) {
+            e.preventDefault();
+            isValid = false;
+            Swal.fire({
+                icon: 'error',
+                title: 'Tipo requerido',
+                text: 'Por favor seleccione el tipo de PQRS.'
+            });
+            return;
+        }
+        
+        // Validar descripción
+        const descripcionLength = descripcionTextarea.value.trim().length;
+        if (descripcionLength < 10) {
+            e.preventDefault();
+            isValid = false;
+            Swal.fire({
+                icon: 'error',
+                title: 'Descripción muy corta',
+                text: 'La descripción debe tener al menos 10 caracteres.'
+            });
+            return;
+        }
+        
+        if (descripcionLength > 1000) {
+            e.preventDefault();
+            isValid = false;
+            Swal.fire({
+                icon: 'error',
+                title: 'Descripción muy larga',
+                text: 'La descripción no puede exceder 1000 caracteres.'
+            });
+            return;
+        }
+    });
 });
 </script>
 {% endblock %}

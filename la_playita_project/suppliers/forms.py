@@ -21,7 +21,7 @@ class ReabastecimientoForm(forms.ModelForm):
         model = Reabastecimiento
         fields = ['proveedor', 'forma_pago', 'estado', 'observaciones', 'producto']
         widgets = {
-            'proveedor': forms.Select(attrs={'class': 'form-control'}),
+            'proveedor': forms.Select(attrs={'class': 'form-control', 'autocomplete': 'off'}),
             'forma_pago': forms.Select(attrs={'class': 'form-control'}),
             'estado': forms.Select(attrs={'class': 'form-control'}),
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),

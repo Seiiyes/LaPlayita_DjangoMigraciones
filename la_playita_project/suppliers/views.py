@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.views.decorators.cache import never_cache
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.core.mail import EmailMultiAlternatives
 from django.templatetags.static import static
@@ -15,6 +15,8 @@ import json
 from email.mime.image import MIMEImage # Import MIMEImage
 from django.urls import reverse # Added import for reverse
 import logging
+from django.contrib import messages
+import threading
 
 from django.db.models import Q, Sum # Added for OR queries
 from django.db import models
@@ -24,6 +26,7 @@ from .models import Proveedor, Reabastecimiento, ReabastecimientoDetalle
 from inventory.models import Producto, Categoria, Lote, MovimientoInventario, TasaIVA
 from inventory.forms import ReabastecimientoForm, ReabastecimientoDetalleFormSet, ProductoForm
 from suppliers.forms import ReabastecimientoDetalleFormSetEdit
+from .reports import generate_reabastecimiento_pdf, generate_reabastecimiento_excel
 
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
@@ -337,7 +340,6 @@ def reabastecimiento_list(request):
     }
     return render(request, 'suppliers/reabastecimiento_list.html', context)
 
-@never_cache
 @login_required
 @check_user_role(allowed_roles=['Administrador'])
 def reabastecimiento_create(request):
@@ -349,39 +351,114 @@ def reabastecimiento_create(request):
         form = ReabastecimientoForm(request.POST)
         formset = ReabastecimientoDetalleFormSet(request.POST)
         
-        if form.is_valid() and formset.is_valid():
+        # Obtener el estado antes de validar
+        estado_form = request.POST.get('estado', Reabastecimiento.ESTADO_SOLICITADO)
+        es_borrador = estado_form == Reabastecimiento.ESTADO_BORRADOR
+        
+        # Para borradores, hacer validación menos estricta
+        if es_borrador:
+            # Solo validar el formulario principal (proveedor)
+            form_valido = form.is_valid()
+            # Para borradores, no validar el formset estrictamente
+            formset_valido = True
+        else:
+            # Para solicitudes completas, validar todo
+            form_valido = form.is_valid()
+            formset_valido = formset.is_valid()
+        
+        if form_valido and formset_valido:
             try:
                 with transaction.atomic():
                     logger.info("[REAB] Iniciando creación de reabastecimiento")
                     reab = form.save(commit=False)
-                    reab.estado = Reabastecimiento.ESTADO_SOLICITADO
+                    reab.estado = estado_form
                     
                     total_costo = 0
                     total_iva = 0
                     detalles_a_crear = []
                     
-                    for detalle_form in formset.cleaned_data:
-                        if detalle_form and not detalle_form.get('DELETE'):
-                            cantidad = detalle_form['cantidad']
-                            costo_unitario = detalle_form['costo_unitario']
-                            producto = detalle_form['producto']
+                    # Para borradores, procesar detalles de forma más flexible
+                    if es_borrador:
+                        logger.info("[REAB BORRADOR] Procesando detalles del borrador")
+                        total_forms = int(request.POST.get('reabastecimientodetalle_set-TOTAL_FORMS', 0))
+                        logger.info(f"[REAB BORRADOR] Total de formularios: {total_forms}")
+                        
+                        # Procesar solo los detalles que tengan datos completos
+                        for i in range(total_forms):
+                            prefix = f'reabastecimientodetalle_set-{i}'
+                            producto_id = request.POST.get(f'{prefix}-producto')
+                            cantidad = request.POST.get(f'{prefix}-cantidad')
+                            costo_unitario = request.POST.get(f'{prefix}-costo_unitario')
+                            fecha_caducidad = request.POST.get(f'{prefix}-fecha_caducidad')
+                            # El campo iva puede venir como select (tasa_iva_id) o como valor calculado
+                            iva_select = request.POST.get(f'{prefix}-iva')  # Este es el ID de la tasa de IVA
                             
-                            subtotal = cantidad * costo_unitario
+                            logger.info(f"[REAB BORRADOR] Fila {i}: producto_id={producto_id}, cantidad={cantidad}, costo={costo_unitario}, iva_select={iva_select}")
                             
-                            # Usar el IVA del formulario, que ahora se calcula en el frontend
-                            iva_detalle = detalle_form.get('iva', 0)
-                            if iva_detalle is None:
-                                # Fallback por si el frontend no envía el IVA
-                                iva_porcentaje = producto.tasa_iva.porcentaje if producto.tasa_iva else 0
-                                iva_detalle = subtotal * (iva_porcentaje / 100)
-                            
-                            total_costo += subtotal
-                            total_iva += iva_detalle
-                            # El valor de 'iva' ya está en detalle_form, no es necesario reasignarlo
-                            detalles_a_crear.append(detalle_form)
+                            # Solo agregar si tiene al menos producto y cantidad
+                            if producto_id and cantidad:
+                                try:
+                                    producto = Producto.objects.get(id=producto_id)
+                                    cantidad_int = int(cantidad)
+                                    costo_unitario_float = float(costo_unitario) if costo_unitario else 0
+                                    
+                                    # Calcular el IVA basado en la tasa seleccionada
+                                    iva_valor = 0
+                                    if iva_select:
+                                        try:
+                                            tasa_iva = TasaIVA.objects.get(id=int(iva_select))
+                                            subtotal = cantidad_int * costo_unitario_float
+                                            iva_valor = subtotal * (float(tasa_iva.porcentaje) / 100)
+                                            logger.info(f"[REAB BORRADOR] IVA calculado: {iva_valor} (tasa: {tasa_iva.porcentaje}%)")
+                                        except (TasaIVA.DoesNotExist, ValueError) as e:
+                                            logger.warning(f"[REAB BORRADOR] Error calculando IVA: {e}")
+                                            iva_valor = 0
+                                    
+                                    subtotal = cantidad_int * costo_unitario_float
+                                    total_costo += subtotal
+                                    total_iva += iva_valor
+                                    
+                                    detalle_dict = {
+                                        'producto': producto,
+                                        'cantidad': cantidad_int,
+                                        'costo_unitario': costo_unitario_float,
+                                        'fecha_caducidad': fecha_caducidad if fecha_caducidad else None,
+                                        'iva': iva_valor
+                                    }
+                                    detalles_a_crear.append(detalle_dict)
+                                    logger.info(f"[REAB BORRADOR] Detalle agregado: {producto.nombre}, cantidad={cantidad_int}, iva={iva_valor}")
+                                except (Producto.DoesNotExist, ValueError) as e:
+                                    logger.warning(f"[REAB BORRADOR] Error procesando detalle {i}: {e}")
+                                    continue
+                            else:
+                                logger.info(f"[REAB BORRADOR] Fila {i} omitida (datos incompletos)")
+                        
+                        logger.info(f"[REAB BORRADOR] Total de detalles a crear: {len(detalles_a_crear)}")
+                    else:
+                        # Para solicitudes completas, usar el formset validado
+                        for detalle_form in formset.cleaned_data:
+                            if detalle_form and not detalle_form.get('DELETE'):
+                                cantidad = detalle_form['cantidad']
+                                costo_unitario = detalle_form['costo_unitario']
+                                producto = detalle_form['producto']
+                                
+                                subtotal = cantidad * costo_unitario
+                                
+                                # Usar el IVA del formulario, que ahora se calcula en el frontend
+                                iva_detalle = detalle_form.get('iva', 0)
+                                if iva_detalle is None:
+                                    # Fallback por si el frontend no envía el IVA
+                                    iva_porcentaje = producto.tasa_iva.porcentaje if producto.tasa_iva else 0
+                                    iva_detalle = subtotal * (iva_porcentaje / 100)
+                                
+                                total_costo += subtotal
+                                total_iva += iva_detalle
+                                # El valor de 'iva' ya está en detalle_form, no es necesario reasignarlo
+                                detalles_a_crear.append(detalle_form)
 
-                    if not detalles_a_crear:
-                        form.add_error(None, "Agrega al menos un producto")
+                    # Permitir guardar borradores sin productos, pero no órdenes solicitadas
+                    if not detalles_a_crear and estado_form != Reabastecimiento.ESTADO_BORRADOR:
+                        form.add_error(None, "Agrega al menos un producto para enviar la solicitud")
                         raise ValueError("No hay detalles para crear")
 
                     reab.costo_total = total_costo
@@ -389,22 +466,45 @@ def reabastecimiento_create(request):
                     reab.save()
                     logger.info(f"[REAB] Reabastecimiento guardado: ID {reab.id}")
 
-                    for detalle_form_data in detalles_a_crear:
-                        # Eliminar campos que no pertenecen al modelo
-                        detalle_form_data.pop('DELETE', None)
-                        detalle_form_data.pop('reabastecimiento', None)
-                        detalle_form_data.pop('iva_porcentaje', None)
-                        ReabastecimientoDetalle.objects.create(reabastecimiento=reab, **detalle_form_data)
+                    # Crear detalles
+                    for detalle_data in detalles_a_crear:
+                        if es_borrador:
+                            # Para borradores, los datos ya están en el formato correcto
+                            ReabastecimientoDetalle.objects.create(reabastecimiento=reab, **detalle_data)
+                        else:
+                            # Para solicitudes completas, limpiar campos extra del formset
+                            detalle_data.pop('DELETE', None)
+                            detalle_data.pop('reabastecimiento', None)
+                            detalle_data.pop('iva_porcentaje', None)
+                            ReabastecimientoDetalle.objects.create(reabastecimiento=reab, **detalle_data)
                     logger.info(f"[REAB] Detalles guardados: {len(detalles_a_crear)}")
 
                     if reab.estado == Reabastecimiento.ESTADO_SOLICITADO:
-                        logger.info(f"[REAB] Enviando correo para reabastecimiento {reab.id}")
-                        try:
-                            send_supply_request_email(reab, request)
-                        except Exception as email_error:
-                            logger.error(f"[REAB] Error al enviar correo: {email_error}", exc_info=True)
+                        logger.info(f"[REAB] Programando envío de correo para reabastecimiento {reab.id}")
+                        # Enviar correo en segundo plano para no bloquear la respuesta
+                        email_thread = threading.Thread(
+                            target=send_supply_request_email,
+                            args=(reab, request)
+                        )
+                        email_thread.daemon = True
+                        email_thread.start()
                     
                     logger.info("[REAB] Reabastecimiento creado exitosamente")
+                    
+                    if reab.estado == Reabastecimiento.ESTADO_BORRADOR:
+                        messages.success(
+                            request, 
+                            f'📝 Borrador #{reab.id} guardado exitosamente. '
+                            f'Proveedor: {reab.proveedor.nombre_empresa} | '
+                            f'Total: ${reab.costo_total + reab.iva:,.0f}'
+                        )
+                    else:
+                        messages.success(
+                            request, 
+                            f'✅ Orden de Reabastecimiento #{reab.id} creada y enviada exitosamente. '
+                            f'Proveedor: {reab.proveedor.nombre_empresa} | '
+                            f'Total: ${reab.costo_total + reab.iva:,.0f}'
+                        )
                     return redirect('suppliers:reabastecimiento_list')
 
             except Exception as e:
@@ -415,7 +515,12 @@ def reabastecimiento_create(request):
         form = ReabastecimientoForm(initial_creation=True)
         formset = ReabastecimientoDetalleFormSet(queryset=ReabastecimientoDetalle.objects.none())
 
-    all_products_data = list(Producto.objects.values('id', 'nombre', 'precio_unitario', 'tasa_iva_id', 'tasa_iva__porcentaje'))
+    # Optimizar carga de productos - solo campos necesarios
+    all_products_data = list(
+        Producto.objects
+        .values('id', 'nombre', 'precio_unitario', 'tasa_iva_id', 'tasa_iva__porcentaje')
+        .order_by('nombre')[:500]  # Limitar a 500 productos más usados
+    )
     recent_suppliers = Proveedor.objects.filter(
         reabastecimiento__isnull=False
     ).distinct().order_by('-reabastecimiento__fecha')[:5]
@@ -566,9 +671,16 @@ def reabastecimiento_update(request, pk):
                 logger.info(f"[UPDATE] Reabastecimiento {reab_instance.id} guardado exitosamente")
 
                 if reab_instance.estado == Reabastecimiento.ESTADO_SOLICITADO:
-                    send_supply_request_email(reab_instance, request)
+                    # Enviar correo en segundo plano
+                    email_thread = threading.Thread(
+                        target=send_supply_request_email,
+                        args=(reab_instance, request)
+                    )
+                    email_thread.daemon = True
+                    email_thread.start()
 
                 return JsonResponse({
+                    'success': True,
                     'id': reab_instance.id,
                     'fecha': reab_instance.fecha.isoformat(),
                     'proveedor': reab_instance.proveedor.nombre_empresa,
@@ -792,6 +904,46 @@ def reabastecimiento_eliminar(request, pk):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+
+@login_required
+@require_POST
+@check_user_role(allowed_roles=['Administrador'])
+def reabastecimiento_enviar_borrador(request, pk):
+    """Enviar un borrador de reabastecimiento al proveedor."""
+    try:
+        with transaction.atomic():
+            reab = get_object_or_404(Reabastecimiento, pk=pk)
+            
+            # Validar que sea un borrador
+            if reab.estado != Reabastecimiento.ESTADO_BORRADOR:
+                return JsonResponse({'error': 'Solo se pueden enviar borradores.'}, status=400)
+            
+            # Cambiar estado a solicitado
+            reab.estado = Reabastecimiento.ESTADO_SOLICITADO
+            reab.save()
+            
+            # Enviar correo al proveedor en segundo plano
+            logger.info(f"[REAB] Programando envío de correo para borrador {reab.id}")
+            email_thread = threading.Thread(
+                target=send_supply_request_email,
+                args=(reab, request)
+            )
+            email_thread.daemon = True
+            email_thread.start()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Orden #{reab.id} enviada exitosamente al proveedor',
+                'id': reab.id,
+                'estado': reab.get_estado_display()
+            })
+            
+    except Reabastecimiento.DoesNotExist:
+        return JsonResponse({'error': 'Reabastecimiento no encontrado'}, status=404)
+    except Exception as e:
+        logger.error(f"[REAB] Error al enviar borrador: {e}", exc_info=True)
+        return JsonResponse({'error': str(e)}, status=500)
+
 # --- Vistas de Categoría y Producto (AJAX) ---
 
 @login_required
@@ -893,72 +1045,6 @@ def reabastecimiento_row_api(request, pk):
 
 
 # --- New API Endpoints for Reabastecimiento ---
-
-@never_cache
-@login_required
-@check_user_role(allowed_roles=['Administrador'])
-def reabastecimiento_detail_api(request, pk):
-    """
-    API endpoint to fetch details of a single Reabastecimiento as JSON for reception mode.
-    Returns JSON with reabastecimiento data and detalles array.
-    """
-    try:
-        reabastecimiento = get_object_or_404(
-            Reabastecimiento.objects.select_related('proveedor').prefetch_related(
-                'reabastecimientodetalle_set__producto'
-            ), 
-            pk=pk
-        )
-        
-        # Build detalles array using ORM
-        detalles = []
-        iva_porcentaje_total = 0
-        for detalle in reabastecimiento.reabastecimientodetalle_set.all():
-            # Calcular el porcentaje de IVA
-            subtotal = float(detalle.cantidad or 0) * float(detalle.costo_unitario or 0)
-            iva_porcentaje = 0
-            if subtotal > 0:
-                iva_porcentaje = (float(detalle.iva or 0) / subtotal) * 100
-            
-            detalles.append({
-                'id': detalle.id,
-                'cantidad': int(detalle.cantidad or 0),
-                'cantidad_recibida': int(detalle.cantidad_recibida or 0),
-                'costo_unitario': float(detalle.costo_unitario or 0),
-                'iva': float(detalle.iva or 0),
-                'iva_porcentaje': round(iva_porcentaje, 2),
-                'fecha_caducidad': detalle.fecha_caducidad.isoformat() if detalle.fecha_caducidad else '',
-                'numero_lote': detalle.numero_lote or '',
-                'producto_nombre': detalle.producto.nombre if detalle.producto else 'Producto desconocido',
-            })
-        
-        # Calcular el porcentaje de IVA total
-        iva_porcentaje_total = 0
-        if float(reabastecimiento.costo_total or 0) > 0:
-            iva_porcentaje_total = (float(reabastecimiento.iva or 0) / float(reabastecimiento.costo_total or 0)) * 100
-        
-        data = {
-            'id': reabastecimiento.id,
-            'proveedor_nombre': reabastecimiento.proveedor.nombre_empresa if reabastecimiento.proveedor else 'N/A',
-            'proveedor_id': reabastecimiento.proveedor.id if reabastecimiento.proveedor else None,
-            'fecha': reabastecimiento.fecha.isoformat() if reabastecimiento.fecha else None,
-            'estado': reabastecimiento.estado,
-            'forma_pago': reabastecimiento.forma_pago or '',
-            'observaciones': reabastecimiento.observaciones or '',
-            'costo_total': float(reabastecimiento.costo_total or 0),
-            'iva': float(reabastecimiento.iva or 0),
-            'iva_porcentaje': round(iva_porcentaje_total, 2),
-            'detalles': detalles,
-            'total_detalles': len(detalles),
-        }
-        return JsonResponse(data)
-    except Reabastecimiento.DoesNotExist:
-        return JsonResponse({'error': 'Reabastecimiento no encontrado'}, status=404)
-    except Exception as e:
-        print(f"Error en reabastecimiento_detail_api: {e}")
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({'error': str(e)}, status=500)
 
 @login_required
 @check_user_role(allowed_roles=['Administrador'])
@@ -1085,19 +1171,29 @@ def reabastecimiento_detail_api(request, pk):
         reab = get_object_or_404(Reabastecimiento, pk=pk)
         detalles = reab.reabastecimientodetalle_set.all()
         
+        # Calcular el porcentaje de IVA total
+        iva_porcentaje_total = 0
+        costo_total_float = float(reab.costo_total or 0)
+        iva_float = float(reab.iva or 0)
+        
+        if costo_total_float > 0:
+            iva_porcentaje_total = (iva_float / costo_total_float) * 100
+        
         data = {
             'id': reab.pk,
             'proveedor_nombre': reab.proveedor.nombre_empresa,
             'estado': reab.estado,
-            'costo_total': str(reab.costo_total),
-            'iva': str(reab.iva),
+            'costo_total': costo_total_float,
+            'iva': iva_float,
+            'iva_porcentaje': round(iva_porcentaje_total, 2),
             'detalles': [
                 {
                     'id': d.pk,
                     'producto_nombre': d.producto.nombre,
                     'cantidad': d.cantidad,
                     'cantidad_recibida': d.cantidad_recibida,
-                    'costo_unitario': str(d.costo_unitario),
+                    'costo_unitario': float(d.costo_unitario or 0),
+                    'iva': float(d.iva or 0),
                     'fecha_caducidad': d.fecha_caducidad.isoformat() if d.fecha_caducidad else None,
                     'numero_lote': d.numero_lote or '',
                 }
@@ -1254,3 +1350,134 @@ def reabastecimiento_update_received(request, pk):
             })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+# ===== VISTAS DE EXPORTACIÓN =====
+
+@login_required
+@check_user_role(allowed_roles=['Administrador'])
+def reabastecimiento_download_pdf(request, pk):
+    """
+    Descarga un reabastecimiento en formato PDF
+    """
+    try:
+        reabastecimiento = get_object_or_404(
+            Reabastecimiento.objects.select_related('proveedor').prefetch_related(
+                'reabastecimientodetalle_set__producto'
+            ),
+            pk=pk
+        )
+        
+        # Generar PDF
+        pdf_buffer = generate_reabastecimiento_pdf(reabastecimiento)
+        
+        # Crear respuesta HTTP
+        response = HttpResponse(pdf_buffer, content_type='application/pdf')
+        filename = f'Reabastecimiento_{reabastecimiento.id}_{datetime.now().strftime("%Y%m%d")}.pdf'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        logger.info(f"[PDF] Usuario {request.user.username} descargó PDF de reabastecimiento {pk}")
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"[PDF] Error al generar PDF para reabastecimiento {pk}: {e}", exc_info=True)
+        messages.error(request, f'Error al generar PDF: {str(e)}')
+        return redirect('suppliers:reabastecimiento_list')
+
+
+@login_required
+@check_user_role(allowed_roles=['Administrador'])
+def reabastecimiento_download_excel(request, pk):
+    """
+    Descarga un reabastecimiento en formato Excel
+    """
+    try:
+        reabastecimiento = get_object_or_404(
+            Reabastecimiento.objects.select_related('proveedor').prefetch_related(
+                'reabastecimientodetalle_set__producto'
+            ),
+            pk=pk
+        )
+        
+        # Generar Excel
+        excel_buffer = generate_reabastecimiento_excel(reabastecimiento)
+        
+        # Crear respuesta HTTP
+        response = HttpResponse(
+            excel_buffer,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        filename = f'Reabastecimiento_{reabastecimiento.id}_{datetime.now().strftime("%Y%m%d")}.xlsx'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        logger.info(f"[EXCEL] Usuario {request.user.username} descargó Excel de reabastecimiento {pk}")
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"[EXCEL] Error al generar Excel para reabastecimiento {pk}: {e}", exc_info=True)
+        messages.error(request, f'Error al generar Excel: {str(e)}')
+        return redirect('suppliers:reabastecimiento_list')
+
+
+# ===== VISTAS DE IMPORTACIÓN MASIVA =====
+
+@login_required
+@check_user_role(allowed_roles=['Administrador'])
+def download_template_excel(request):
+    """
+    Descarga la plantilla Excel para carga masiva
+    """
+    try:
+        from .excel_import import generate_template_excel
+        
+        excel_buffer = generate_template_excel()
+        
+        response = HttpResponse(
+            excel_buffer,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        filename = f'Plantilla_Reabastecimiento_{datetime.now().strftime("%Y%m%d")}.xlsx'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        logger.info(f"[TEMPLATE] Usuario {request.user.username} descargó plantilla Excel")
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"[TEMPLATE] Error al generar plantilla: {e}", exc_info=True)
+        messages.error(request, f'Error al generar plantilla: {str(e)}')
+        return redirect('suppliers:reabastecimiento_create')
+
+
+@login_required
+@check_user_role(allowed_roles=['Administrador'])
+@require_POST
+def import_excel_reabastecimiento(request):
+    """
+    Procesa un archivo Excel y retorna los datos para pre-llenar el formulario
+    """
+    try:
+        from .excel_import import parse_reabastecimiento_excel
+        
+        if 'excel_file' not in request.FILES:
+            return JsonResponse({'success': False, 'error': 'No se recibió ningún archivo'}, status=400)
+        
+        excel_file = request.FILES['excel_file']
+        
+        # Validar extensión
+        if not excel_file.name.endswith(('.xlsx', '.xls')):
+            return JsonResponse({'success': False, 'error': 'El archivo debe ser un Excel (.xlsx o .xls)'}, status=400)
+        
+        # Parsear Excel
+        result = parse_reabastecimiento_excel(excel_file)
+        
+        if result['success']:
+            logger.info(f"[EXCEL IMPORT] Usuario {request.user.username} importó {len(result['data'])} productos")
+        
+        return JsonResponse(result)
+        
+    except Exception as e:
+        logger.error(f"[EXCEL IMPORT] Error al importar Excel: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': f'Error al procesar archivo: {str(e)}'}, status=500)

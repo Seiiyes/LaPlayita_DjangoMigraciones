@@ -2,21 +2,89 @@
 {% block title %}Panel de Reportes{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h2 class="my-4 text-white"><i class="bi bi-graph-up me-1"></i> Panel de Reportes</h2>
-    <div class="card mb-3">
-        <div class="card-body">
-            <p>Bienvenido al módulo de reportes.</p>
-            <ul class="list-group list-group-flush mb-0">
-                <li class="list-group-item">
-                    <a href="{% url 'reportes:reporte_ventas' %}">Reporte de ventas</a>
-                </li>
-                <li class="list-group-item">Reporte de inventario</li>
-                <li class="list-group-item">Reporte de clientes</li>
-                <li class="list-group-item">Reporte de PQRS</li>
-            </ul>
-            <p class="mt-3 text-muted">Próximamente: exportar PDF, paneles de KPIs, filtros avanzados.</p>
+<div class="container-fluid mt-4">
+    <h2 class="mb-4 text-white"><i class="bi bi-graph-up me-2"></i>Panel de Reportes</h2>
+    
+    <div class="row">
+        <!-- Reporte de Ventas -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up-arrow me-2"></i>Reporte de Ventas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Análisis completo de ventas con:</p>
+                    <ul>
+                        <li>KPIs principales</li>
+                        <li>Ventas por método de pago</li>
+                        <li>Ventas por canal</li>
+                        <li>Top productos vendidos</li>
+                        <li>Análisis por hora</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'reportes:reporte_ventas' %}" class="btn btn-primary w-100">
+                        <i class="bi bi-arrow-right-circle me-2"></i>Ver Reporte
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reporte de Inventario -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-box-seam me-2"></i>Reporte de Inventario
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Control de inventario con:</p>
+                    <ul>
+                        <li>Productos con stock bajo</li>
+                        <li>Lotes próximos a vencer</li>
+                        <li>Valor total del inventario</li>
+                        <li>Productos sin movimiento</li>
+                        <li>Top productos por rotación</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'reportes:reporte_inventario' %}" class="btn btn-success w-100">
+                        <i class="bi bi-arrow-right-circle me-2"></i>Ver Reporte
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reporte de Clientes -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-people me-2"></i>Reporte de Clientes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Análisis de clientes con:</p>
+                    <ul>
+                        <li>Top clientes por compras</li>
+                        <li>Clientes con más puntos</li>
+                        <li>Clientes nuevos</li>
+                        <li>Clientes inactivos</li>
+                        <li>Estadísticas generales</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'reportes:reporte_clientes' %}" class="btn btn-info w-100">
+                        <i class="bi bi-arrow-right-circle me-2"></i>Ver Reporte
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
+
+
 </div>
 {% endblock %}

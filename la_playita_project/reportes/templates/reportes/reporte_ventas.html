@@ -3,92 +3,217 @@
 {% block title %}Reporte de Ventas{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2 class="mb-4 text-white"><i class="bi bi-graph-up-arrow me-2"></i>Reporte de Ventas</h2>
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white"><i class="bi bi-graph-up-arrow me-2"></i>Reporte de Ventas</h2>
+        <a href="{% url 'reportes:panel_reportes' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
 
-    <!-- Formulario de filtro por fechas -->
-    <form method="get" class="row g-3 mb-4">
-        <div class="col-md-4">
-            <label for="fecha_inicio" class="form-label text-white">Fecha Inicio</label>
-            <input type="date" id="fecha_inicio" name="fecha_inicio" class="form-control" value="{{ request.GET.fecha_inicio }}">
-        </div>
-        <div class="col-md-4">
-            <label for="fecha_fin" class="form-label text-white">Fecha Fin</label>
-            <input type="date" id="fecha_fin" name="fecha_fin" class="form-control" value="{{ request.GET.fecha_fin }}">
-        </div>
-        <div class="col-md-4 d-flex align-items-end">
-            <button type="submit" class="btn btn-primary me-2">Filtrar</button>
-            <button type="submit" name="descargar" value="1" class="btn btn-success">Descargar CSV</button>
-        </div>
-    </form>
-
-    <!-- Resumen de ventas del día -->
+    <!-- Filtros -->
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title text-white">Ventas del Día: ${{ total_ventas_hoy|floatformat:2 }}</h5>
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                    <input type="date" id="fecha_inicio" name="fecha_inicio" class="form-control" value="{{ request.GET.fecha_inicio }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                    <input type="date" id="fecha_fin" name="fecha_fin" class="form-control" value="{{ request.GET.fecha_fin }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="metodo_pago" class="form-label">Método Pago</label>
+                    <select id="metodo_pago" name="metodo_pago" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="tarjeta">Tarjeta</option>
+                        <option value="transferencia">Transferencia</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="canal_venta" class="form-label">Canal</label>
+                    <select id="canal_venta" name="canal_venta" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="mostrador">Mostrador</option>
+                        <option value="mesa">Mesa</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary flex-fill">
+                        <i class="bi bi-funnel"></i> Filtrar
+                    </button>
+                    <button type="submit" name="descargar" value="1" class="btn btn-success">
+                        <i class="bi bi-file-earmark-excel"></i>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Tabla de ventas del día -->
-    <div class="table-responsive mb-4">
-        <h5 class="text-white">Ventas del Día</h5>
-        <table class="table table-bordered table-hover">
-            <thead class="table-light">
-                <tr>
-                    <th>#</th>
-                    <th>Fecha</th>
-                    <th>Cliente</th>
-                    <th>Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for venta in ventas_hoy %}
-                <tr>
-                    <td>{{ venta.id }}</td>
-                    <td>{{ venta.fecha_venta|date:"d/m/Y H:i" }}</td>
-                    <td>{{ venta.cliente.nombres }} {{ venta.cliente.apellidos }}</td>
-                    <td>${{ venta.total_venta|floatformat:2 }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="4" class="text-center">No hay ventas registradas hoy.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- KPIs Principales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Total Ventas</h6>
+                    <h3>${{ total_ventas|floatformat:2 }}</h3>
+                    <small>{{ cantidad_ventas }} ventas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Ventas Hoy</h6>
+                    <h3>${{ total_ventas_hoy|floatformat:2 }}</h3>
+                    <small>{{ cantidad_ventas_hoy }} ventas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Ticket Promedio</h6>
+                    <h3>${{ ticket_promedio|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h6 class="card-title">Ventas Filtradas</h6>
+                    <h3>{{ cantidad_ventas }}</h3>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- Gráficos y Análisis -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Ventas por Método de Pago</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Método</th>
+                                <th>Total</th>
+                                <th>Cantidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for metodo in ventas_por_metodo %}
+                            <tr>
+                                <td>{{ metodo.metodo_pago|title }}</td>
+                                <td>${{ metodo.total|floatformat:2 }}</td>
+                                <td>{{ metodo.cantidad }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Ventas por Canal</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Canal</th>
+                                <th>Total</th>
+                                <th>Cantidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for canal in ventas_por_canal %}
+                            <tr>
+                                <td>{{ canal.canal_venta|title }}</td>
+                                <td>${{ canal.total|floatformat:2 }}</td>
+                                <td>{{ canal.cantidad }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Productos -->
     <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Top 10 Productos Más Vendidos</h5>
+        </div>
         <div class="card-body">
-            <h5 class="card-title">Total de Ventas: ${{ total_ventas|floatformat:2 }}</h5>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Producto</th>
+                            <th>Cantidad Vendida</th>
+                            <th>Ingresos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prod in productos_mas_vendidos %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ prod.producto__nombre }}</td>
+                            <td>{{ prod.cantidad_total }}</td>
+                            <td>${{ prod.ingresos|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-bordered table-hover">
-            <thead class="table-light">
-                <tr>
-                    <th>#</th>
-                    <th>Fecha</th>
-                    <th>Cliente</th>
-                    <th>Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for venta in ventas %}
-                <tr>
-                    <td>{{ venta.id }}</td>
-                    <td>{{ venta.fecha_venta|date:"d/m/Y H:i" }}</td>
-                    <td>{{ venta.cliente.nombres }} {{ venta.cliente.apellidos }}</td>
-                    <td>${{ venta.total_venta|floatformat:2 }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="4" class="text-center">No hay ventas registradas.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- Detalle de Ventas -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Detalle de Ventas (Últimas 50)</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Canal</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for venta in ventas %}
+                        <tr>
+                            <td>{{ venta.id }}</td>
+                            <td>{{ venta.fecha_venta|date:"d/m/Y H:i" }}</td>
+                            <td>{{ venta.cliente.nombres }} {{ venta.cliente.apellidos }}</td>
+                            <td>{{ venta.canal_venta|title }}</td>
+                            <td>${{ venta.total_venta|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No hay ventas registradas.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

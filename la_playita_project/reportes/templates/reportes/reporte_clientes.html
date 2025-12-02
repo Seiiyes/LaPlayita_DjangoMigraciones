@@ -1,0 +1,256 @@
+{% extends "core/base.html" %}
+{% load custom_filters %}
+
+{% block title %}Reporte de Clientes{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white"><i class="bi bi-people me-2"></i>Reporte de Clientes</h2>
+        <div>
+            <a href="?descargar=1" class="btn btn-success me-2">
+                <i class="bi bi-file-earmark-excel"></i> Descargar Excel
+            </a>
+            <a href="{% url 'reportes:panel_reportes' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Total Clientes</h6>
+                    <h3>{{ total_clientes }}</h3>
+                    <small>Registrados en el sistema</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Clientes Activos</h6>
+                    <h3>{{ clientes_activos }}</h3>
+                    <small>Con compras en últimos 60 días</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Ticket Promedio</h6>
+                    <h3>${{ ticket_promedio_general|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Clientes por Compras -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-trophy me-2"></i>Top 20 Clientes por Compras</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Cliente</th>
+                            <th>Total Compras</th>
+                            <th>Cantidad Compras</th>
+                            <th>Ticket Promedio</th>
+                            <th>Última Compra</th>
+                            <th>Contacto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cliente in top_clientes %}
+                        {% with ticket_prom=cliente.total_compras|div:cliente.cantidad_compras %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <strong>{{ cliente.nombres }} {{ cliente.apellidos }}</strong>
+                                {% if cliente.documento %}
+                                <br><small class="text-muted">{{ cliente.documento }}</small>
+                                {% endif %}
+                            </td>
+                            <td><strong>${{ cliente.total_compras|floatformat:2 }}</strong></td>
+                            <td>{{ cliente.cantidad_compras }}</td>
+                            <td>${{ ticket_prom|floatformat:2 }}</td>
+                            <td>{{ cliente.ultima_compra|date:"d/m/Y"|default:"N/A" }}</td>
+                            <td>
+                                {% if cliente.telefono %}
+                                <i class="bi bi-phone"></i> {{ cliente.telefono }}<br>
+                                {% endif %}
+                                {% if cliente.correo %}
+                                <i class="bi bi-envelope"></i> {{ cliente.correo }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endwith %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No hay datos de clientes</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clientes con Más Puntos -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning">
+            <h5 class="mb-0"><i class="bi bi-star me-2"></i>Top 10 Clientes por Puntos de Fidelización</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Cliente</th>
+                            <th>Puntos Totales</th>
+                            <th>Contacto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cliente in clientes_puntos %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <strong>{{ cliente.nombres }} {{ cliente.apellidos }}</strong>
+                            </td>
+                            <td>
+                                <span class="badge bg-warning text-dark fs-6">
+                                    <i class="bi bi-star-fill"></i> {{ cliente.puntos_totales|floatformat:0 }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if cliente.telefono %}
+                                <i class="bi bi-phone"></i> {{ cliente.telefono }}<br>
+                                {% endif %}
+                                {% if cliente.correo %}
+                                <i class="bi bi-envelope"></i> {{ cliente.correo }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">No hay clientes con puntos</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clientes Nuevos -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-person-plus me-2"></i>Clientes Nuevos (Últimos 30 días)</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Primera Compra</th>
+                            <th>Contacto</th>
+                            <th>Total Compras</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cliente in clientes_nuevos %}
+                        <tr>
+                            <td>
+                                <strong>{{ cliente.nombres }} {{ cliente.apellidos }}</strong>
+                                {% if cliente.documento %}
+                                <br><small class="text-muted">{{ cliente.documento }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ cliente.primera_compra|date:"d/m/Y"|default:"N/A" }}</td>
+                            <td>
+                                {% if cliente.telefono %}
+                                <i class="bi bi-phone"></i> {{ cliente.telefono }}<br>
+                                {% endif %}
+                                {% if cliente.correo %}
+                                <i class="bi bi-envelope"></i> {{ cliente.correo }}
+                                {% endif %}
+                            </td>
+                            <td>{{ cliente.venta_set.count }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">No hay clientes nuevos en los últimos 30 días</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clientes Inactivos -->
+    <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="bi bi-person-x me-2"></i>Clientes Inactivos (Sin compras en 60+ días)</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Última Compra</th>
+                            <th>Días Inactivo</th>
+                            <th>Contacto</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cliente in clientes_inactivos %}
+                        {% with dias_inactivo=cliente.ultima_compra|timesince %}
+                        <tr>
+                            <td>
+                                <strong>{{ cliente.nombres }} {{ cliente.apellidos }}</strong>
+                            </td>
+                            <td>{{ cliente.ultima_compra|date:"d/m/Y"|default:"N/A" }}</td>
+                            <td>
+                                <span class="badge bg-danger">{{ dias_inactivo }}</span>
+                            </td>
+                            <td>
+                                {% if cliente.telefono %}
+                                <i class="bi bi-phone"></i> {{ cliente.telefono }}<br>
+                                {% endif %}
+                                {% if cliente.correo %}
+                                <i class="bi bi-envelope"></i> {{ cliente.correo }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" title="Contactar">
+                                    <i class="bi bi-envelope"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-success">
+                                <i class="bi bi-check-circle me-2"></i>No hay clientes inactivos
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

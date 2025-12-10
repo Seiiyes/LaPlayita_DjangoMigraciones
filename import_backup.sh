@@ -51,19 +51,11 @@ if [ ! -z "$DATABASE_URL" ]; then
             echo "Ejecutando migraciones fake para sincronizar..."
             python manage.py migrate --fake-initial
             
-            # Marcar las migraciones del sistema de fidelización como aplicadas si las tablas ya existen
-            echo "Verificando tablas del sistema de fidelización..."
-            LOYALTY_TABLES=$(mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$DB_NAME' AND table_name IN ('producto_canjeble', 'canje_producto', 'puntos_fidelizacion');" -s -N $DB_NAME)
+            # Marcar todas las migraciones de clients como fake ya que las tablas existen
+            echo "Marcando migraciones de clients como aplicadas..."
+            python manage.py migrate clients --fake
             
-            if [ "$LOYALTY_TABLES" -gt 0 ]; then
-                echo "Tablas del sistema de fidelización ya existen. Marcando migraciones como aplicadas..."
-                python manage.py migrate clients 0004_create_loyalty_tables --fake
-                # Marcar migración restante como fake si la columna ya existe
-                python manage.py migrate clients 0005_productocanjeble_producto_inventario --fake
-            else
-                echo "Aplicando migraciones del sistema de fidelización..."
-                python manage.py migrate clients
-            fi
+            echo "✅ Migraciones sincronizadas"
         fi
     else
         echo "Error de conexión a la base de datos"

@@ -48,8 +48,21 @@ if [ ! -z "$DATABASE_URL" ]; then
             fi
         else
             echo "Base de datos ya contiene $TABLE_COUNT tablas. Saltando importación."
-            echo "Ejecutando migraciones normales..."
-            python manage.py migrate
+            echo "Ejecutando migraciones fake para sincronizar..."
+            python manage.py migrate --fake-initial
+            
+            # Marcar las migraciones del sistema de fidelización como aplicadas si las tablas ya existen
+            echo "Verificando tablas del sistema de fidelización..."
+            LOYALTY_TABLES=$(mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$DB_NAME' AND table_name IN ('producto_canjeble', 'canje_producto', 'puntos_fidelizacion');" -s -N $DB_NAME)
+            
+            if [ "$LOYALTY_TABLES" -gt 0 ]; then
+                echo "Tablas del sistema de fidelización ya existen. Marcando migraciones como aplicadas..."
+                python manage.py migrate clients 0004_create_loyalty_tables --fake
+                python manage.py migrate clients 0005_add_cliente_foreignkeys --fake
+            else
+                echo "Aplicando migraciones del sistema de fidelización..."
+                python manage.py migrate clients
+            fi
         fi
     else
         echo "Error de conexión a la base de datos"

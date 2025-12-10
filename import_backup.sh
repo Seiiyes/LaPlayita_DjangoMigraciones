@@ -58,8 +58,8 @@ if [ ! -z "$DATABASE_URL" ]; then
             if [ "$LOYALTY_TABLES" -gt 0 ]; then
                 echo "Tablas del sistema de fidelización ya existen. Marcando migraciones como aplicadas..."
                 python manage.py migrate clients 0004_create_loyalty_tables --fake
-                # Aplicar migraciones restantes normalmente
-                python manage.py migrate clients
+                # Marcar migración restante como fake si la columna ya existe
+                python manage.py migrate clients 0005_productocanjeble_producto_inventario --fake
             else
                 echo "Aplicando migraciones del sistema de fidelización..."
                 python manage.py migrate clients

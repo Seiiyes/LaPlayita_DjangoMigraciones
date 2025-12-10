@@ -30,9 +30,11 @@ if [ ! -z "$DATABASE_URL" ]; then
         # Obtener lista de todas las tablas y eliminarlas
         TABLES=$(mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "SELECT GROUP_CONCAT(table_name) FROM information_schema.tables WHERE table_schema='$DB_NAME';" -s -N $DB_NAME)
         
-        if [ ! -z "$TABLES" ]; then
-            echo "Eliminando tablas existentes..."
+        if [ ! -z "$TABLES" ] && [ "$TABLES" != "NULL" ]; then
+            echo "Eliminando tablas existentes: $TABLES"
             mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "DROP TABLE $TABLES;" $DB_NAME
+        else
+            echo "No hay tablas para eliminar"
         fi
         
         # Rehabilitar verificaciones de claves foráneas
@@ -41,7 +43,18 @@ if [ ! -z "$DATABASE_URL" ]; then
         echo "✅ Base de datos limpiada"
         
         echo "📥 Importando backup completo..."
-        mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE $DB_NAME < /app/database/ult_ver_backup_912.sql
+        
+        # Verificar si el archivo existe
+        if [ -f "/app/backup.sql" ]; then
+            mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE $DB_NAME < /app/backup.sql
+        elif [ -f "/app/database/ult_ver_backup_912.sql" ]; then
+            mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE $DB_NAME < /app/database/ult_ver_backup_912.sql
+        else
+            echo "❌ Archivo de backup no encontrado"
+            echo "Buscando archivos de backup disponibles..."
+            find /app -name "*.sql" -type f
+            exit 1
+        fi
         
         if [ $? -eq 0 ]; then
             echo "✅ Backup importado exitosamente"

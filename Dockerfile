@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y \
     libxcb1-dev \
     libxcb-render0-dev \
     libxcb-shm0-dev \
-    mysql-client \
+    mariadb-client \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

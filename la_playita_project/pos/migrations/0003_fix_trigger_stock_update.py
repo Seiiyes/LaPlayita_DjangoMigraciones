@@ -12,48 +12,36 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunSQL(
             sql="""
-            DROP TRIGGER IF EXISTS trg_lote_after_update;
-            CREATE TRIGGER trg_lote_after_update
-            AFTER UPDATE ON lote
-            FOR EACH ROW
-            BEGIN
-              DECLARE diff INT;
-              SET diff = CAST(NEW.cantidad_disponible AS SIGNED) - CAST(OLD.cantidad_disponible AS SIGNED);
-              IF diff <> 0 THEN
-                UPDATE producto
-                  SET stock_actual = stock_actual + diff
-                  WHERE id = NEW.producto_id;
-              END IF;
-
-              IF NEW.producto_id <> OLD.producto_id THEN
-                CALL sp_recalcular_costo_promedio_por_producto(OLD.producto_id);
-                CALL sp_recalcular_costo_promedio_por_producto(NEW.producto_id);
-              ELSE
-                CALL sp_recalcular_costo_promedio_por_producto(NEW.producto_id);
-              END IF;
-            END;
+            -- Solo crear el trigger si la tabla lote existe
+            SET @table_exists = (SELECT COUNT(*) FROM information_schema.tables 
+                               WHERE table_schema = DATABASE() AND table_name = 'lote');
+            
+            SET @sql = IF(@table_exists > 0, 
+                'DROP TRIGGER IF EXISTS trg_lote_after_update;
+                 CREATE TRIGGER trg_lote_after_update
+                 AFTER UPDATE ON lote
+                 FOR EACH ROW
+                 BEGIN
+                   DECLARE diff INT;
+                   SET diff = CAST(NEW.cantidad_disponible AS SIGNED) - CAST(OLD.cantidad_disponible AS SIGNED);
+                   IF diff <> 0 THEN
+                     UPDATE producto
+                       SET stock_actual = stock_actual + diff
+                       WHERE id = NEW.producto_id;
+                   END IF;
+                   IF NEW.producto_id <> OLD.producto_id THEN
+                     CALL sp_recalcular_costo_promedio_por_producto(OLD.producto_id);
+                     CALL sp_recalcular_costo_promedio_por_producto(NEW.producto_id);
+                   ELSE
+                     CALL sp_recalcular_costo_promedio_por_producto(NEW.producto_id);
+                   END IF;
+                 END;',
+                'SELECT "Tabla lote no existe, saltando creación de trigger" as mensaje;');
+            
+            PREPARE stmt FROM @sql;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
             """,
-            reverse_sql="""
-            DROP TRIGGER IF EXISTS trg_lote_after_update;
-            CREATE TRIGGER trg_lote_after_update
-            AFTER UPDATE ON lote
-            FOR EACH ROW
-            BEGIN
-              DECLARE diff INT;
-              SET diff = NEW.cantidad_disponible - OLD.cantidad_disponible;
-              IF diff <> 0 THEN
-                UPDATE producto
-                  SET stock_actual = stock_actual + diff
-                  WHERE id = NEW.producto_id;
-              END IF;
-
-              IF NEW.producto_id <> OLD.producto_id THEN
-                CALL sp_recalcular_costo_promedio_por_producto(OLD.producto_id);
-                CALL sp_recalcular_costo_promedio_por_producto(NEW.producto_id);
-              ELSE
-                CALL sp_recalcular_costo_promedio_por_producto(NEW.producto_id);
-              END IF;
-            END;
-            """
+            reverse_sql="DROP TRIGGER IF EXISTS trg_lote_after_update;"
         )
     ]

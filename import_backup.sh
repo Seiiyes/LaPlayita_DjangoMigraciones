@@ -73,10 +73,29 @@ if [ ! -z "$DATABASE_URL" ]; then
                 echo "Columna is_superuser ya existe"
             fi
             
-            echo "Aplicando migración para campos Django en usuario..."
-            python manage.py migrate users 0003_add_django_fields --fake
+            echo "Verificando roles en la base de datos..."
             
-            echo "✅ Estructura de tabla usuario verificada y actualizada"-initial
+            # Verificar si existe el rol Vendedor
+            VENDEDOR_EXISTS=$(mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "SELECT COUNT(*) FROM rol WHERE nombre='Vendedor';" -s -N $DB_NAME)
+            
+            if [ "$VENDEDOR_EXISTS" -eq 0 ]; then
+                echo "Creando rol Vendedor..."
+                mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "INSERT INTO rol (nombre) VALUES ('Vendedor');" $DB_NAME
+            else
+                echo "Rol Vendedor ya existe"
+            fi
+            
+            # Verificar si existe el rol Administrador
+            ADMIN_EXISTS=$(mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "SELECT COUNT(*) FROM rol WHERE nombre='Administrador';" -s -N $DB_NAME)
+            
+            if [ "$ADMIN_EXISTS" -eq 0 ]; then
+                echo "Creando rol Administrador..."
+                mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "INSERT INTO rol (nombre) VALUES ('Administrador');" $DB_NAME
+            else
+                echo "Rol Administrador ya existe"
+            fi
+            
+            echo "✅ Estructura de tabla usuario y roles verificados"-initial
             
             # Marcar todas las migraciones de clients como fake ya que las tablas existen
             echo "Marcando migraciones de clients como aplicadas..."

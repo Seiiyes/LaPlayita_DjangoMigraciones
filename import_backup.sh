@@ -49,7 +49,10 @@ if [ ! -z "$DATABASE_URL" ]; then
         else
             echo "Base de datos ya contiene $TABLE_COUNT tablas. Saltando importación."
             echo "Ejecutando migraciones fake para sincronizar..."
-            python manage.py migrate --fake-initial
+            python manage.py migrate --fake
+            
+            echo "Aplicando migración para campos Django en usuario..."
+            python manage.py migrate users 0003_add_django_fields-initial
             
             # Marcar todas las migraciones de clients como fake ya que las tablas existen
             echo "Marcando migraciones de clients como aplicadas..."

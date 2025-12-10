@@ -2,9 +2,9 @@
 nixPkgs = [
     "python311",
     "gcc",
-    "pkg-config", 
+    "pkg-config",
     "cairo",
-    "cairo.dev",
+    "cairo.dev", 
     "pango",
     "pango.dev",
     "gdk-pixbuf",
@@ -25,15 +25,18 @@ nixPkgs = [
     "gobject-introspection.dev",
     "xorg.libxcb",
     "xorg.xcbutil",
-    "xorg.libxcb.dev",
-    "xorg.xcbproto"
+    "xorg.xcbproto",
+    "xorg.libX11",
+    "xorg.xorgproto"
 ]
 
 [phases.install]
 cmds = [
-    "export PKG_CONFIG_PATH=$(find /nix/store -name '*.pc' -path '*/lib/pkgconfig/*' | head -1 | xargs dirname):$PKG_CONFIG_PATH",
+    "export PKG_CONFIG_PATH=/nix/store/*/lib/pkgconfig:/nix/store/*/share/pkgconfig:$PKG_CONFIG_PATH",
+    "export CPATH=/nix/store/*/include:$CPATH",
+    "export LIBRARY_PATH=/nix/store/*/lib:$LIBRARY_PATH",
     "python -m venv --copies /opt/venv",
-    ". /opt/venv/bin/activate && export PKG_CONFIG_PATH=$(find /nix/store -name 'cairo.pc' | head -1 | xargs dirname):$PKG_CONFIG_PATH && pip install -r requirements.txt"
+    ". /opt/venv/bin/activate && pip install --no-cache-dir -r requirements.txt"
 ]
 
 [start]

@@ -45,16 +45,29 @@ if [ ! -z "$DATABASE_URL" ]; then
         echo "📥 Importando backup completo..."
         
         # Verificar si el archivo existe
+        BACKUP_FILE=""
         if [ -f "/app/backup.sql" ]; then
-            mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE $DB_NAME < /app/backup.sql
+            BACKUP_FILE="/app/backup.sql"
         elif [ -f "/app/database/ult_ver_backup_912.sql" ]; then
-            mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE $DB_NAME < /app/database/ult_ver_backup_912.sql
+            BACKUP_FILE="/app/database/ult_ver_backup_912.sql"
         else
             echo "❌ Archivo de backup no encontrado"
             echo "Buscando archivos de backup disponibles..."
             find /app -name "*.sql" -type f
             exit 1
         fi
+        
+        echo "Procesando backup para compatibilidad con MySQL..."
+        
+        # Crear archivo temporal con correcciones de compatibilidad
+        sed -e 's/utf8mb4_uca1400_ai_ci/utf8mb4_unicode_ci/g' \
+            -e 's/utf8mb4_0900_ai_ci/utf8mb4_unicode_ci/g' \
+            -e '/^CREATE DATABASE/d' \
+            -e '/^USE `/d' \
+            "$BACKUP_FILE" > /tmp/backup_fixed.sql
+        
+        echo "Importando backup procesado..."
+        mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE $DB_NAME < /tmp/backup_fixed.sql
         
         if [ $? -eq 0 ]; then
             echo "✅ Backup importado exitosamente"

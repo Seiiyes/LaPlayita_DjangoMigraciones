@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# Instalar dependencias del sistema para weasyprint
+# Instalar dependencias del sistema para weasyprint y mysql client
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y \
     libxcb1-dev \
     libxcb-render0-dev \
     libxcb-shm0-dev \
+    mysql-client \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -25,8 +26,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar el proyecto
+# Copiar el proyecto y el backup
 COPY la_playita_project/ ./la_playita_project/
+COPY database/ult_ver_backup_912.sql ./backup.sql
 
 # Cambiar al directorio del proyecto Django
 WORKDIR /app/la_playita_project
@@ -34,8 +36,8 @@ WORKDIR /app/la_playita_project
 # Exponer el puerto
 EXPOSE 8000
 
-# Crear script de inicio
-RUN echo '#!/bin/bash\ncd /app/la_playita_project\npython manage.py migrate\npython manage.py collectstatic --noinput\ngunicorn la_playita_project.wsgi:application --bind 0.0.0.0:${PORT:-8000}' > /start.sh
+# Copiar y configurar script de importación
+COPY import_backup.sh /start.sh
 RUN chmod +x /start.sh
 
 # Comando por defecto

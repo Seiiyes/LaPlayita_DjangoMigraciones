@@ -24,7 +24,9 @@ nixPkgs = [
     "gobject-introspection",
     "gobject-introspection.dev",
     "xorg.libxcb",
-    "xorg.xcbutil"
+    "xorg.xcbutil",
+    "xorg.libxcb.dev",
+    "xorg.xcbproto"
 ]
 
 [phases.install]

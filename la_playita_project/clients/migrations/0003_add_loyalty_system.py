@@ -11,8 +11,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(
-            sql="ALTER TABLE cliente ADD COLUMN puntos_totales DECIMAL(10, 2) DEFAULT 0.00;",
-            reverse_sql="ALTER TABLE cliente DROP COLUMN puntos_totales;"
-        )
+        migrations.AddField(
+            model_name='cliente',
+            name='puntos_totales',
+            field=models.DecimalField(decimal_places=2, default=0.00, max_digits=10),
+        ),
     ]

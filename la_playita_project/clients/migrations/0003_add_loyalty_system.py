@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunSQL(
-            sql="ALTER TABLE cliente ADD COLUMN IF NOT EXISTS puntos_totales DECIMAL(10, 2) DEFAULT 0.00;",
+            sql="ALTER TABLE cliente ADD COLUMN puntos_totales DECIMAL(10, 2) DEFAULT 0.00;",
             reverse_sql="ALTER TABLE cliente DROP COLUMN puntos_totales;"
         )
     ]

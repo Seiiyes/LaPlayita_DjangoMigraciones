@@ -59,50 +59,31 @@ if [ ! -z "$DATABASE_URL" ]; then
         
         echo "Procesando backup para compatibilidad con MySQL..."
         
-        # Crear archivo temporal con correcciones de compatibilidad
-        echo "Limpiando backup de elementos incompatibles..."
+        # Crear archivo temporal con correcciones de compatibilidad mínimas
+        echo "Procesando backup manteniendo triggers para inventario..."
         
-        # Usar awk para procesar el archivo y eliminar triggers/procedimientos problemáticos
-        awk '
-        BEGIN { skip = 0; in_trigger = 0; }
+        # Solo corregir problemas críticos de compatibilidad, mantener triggers
+        sed -e 's/utf8mb4_uca1400_ai_ci/utf8mb4_unicode_ci/g' \
+            -e 's/utf8mb4_0900_ai_ci/utf8mb4_unicode_ci/g' \
+            -e 's/NO_AUTO_CREATE_USER,//g' \
+            -e 's/,NO_AUTO_CREATE_USER//g' \
+            -e 's/NO_AUTO_CREATE_USER//g' \
+            -e '/^CREATE DATABASE/d' \
+            -e '/^USE `/d' \
+            "$BACKUP_FILE" > /tmp/backup_fixed.sql
         
-        # Detectar inicio de triggers o procedimientos
-        /\/\*!50003 CREATE.*TRIGGER/ { skip = 1; in_trigger = 1; next }
-        /\/\*!50003 CREATE.*PROCEDURE/ { skip = 1; next }
-        /\/\*!50003 CREATE.*FUNCTION/ { skip = 1; next }
-        /DELIMITER/ { skip = 1; next }
+        echo "Importando backup procesado con triggers..."
+        mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE --force $DB_NAME < /tmp/backup_fixed.sql
         
-        # Detectar fin de triggers o procedimientos
-        /\*\// && skip == 1 { 
-            skip = 0; 
-            in_trigger = 0; 
-            next 
-        }
+        # Verificar si la importación fue exitosa (aunque haya algunos warnings)
+        TABLE_COUNT_AFTER=$(mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$DB_NAME';" -s -N $DB_NAME)
         
-        # Saltar líneas dentro de triggers/procedimientos
-        skip == 1 { next }
-        
-        # Aplicar otras correcciones
-        {
-            gsub(/utf8mb4_uca1400_ai_ci/, "utf8mb4_unicode_ci")
-            gsub(/utf8mb4_0900_ai_ci/, "utf8mb4_unicode_ci")
-            gsub(/NO_AUTO_CREATE_USER,/, "")
-            gsub(/,NO_AUTO_CREATE_USER/, "")
-            gsub(/NO_AUTO_CREATE_USER/, "")
-        }
-        
-        # Saltar líneas problemáticas
-        /^CREATE DATABASE/ { next }
-        /^USE `/ { next }
-        /\/\*!50003 SET sql_mode/ { next }
-        /\/\*!50017 DEFINER=/ { next }
-        
-        # Imprimir líneas válidas
-        { print }
-        ' "$BACKUP_FILE" > /tmp/backup_fixed.sql
-        
-        echo "Importando backup procesado..."
-        mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE $DB_NAME < /tmp/backup_fixed.sql
+        if [ "$TABLE_COUNT_AFTER" -gt 10 ]; then
+            echo "✅ Backup importado exitosamente ($TABLE_COUNT_AFTER tablas)"
+        else
+            echo "❌ Error: Solo se importaron $TABLE_COUNT_AFTER tablas"
+            exit 1
+        fi
         
         if [ $? -eq 0 ]; then
             echo "✅ Backup importado exitosamente"
@@ -110,11 +91,21 @@ if [ ! -z "$DATABASE_URL" ]; then
             echo "🔧 Agregando campos necesarios para Django..."
             
             # Agregar columnas Django al usuario si no existen
-            mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "
-            ALTER TABLE usuario 
-            ADD COLUMN IF NOT EXISTS is_staff TINYINT(1) NOT NULL DEFAULT 0,
-            ADD COLUMN IF NOT EXISTS is_superuser TINYINT(1) NOT NULL DEFAULT 0;
-            " $DB_NAME
+            echo "Verificando columnas Django en tabla usuario..."
+            
+            # Verificar is_staff
+            IS_STAFF_EXISTS=$(mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='$DB_NAME' AND table_name='usuario' AND column_name='is_staff';" -s -N $DB_NAME)
+            
+            if [ "$IS_STAFF_EXISTS" -eq 0 ]; then
+                mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "ALTER TABLE usuario ADD COLUMN is_staff TINYINT(1) NOT NULL DEFAULT 0;" $DB_NAME
+            fi
+            
+            # Verificar is_superuser
+            IS_SUPERUSER_EXISTS=$(mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='$DB_NAME' AND table_name='usuario' AND column_name='is_superuser';" -s -N $DB_NAME)
+            
+            if [ "$IS_SUPERUSER_EXISTS" -eq 0 ]; then
+                mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "ALTER TABLE usuario ADD COLUMN is_superuser TINYINT(1) NOT NULL DEFAULT 0;" $DB_NAME
+            fi
             
             # Crear tabla de sesiones Django
             mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "

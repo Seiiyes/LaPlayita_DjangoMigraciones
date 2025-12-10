@@ -29,4 +29,7 @@ urlpatterns = [
     
     # === REPORTES ===
     path('reportes/', views.reportes, name='reportes'),
+    
+    # === EXPORTAR ===
+    path('productos/exportar/', views.exportar_productos_excel, name='exportar_productos'),
 ]

@@ -250,99 +250,84 @@ def reportes(request):
 @check_user_role(allowed_roles=['Administrador', 'Vendedor'])
 def exportar_productos_excel(request):
     """Exportar productos a Excel"""
-    
-    # Crear workbook
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Productos"
-    
-    # Estilos
-    header_font = Font(bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-    header_alignment = Alignment(horizontal="center", vertical="center")
-    
-    # Encabezados
-    headers = [
-        'ID', 'Nombre', 'Descripción', 'Categoría', 'Código de Barras',
-        'Stock Actual', 'Stock Mínimo', 'Precio Unitario', 'Costo Promedio',
-        'Valor Inventario', 'Estado Stock', 'Estado', 'Fecha Creación'
-    ]
-    
-    # Escribir encabezados
-    for col, header in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col, value=header)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = header_alignment
-    
-    # Obtener productos
-    productos = Producto.objects.select_related('categoria').filter(estado='activo')
-    
-    # Aplicar filtros si existen
-    search = request.GET.get('search')
-    if search:
-        productos = productos.filter(nombre__icontains=search)
-    
-    categoria = request.GET.get('categoria')
-    if categoria:
-        productos = productos.filter(categoria_id=categoria)
-    
-    # Escribir datos
-    for row, producto in enumerate(productos, 2):
-        # Calcular estado de stock
-        if producto.stock_actual <= 0:
-            estado_stock = 'SIN_STOCK'
-        elif producto.stock_actual <= producto.stock_critico:
-            estado_stock = 'STOCK_CRITICO'
-        elif producto.stock_actual <= producto.stock_minimo:
-            estado_stock = 'STOCK_BAJO'
-        else:
-            estado_stock = 'NORMAL'
+    try:
+        # Crear workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Productos"
         
-        # Calcular valor inventario
-        valor_inventario = producto.stock_actual * producto.costo_promedio
-        
-        data = [
-            producto.id,
-            producto.nombre,
-            producto.descripcion or '',
-            producto.categoria.nombre if producto.categoria else '',
-            producto.codigo_barras or '',
-            producto.stock_actual,
-            producto.stock_minimo,
-            float(producto.precio_unitario),
-            float(producto.costo_promedio),
-            float(valor_inventario),
-            estado_stock,
-            producto.estado,
-            producto.fecha_creacion.strftime('%Y-%m-%d %H:%M:%S') if producto.fecha_creacion else ''
+        # Encabezados simples
+        headers = [
+            'ID', 'Nombre', 'Descripción', 'Categoría', 'Código de Barras',
+            'Stock Actual', 'Stock Mínimo', 'Precio Unitario', 'Costo Promedio',
+            'Valor Inventario', 'Estado Stock', 'Estado'
         ]
         
-        for col, value in enumerate(data, 1):
-            ws.cell(row=row, column=col, value=value)
-    
-    # Ajustar ancho de columnas
-    for column in ws.columns:
-        max_length = 0
-        column_letter = column[0].column_letter
-        for cell in column:
-            try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except:
-                pass
-        adjusted_width = min(max_length + 2, 50)
-        ws.column_dimensions[column_letter].width = adjusted_width
-    
-    # Preparar respuesta
-    response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-    
-    filename = f'productos_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    
-    # Guardar workbook
-    wb.save(response)
-    
-    return response
+        # Escribir encabezados
+        for col, header in enumerate(headers, 1):
+            ws.cell(row=1, column=col, value=header)
+        
+        # Obtener productos
+        productos = Producto.objects.select_related('categoria').filter(estado='activo')
+        
+        # Aplicar filtros si existen
+        search = request.GET.get('search')
+        if search:
+            productos = productos.filter(nombre__icontains=search)
+        
+        categoria = request.GET.get('categoria')
+        if categoria:
+            productos = productos.filter(categoria_id=categoria)
+        
+        # Escribir datos
+        for row, producto in enumerate(productos, 2):
+            # Calcular estado de stock (basado en la lógica del modelo)
+            if producto.stock_actual <= 0:
+                estado_stock = 'SIN_STOCK'
+            elif producto.stock_actual < producto.stock_minimo:
+                estado_stock = 'STOCK_CRITICO'
+            elif producto.stock_actual < (producto.stock_minimo * 1.5):
+                estado_stock = 'STOCK_BAJO'
+            else:
+                estado_stock = 'NORMAL'
+            
+            # Calcular valor inventario
+            valor_inventario = float(producto.stock_actual) * float(producto.costo_promedio)
+            
+            data = [
+                producto.id,
+                producto.nombre,
+                producto.descripcion or '',
+                producto.categoria.nombre if producto.categoria else '',
+                producto.codigo_barras or '',
+                producto.stock_actual,
+                producto.stock_minimo,
+                float(producto.precio_unitario),
+                float(producto.costo_promedio),
+                valor_inventario,
+                estado_stock,
+                producto.estado
+            ]
+            
+            for col, value in enumerate(data, 1):
+                ws.cell(row=row, column=col, value=value)
+        
+        # Preparar respuesta
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+        filename = f'productos_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        # Guardar workbook
+        wb.save(response)
+        
+        return response
+        
+    except Exception as e:
+        # En caso de error, devolver JSON con el error
+        return JsonResponse({
+            'error': True,
+            'message': f'Error al generar Excel: {str(e)}'
+        }, status=500)

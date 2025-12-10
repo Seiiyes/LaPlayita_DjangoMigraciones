@@ -528,28 +528,77 @@ function limpiarFiltros() {
 }
 
 // Exportar a Excel
-function exportarExcel() {
-    // Construir URL con filtros actuales
-    const params = new URLSearchParams(currentFilters);
-    const url = `/inventory/productos/exportar/?${params}`;
-    
-    // Crear enlace temporal y hacer clic
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = '';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Mostrar mensaje de éxito
+async function exportarExcel() {
+    try {
+        // Mostrar loading
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Generando...';
+        btn.disabled = true;
+        
+        // Construir URL con filtros actuales
+        const params = new URLSearchParams(currentFilters);
+        const url = `/inventory/productos/exportar/?${params}`;
+        
+        // Hacer fetch para verificar que la respuesta sea correcta
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        
+        // Verificar que sea un archivo Excel
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('spreadsheetml')) {
+            // Si no es Excel, probablemente sea un error en HTML
+            const text = await response.text();
+            console.error('Respuesta no es Excel:', text);
+            throw new Error('El servidor no devolvió un archivo Excel válido');
+        }
+        
+        // Crear blob y descargar
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `productos_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Limpiar URL
+        window.URL.revokeObjectURL(downloadUrl);
+        
+        // Mostrar mensaje de éxito
+        mostrarToast('Archivo Excel descargado exitosamente', 'success');
+        
+    } catch (error) {
+        console.error('Error al exportar:', error);
+        mostrarToast(`Error al exportar: ${error.message}`, 'danger');
+    } finally {
+        // Restaurar botón
+        const btn = document.querySelector('button[onclick="exportarExcel()"]');
+        if (btn) {
+            btn.innerHTML = '<i class="bi bi-file-earmark-excel"></i> Exportar';
+            btn.disabled = false;
+        }
+    }
+}
+
+// Función helper para mostrar toasts
+function mostrarToast(mensaje, tipo = 'success') {
     const toast = document.createElement('div');
-    toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed top-0 end-0 m-3';
+    toast.className = `toast align-items-center text-white bg-${tipo} border-0 position-fixed top-0 end-0 m-3`;
     toast.style.zIndex = '9999';
+    
+    const icon = tipo === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle';
+    
     toast.innerHTML = `
         <div class="d-flex">
             <div class="toast-body">
-                <i class="bi bi-check-circle me-2"></i>
-                Exportación iniciada. El archivo se descargará automáticamente.
+                <i class="bi ${icon} me-2"></i>
+                ${mensaje}
             </div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
         </div>

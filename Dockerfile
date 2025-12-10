@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     libcairo2-dev \
     libpango1.0-dev \
-    libgdk-pixbuf2.0-dev \
+    libgdk-pixbuf-2.0-dev \
     libffi-dev \
     libfreetype6-dev \
     libfontconfig1-dev \
@@ -32,4 +32,4 @@ COPY la_playita_project/ ./la_playita_project/
 WORKDIR /app/la_playita_project
 
 # Comando por defecto
-CMD ["gunicorn", "la_playita_project.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "la_playita_project.wsgi:application", "--bind", "0.0.0.0:$PORT"]

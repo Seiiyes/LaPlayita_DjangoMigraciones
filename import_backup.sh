@@ -60,16 +60,46 @@ if [ ! -z "$DATABASE_URL" ]; then
         echo "Procesando backup para compatibilidad con MySQL..."
         
         # Crear archivo temporal con correcciones de compatibilidad
-        sed -e 's/utf8mb4_uca1400_ai_ci/utf8mb4_unicode_ci/g' \
-            -e 's/utf8mb4_0900_ai_ci/utf8mb4_unicode_ci/g' \
-            -e 's/NO_AUTO_CREATE_USER,//g' \
-            -e 's/,NO_AUTO_CREATE_USER//g' \
-            -e 's/NO_AUTO_CREATE_USER//g' \
-            -e '/^CREATE DATABASE/d' \
-            -e '/^USE `/d' \
-            -e '/\/\*!50003 SET sql_mode/d' \
-            -e '/\/\*!50017 DEFINER=/d' \
-            "$BACKUP_FILE" > /tmp/backup_fixed.sql
+        echo "Limpiando backup de elementos incompatibles..."
+        
+        # Usar awk para procesar el archivo y eliminar triggers/procedimientos problemáticos
+        awk '
+        BEGIN { skip = 0; in_trigger = 0; }
+        
+        # Detectar inicio de triggers o procedimientos
+        /\/\*!50003 CREATE.*TRIGGER/ { skip = 1; in_trigger = 1; next }
+        /\/\*!50003 CREATE.*PROCEDURE/ { skip = 1; next }
+        /\/\*!50003 CREATE.*FUNCTION/ { skip = 1; next }
+        /DELIMITER/ { skip = 1; next }
+        
+        # Detectar fin de triggers o procedimientos
+        /\*\// && skip == 1 { 
+            skip = 0; 
+            in_trigger = 0; 
+            next 
+        }
+        
+        # Saltar líneas dentro de triggers/procedimientos
+        skip == 1 { next }
+        
+        # Aplicar otras correcciones
+        {
+            gsub(/utf8mb4_uca1400_ai_ci/, "utf8mb4_unicode_ci")
+            gsub(/utf8mb4_0900_ai_ci/, "utf8mb4_unicode_ci")
+            gsub(/NO_AUTO_CREATE_USER,/, "")
+            gsub(/,NO_AUTO_CREATE_USER/, "")
+            gsub(/NO_AUTO_CREATE_USER/, "")
+        }
+        
+        # Saltar líneas problemáticas
+        /^CREATE DATABASE/ { next }
+        /^USE `/ { next }
+        /\/\*!50003 SET sql_mode/ { next }
+        /\/\*!50017 DEFINER=/ { next }
+        
+        # Imprimir líneas válidas
+        { print }
+        ' "$BACKUP_FILE" > /tmp/backup_fixed.sql
         
         echo "Importando backup procesado..."
         mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE $DB_NAME < /tmp/backup_fixed.sql

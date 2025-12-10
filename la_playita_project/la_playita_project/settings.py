@@ -301,3 +301,39 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8000",
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+# =======================
+# CSRF Configuration for Railway
+# =======================
+
+# Permitir CSRF desde cualquier origen en producción
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.railway.app',
+    'https://*.up.railway.app',
+]
+
+# También agregar el dominio específico si existe
+if RAILWAY_STATIC_URL:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{RAILWAY_STATIC_URL}')
+
+# Agregar todos los hosts permitidos a CSRF_TRUSTED_ORIGINS
+for host in ALLOWED_HOSTS:
+    if host != '*' and host:
+        if not host.startswith('http'):
+            CSRF_TRUSTED_ORIGINS.append(f'https://{host}')
+            CSRF_TRUSTED_ORIGINS.append(f'http://{host}')
+
+# En desarrollo, permitir localhost
+else:
+    CSRF_TRUSTED_ORIGINS = [
+        'http://localhost:8000',
+        'http://127.0.0.1:8000',
+    ]
+
+# Configuración adicional de seguridad
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_TZ = True
+
+# CORS configuration
+CORS_ALLOW_ALL_ORIGINS = True  # Solo para desarrollo/testing
+CORS_ALLOW_CREDENTIALS = True

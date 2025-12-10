@@ -18,16 +18,16 @@ if [ ! -z "$DATABASE_URL" ]; then
     echo "Conectando a: $DB_HOST:$DB_PORT como $DB_USER"
     
     # Verificar conexión (deshabilitar SSL para Railway)
-    mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl-mode=DISABLED -e "SELECT 1;" $DB_NAME
+    mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "SELECT 1;" $DB_NAME
     if [ $? -eq 0 ]; then
         echo "Conexión exitosa a la base de datos"
         
         # Verificar si las tablas ya existen
-        TABLE_COUNT=$(mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl-mode=DISABLED -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$DB_NAME';" -s -N $DB_NAME)
+        TABLE_COUNT=$(mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$DB_NAME';" -s -N $DB_NAME)
         
         if [ "$TABLE_COUNT" -eq 0 ] || [ "$TABLE_COUNT" -lt 10 ]; then
             echo "Base de datos vacía o incompleta. Importando backup..."
-            mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl-mode=DISABLED $DB_NAME < /app/database/ult_ver_backup_912.sql
+            mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE $DB_NAME < /app/database/ult_ver_backup_912.sql
             
             if [ $? -eq 0 ]; then
                 echo "✅ Backup importado exitosamente"

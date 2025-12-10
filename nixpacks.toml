@@ -22,7 +22,11 @@ nixPkgs = [
     "zlib",
     "zlib.dev",
     "gobject-introspection",
-    "gobject-introspection.dev"
+    "gobject-introspection.dev",
+    "libxcb",
+    "libxcb.dev",
+    "xcb-util",
+    "xcb-util.dev"
 ]
 
 [phases.install]

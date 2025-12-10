@@ -62,8 +62,13 @@ if [ ! -z "$DATABASE_URL" ]; then
         # Crear archivo temporal con correcciones de compatibilidad
         sed -e 's/utf8mb4_uca1400_ai_ci/utf8mb4_unicode_ci/g' \
             -e 's/utf8mb4_0900_ai_ci/utf8mb4_unicode_ci/g' \
+            -e 's/NO_AUTO_CREATE_USER,//g' \
+            -e 's/,NO_AUTO_CREATE_USER//g' \
+            -e 's/NO_AUTO_CREATE_USER//g' \
             -e '/^CREATE DATABASE/d' \
             -e '/^USE `/d' \
+            -e '/\/\*!50003 SET sql_mode/d' \
+            -e '/\/\*!50017 DEFINER=/d' \
             "$BACKUP_FILE" > /tmp/backup_fixed.sql
         
         echo "Importando backup procesado..."

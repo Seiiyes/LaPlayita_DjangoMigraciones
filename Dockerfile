@@ -31,5 +31,12 @@ COPY la_playita_project/ ./la_playita_project/
 # Cambiar al directorio del proyecto Django
 WORKDIR /app/la_playita_project
 
+# Exponer el puerto
+EXPOSE 8000
+
+# Crear script de inicio
+RUN echo '#!/bin/bash\ncd /app/la_playita_project\npython manage.py migrate\npython manage.py collectstatic --noinput\ngunicorn la_playita_project.wsgi:application --bind 0.0.0.0:${PORT:-8000}' > /start.sh
+RUN chmod +x /start.sh
+
 # Comando por defecto
-CMD ["gunicorn", "la_playita_project.wsgi:application", "--bind", "0.0.0.0:$PORT"]
+CMD ["/start.sh"]

@@ -26,6 +26,12 @@ DEBUG = os.environ.get("DEBUG", "True") == "True"
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
 
+# Railway hostname
+RAILWAY_STATIC_URL = os.environ.get("RAILWAY_STATIC_URL")
+if RAILWAY_STATIC_URL and RAILWAY_STATIC_URL not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(RAILWAY_STATIC_URL)
+
+# Render hostname (legacy)
 RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
@@ -66,6 +72,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -152,8 +159,9 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 1800  # 30 minutos
 SESSION_SAVE_EVERY_REQUEST = True
 
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+# Solo usar cookies seguras en producción
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True
 
 
@@ -177,6 +185,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
+# WhiteNoise configuration
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 
 # =======================

@@ -33,7 +33,7 @@ class GestionMesas {
             if (data.success) {
                 const mesa = data.mesas.find(m => m.id === mesaId);
                 if (mesa && mesa.cuenta_abierta) {
-                    this.mostrarIndicadorMesa(mesaId, mesa.numero);
+                    this.mostrarIndicadorMesa(mesaId, mesa.nombre);
                 } else {
                     // La mesa ya no está activa, limpiar
                     localStorage.removeItem('mesa_activa');
@@ -91,15 +91,13 @@ class GestionMesas {
                                 <i class="bi ${estadoIcon} fs-1 text-${estadoColor}"></i>
                             </div>
                             <h5 class="card-title">${mesa.nombre}</h5>
-                            <p class="text-muted mb-2">
-                                <i class="bi bi-people me-1"></i>${mesa.capacidad} personas
-                            </p>
+
                             ${mesa.cuenta_abierta ? `
                                 <div class="alert alert-warning py-2 mb-2">
                                     <strong>Total: $${this.formatearMoneda(mesa.total_cuenta)}</strong>
                                     ${mesa.cliente ? `<br><small>${mesa.cliente.nombre}</small>` : ''}
                                 </div>
-                                <button class="btn btn-sm btn-info w-100 mb-1" onclick="gestionMesas.seleccionarMesa(${mesa.id}, '${mesa.numero}')">
+                                <button class="btn btn-sm btn-info w-100 mb-1" onclick="gestionMesas.seleccionarMesa(${mesa.id}, '${mesa.nombre}')">
                                     <i class="bi bi-cursor me-1"></i>Seleccionar Mesa
                                 </button>
                                 <button class="btn btn-sm btn-primary w-100 mb-1" onclick="gestionMesas.verCuenta(${mesa.id})">
@@ -113,10 +111,10 @@ class GestionMesas {
                                     <i class="bi bi-door-open me-1"></i>Abrir Mesa
                                 </button>
                                 <div class="btn-group w-100" role="group">
-                                    <button class="btn btn-sm btn-outline-primary" onclick="gestionMesas.editarMesa(${mesa.id}, '${mesa.numero}', '${mesa.nombre}', ${mesa.capacidad})" title="Editar">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="gestionMesas.editarMesa(${mesa.id}, '${mesa.nombre}')" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="gestionMesas.eliminarMesa(${mesa.id}, '${mesa.numero}')" title="Eliminar">
+                                    <button class="btn btn-sm btn-outline-danger" onclick="gestionMesas.eliminarMesa(${mesa.id}, '${mesa.nombre}')" title="Eliminar">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -171,7 +169,7 @@ class GestionMesas {
         }
     }
 
-    mostrarIndicadorMesa(mesaId, mesaNumero) {
+    mostrarIndicadorMesa(mesaId, mesaNombre) {
         // Remover indicador anterior si existe
         const indicadorAnterior = document.getElementById('indicador-mesa');
         if (indicadorAnterior) {
@@ -188,7 +186,7 @@ class GestionMesas {
                     <div class="d-flex align-items-center">
                         <i class="bi bi-door-closed-fill me-2 fs-4"></i>
                         <div>
-                            <strong class="fs-5">Mesa ${mesaNumero} Activa</strong>
+                            <strong class="fs-5">${mesaNombre} Activa</strong>
                             <br>
                             <small>Los productos se agregarán a esta mesa</small>
                         </div>
@@ -215,7 +213,7 @@ class GestionMesas {
         document.body.style.paddingTop = '80px';
     }
 
-    seleccionarMesa(mesaId, mesaNumero) {
+    seleccionarMesa(mesaId, mesaNombre) {
         // Cerrar modal de mesas
         const modalMesas = bootstrap.Modal.getInstance(document.getElementById('modalMesas'));
         if (modalMesas) {
@@ -224,8 +222,8 @@ class GestionMesas {
 
         this.mesaSeleccionada = mesaId;
         localStorage.setItem('mesa_activa', mesaId);
-        this.mostrarIndicadorMesa(mesaId, mesaNumero);
-        this.mostrarNotificacion(`Mesa ${mesaNumero} seleccionada. Los productos se agregarán a esta mesa.`, 'success');
+        this.mostrarIndicadorMesa(mesaId, mesaNombre);
+        this.mostrarNotificacion(`${mesaNombre} seleccionada. Los productos se agregarán a esta mesa.`, 'success');
     }
 
     desactivarMesa() {
@@ -352,11 +350,7 @@ class GestionMesas {
     }
 
     async cerrarMesa(mesaId) {
-        if (!confirm('¿Desea cerrar esta mesa y generar la factura?')) {
-            return;
-        }
-
-        // Obtener datos de la mesa
+        // Obtener datos de la mesa primero
         try {
             const response = await fetch(`/pos/api/mesa/${mesaId}/items/`);
             
@@ -365,7 +359,135 @@ class GestionMesas {
             }
             
             const data = await response.json();
-            console.log('Datos de la mesa:', data);
+
+            if (data.success) {
+                // Mostrar modal de confirmación con detalles de la mesa
+                this.mostrarModalCerrarMesa(mesaId, data.items, data.total, data.mesa_numero);
+            } else {
+                this.mostrarNotificacion('Error: ' + (data.error || 'No se pudieron cargar los items'), 'error');
+            }
+        } catch (error) {
+            console.error('Error completo:', error);
+            this.mostrarNotificacion('Error al cargar los datos de la mesa: ' + error.message, 'error');
+        }
+    }
+
+    mostrarModalCerrarMesa(mesaId, items, total, mesaNombre) {
+        // Crear lista de items para mostrar
+        let itemsHTML = '';
+        if (items && items.length > 0) {
+            itemsHTML = items.map(item => `
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <div>
+                        <strong>${item.producto}</strong>
+                        ${item.anotacion ? `<br><small class="text-muted"><i class="bi bi-chat-left-text me-1"></i>${item.anotacion}</small>` : ''}
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-primary me-2">${item.cantidad}</span>
+                        <strong>${this.formatearMoneda(item.subtotal)}</strong>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            itemsHTML = '<div class="text-center text-muted py-4"><i class="bi bi-cart-x fs-1 mb-2 d-block"></i>No hay productos en esta mesa</div>';
+        }
+
+        const modalHTML = `
+            <div class="modal fade" id="modalCerrarMesa" tabindex="-1">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header bg-success text-white border-0">
+                            <h5 class="modal-title">
+                                <i class="bi bi-check-circle-fill me-2"></i>Cerrar Mesa y Generar Factura
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="text-center mb-4">
+                                <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                    <i class="bi bi-receipt text-success" style="font-size: 2.5rem;"></i>
+                                </div>
+                                <h4 class="text-dark mb-2">${mesaNombre || 'Mesa'}</h4>
+                                <p class="text-muted">¿Desea cerrar esta mesa y generar la factura?</p>
+                            </div>
+
+                            <div class="card border-0 bg-light mb-4">
+                                <div class="card-header bg-transparent border-0 pb-0">
+                                    <h6 class="mb-0 text-dark">
+                                        <i class="bi bi-list-ul me-2"></i>Resumen de Productos
+                                    </h6>
+                                </div>
+                                <div class="card-body pt-2" style="max-height: 300px; overflow-y: auto;">
+                                    ${itemsHTML}
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card border-0 bg-primary text-white">
+                                        <div class="card-body text-center">
+                                            <i class="bi bi-currency-dollar fs-1 mb-2"></i>
+                                            <h3 class="mb-0">${this.formatearMoneda(total)}</h3>
+                                            <small>Total a Facturar</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card border-0 bg-info text-white">
+                                        <div class="card-body text-center">
+                                            <i class="bi bi-receipt-cutoff fs-1 mb-2"></i>
+                                            <h5 class="mb-0">Factura</h5>
+                                            <small>Se generará automáticamente</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            ${items.length === 0 ? `
+                                <div class="alert alert-warning border-0 mt-3">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    <strong>Atención:</strong> Esta mesa no tiene productos. Se cerrará sin generar factura.
+                                </div>
+                            ` : `
+                                <div class="alert alert-warning border-0 mt-3">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    <strong>Importante:</strong> Al cerrar la mesa se generará la factura y la mesa será eliminada permanentemente.
+                                </div>
+                            `}
+                        </div>
+                        <div class="modal-footer border-0 justify-content-center">
+                            <button type="button" class="btn btn-light btn-lg px-4 me-3" data-bs-dismiss="modal">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </button>
+                            <button type="button" class="btn btn-success btn-lg px-4" onclick="gestionMesas.confirmarCerrarMesa(${mesaId})">
+                                <i class="bi bi-check-circle-fill me-1"></i>Cerrar y Eliminar Mesa
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remover modal anterior si existe
+        const modalAnterior = document.getElementById('modalCerrarMesa');
+        if (modalAnterior) modalAnterior.remove();
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = new bootstrap.Modal(document.getElementById('modalCerrarMesa'));
+        modal.show();
+    }
+
+    async confirmarCerrarMesa(mesaId) {
+        // Mostrar loading en el botón
+        const btnCerrar = document.querySelector('#modalCerrarMesa .btn-success');
+        const textoOriginal = btnCerrar.innerHTML;
+        btnCerrar.disabled = true;
+        btnCerrar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cerrando y Eliminando...';
+
+        try {
+            // Obtener datos de la mesa nuevamente
+            const response = await fetch(`/pos/api/mesa/${mesaId}/items/`);
+            const data = await response.json();
 
             if (data.success) {
                 // Guardar el ID de la mesa para usarlo después
@@ -373,6 +495,10 @@ class GestionMesas {
                 
                 // Cargar items en el carrito
                 this.cargarItemsEnCarrito(data.items);
+                
+                // Cerrar modal actual
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalCerrarMesa'));
+                modal.hide();
                 
                 // Mostrar el modal de pago usando la función del carrito
                 if (window.carritoPOS) {
@@ -386,14 +512,20 @@ class GestionMesas {
                         }
                     }, 100);
                 } else {
-                    alert('Error: El sistema de carrito no está disponible');
+                    this.mostrarNotificacion('Error: El sistema de carrito no está disponible', 'error');
+                    btnCerrar.disabled = false;
+                    btnCerrar.innerHTML = textoOriginal;
                 }
             } else {
-                alert('Error: ' + (data.error || 'No se pudieron cargar los items'));
+                this.mostrarNotificacion('Error: ' + (data.error || 'No se pudieron cargar los items'), 'error');
+                btnCerrar.disabled = false;
+                btnCerrar.innerHTML = textoOriginal;
             }
         } catch (error) {
             console.error('Error completo:', error);
-            alert('Error al cargar los datos de la mesa: ' + error.message);
+            this.mostrarNotificacion('Error al procesar el cierre de mesa: ' + error.message, 'error');
+            btnCerrar.disabled = false;
+            btnCerrar.innerHTML = textoOriginal;
         }
     }
 
@@ -481,11 +613,9 @@ class GestionMesas {
                 this.mostrarNotificacion(data.mensaje, 'success');
                 this.cargarMesas();
                 
-                // Redirigir a detalle de venta
+                // Mostrar modal para ver factura
                 setTimeout(() => {
-                    if (confirm('¿Desea ver la factura?')) {
-                        window.location.href = `/pos/venta/${data.venta_id}/`;
-                    }
+                    this.mostrarModalVerFactura(data.venta_id);
                 }, 500);
             } else {
                 alert('Error: ' + data.error);
@@ -660,11 +790,9 @@ class GestionMesas {
                 this.mostrarNotificacion(data.mensaje, 'success');
                 this.cargarMesas();
                 
-                // Redirigir a detalle de venta
+                // Mostrar modal para ver factura
                 setTimeout(() => {
-                    if (confirm('¿Desea ver la factura?')) {
-                        window.location.href = `/pos/venta/${data.venta_id}/`;
-                    }
+                    this.mostrarModalVerFactura(data.venta_id);
                 }, 500);
             } else {
                 alert('Error: ' + data.error);
@@ -687,19 +815,23 @@ class GestionMesas {
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>El número de mesa se asignará automáticamente.</strong>
+                                Solo necesitas especificar el nombre y características.
+                            </div>
                             <form id="formCrearMesa">
                                 <div class="mb-3">
-                                    <label for="numero-mesa" class="form-label">Número de Mesa *</label>
-                                    <input type="text" class="form-control" id="numero-mesa" required placeholder="Ej: 1, A1, VIP1">
+                                    <label for="nombre-mesa" class="form-label">Nombre de la Mesa</label>
+                                    <input type="text" class="form-control" id="nombre-mesa" placeholder="Ej: Mesa Principal, Terraza 1, VIP..." autofocus>
+                                    <small class="text-muted">Si no especificas un nombre, se generará automáticamente</small>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="nombre-mesa" class="form-label">Nombre</label>
-                                    <input type="text" class="form-control" id="nombre-mesa" placeholder="Ej: Mesa Principal">
+                                    <label for="descripcion-mesa" class="form-label">Descripción (opcional)</label>
+                                    <input type="text" class="form-control" id="descripcion-mesa" placeholder="Ej: Junto a la ventana, Vista al jardín...">
+                                    <small class="text-muted">Información adicional sobre ubicación o características</small>
                                 </div>
-                                <div class="mb-3">
-                                    <label for="capacidad-mesa" class="form-label">Capacidad (personas)</label>
-                                    <input type="number" class="form-control" id="capacidad-mesa" value="4" min="1" max="20">
-                                </div>
+
                             </form>
                         </div>
                         <div class="modal-footer">
@@ -722,14 +854,8 @@ class GestionMesas {
     }
 
     async crearMesa() {
-        const numero = document.getElementById('numero-mesa').value.trim();
-        const nombre = document.getElementById('nombre-mesa').value.trim() || `Mesa ${numero}`;
-        const capacidad = parseInt(document.getElementById('capacidad-mesa').value);
-
-        if (!numero) {
-            alert('El número de mesa es obligatorio');
-            return;
-        }
+        const nombre = document.getElementById('nombre-mesa').value.trim();
+        const descripcion = document.getElementById('descripcion-mesa').value.trim();
 
         try {
             const response = await fetch('/pos/api/mesa/crear/', {
@@ -738,13 +864,13 @@ class GestionMesas {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': this.obtenerCSRFToken()
                 },
-                body: JSON.stringify({ numero, nombre, capacidad })
+                body: JSON.stringify({ nombre, descripcion })
             });
 
             const data = await response.json();
 
             if (data.success) {
-                alert(data.mensaje);
+                this.mostrarNotificacion(data.mensaje, 'success');
                 const modal = bootstrap.Modal.getInstance(document.getElementById('modalCrearMesa'));
                 modal.hide();
                 this.cargarMesas();
@@ -757,7 +883,7 @@ class GestionMesas {
         }
     }
 
-    editarMesa(mesaId, numero, nombre, capacidad) {
+    editarMesa(mesaId, nombre) {
         const modalHTML = `
             <div class="modal fade" id="modalEditarMesa" tabindex="-1">
                 <div class="modal-dialog">
@@ -769,18 +895,19 @@ class GestionMesas {
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                Solo puedes cambiar el nombre de la mesa.
+                            </div>
                             <form id="formEditarMesa">
                                 <div class="mb-3">
-                                    <label for="edit-numero-mesa" class="form-label">Número de Mesa *</label>
-                                    <input type="text" class="form-control" id="edit-numero-mesa" value="${numero}" required>
+                                    <label for="edit-nombre-mesa" class="form-label">Nombre de la Mesa</label>
+                                    <input type="text" class="form-control" id="edit-nombre-mesa" value="${nombre}" autofocus>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="edit-nombre-mesa" class="form-label">Nombre</label>
-                                    <input type="text" class="form-control" id="edit-nombre-mesa" value="${nombre}">
-                                </div>
-                                <div class="mb-3">
-                                    <label for="edit-capacidad-mesa" class="form-label">Capacidad (personas)</label>
-                                    <input type="number" class="form-control" id="edit-capacidad-mesa" value="${capacidad}" min="1" max="20">
+                                    <label for="edit-descripcion-mesa" class="form-label">Descripción (opcional)</label>
+                                    <input type="text" class="form-control" id="edit-descripcion-mesa" placeholder="Agregar descripción...">
+                                    <small class="text-muted">Se agregará entre paréntesis al nombre</small>
                                 </div>
                             </form>
                         </div>
@@ -804,9 +931,13 @@ class GestionMesas {
     }
 
     async guardarEdicionMesa(mesaId) {
-        const numero = document.getElementById('edit-numero-mesa').value.trim();
         const nombre = document.getElementById('edit-nombre-mesa').value.trim();
-        const capacidad = parseInt(document.getElementById('edit-capacidad-mesa').value);
+        const descripcion = document.getElementById('edit-descripcion-mesa').value.trim();
+
+        if (!nombre) {
+            alert('El nombre de la mesa es obligatorio');
+            return;
+        }
 
         try {
             const response = await fetch(`/pos/api/mesa/${mesaId}/editar/`, {
@@ -815,13 +946,13 @@ class GestionMesas {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': this.obtenerCSRFToken()
                 },
-                body: JSON.stringify({ numero, nombre, capacidad })
+                body: JSON.stringify({ nombre, descripcion })
             });
 
             const data = await response.json();
 
             if (data.success) {
-                alert(data.mensaje);
+                this.mostrarNotificacion(data.mensaje, 'success');
                 const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarMesa'));
                 modal.hide();
                 this.cargarMesas();
@@ -834,10 +965,67 @@ class GestionMesas {
         }
     }
 
-    async eliminarMesa(mesaId, numero) {
-        if (!confirm(`¿Está seguro de eliminar la Mesa ${numero}?`)) {
-            return;
-        }
+    eliminarMesa(mesaId, nombre) {
+        this.mostrarModalEliminar(mesaId, nombre);
+    }
+
+    mostrarModalEliminar(mesaId, nombre) {
+        const modalHTML = `
+            <div class="modal fade" id="modalEliminarMesa" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header bg-danger text-white border-0">
+                            <h5 class="modal-title">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmar Eliminación
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center py-4">
+                            <div class="mb-4">
+                                <i class="bi bi-trash3-fill text-danger" style="font-size: 4rem;"></i>
+                            </div>
+                            <h4 class="mb-3 text-dark">¿Eliminar Mesa?</h4>
+                            <p class="text-muted mb-4">
+                                Estás a punto de eliminar <strong>"${nombre}"</strong>
+                                <br>
+                                <small class="text-warning">
+                                    <i class="bi bi-exclamation-circle me-1"></i>
+                                    Esta acción no se puede deshacer
+                                </small>
+                            </p>
+                            <div class="alert alert-warning border-0 bg-light">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Nota:</strong> Solo se desactivará la mesa, no se eliminará permanentemente
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 justify-content-center">
+                            <button type="button" class="btn btn-light btn-lg px-4 me-3" data-bs-dismiss="modal">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </button>
+                            <button type="button" class="btn btn-danger btn-lg px-4" onclick="gestionMesas.confirmarEliminarMesa(${mesaId})">
+                                <i class="bi bi-trash3 me-1"></i>Sí, Eliminar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remover modal anterior si existe
+        const modalAnterior = document.getElementById('modalEliminarMesa');
+        if (modalAnterior) modalAnterior.remove();
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = new bootstrap.Modal(document.getElementById('modalEliminarMesa'));
+        modal.show();
+    }
+
+    async confirmarEliminarMesa(mesaId) {
+        // Mostrar loading en el botón
+        const btnEliminar = document.querySelector('#modalEliminarMesa .btn-danger');
+        const textoOriginal = btnEliminar.innerHTML;
+        btnEliminar.disabled = true;
+        btnEliminar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Eliminando...';
 
         try {
             const response = await fetch(`/pos/api/mesa/${mesaId}/eliminar/`, {
@@ -851,14 +1039,22 @@ class GestionMesas {
             const data = await response.json();
 
             if (data.success) {
-                alert(data.mensaje);
+                // Cerrar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalEliminarMesa'));
+                modal.hide();
+                
+                this.mostrarNotificacion(data.mensaje, 'success');
                 this.cargarMesas();
             } else {
-                alert('Error: ' + data.error);
+                this.mostrarNotificacion('Error: ' + data.error, 'error');
+                btnEliminar.disabled = false;
+                btnEliminar.innerHTML = textoOriginal;
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error al eliminar la mesa');
+            this.mostrarNotificacion('Error al eliminar la mesa', 'error');
+            btnEliminar.disabled = false;
+            btnEliminar.innerHTML = textoOriginal;
         }
     }
 
@@ -929,6 +1125,77 @@ class GestionMesas {
 
     formatearMoneda(valor) {
         return parseFloat(valor).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    mostrarModalVerFactura(ventaId) {
+        const modalHTML = `
+            <div class="modal fade" id="modalVerFactura" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header bg-info text-white border-0">
+                            <h5 class="modal-title">
+                                <i class="bi bi-receipt-cutoff me-2"></i>Mesa Cerrada y Eliminada
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center py-4">
+                            <div class="mb-4">
+                                <div class="bg-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                    <i class="bi bi-check-lg text-white" style="font-size: 2.5rem;"></i>
+                                </div>
+                                <h4 class="text-success mb-2">¡Mesa Cerrada y Eliminada!</h4>
+                                <p class="text-muted mb-0">La mesa ha sido cerrada, eliminada y la factura ha sido generada correctamente.</p>
+                            </div>
+                            
+                            <div class="alert alert-info border-0 bg-light">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Factura #${ventaId}</strong> generada exitosamente
+                            </div>
+
+                            <div class="d-flex justify-content-center gap-3 mt-4">
+                                <div class="text-center">
+                                    <i class="bi bi-eye-fill text-primary fs-1 mb-2"></i>
+                                    <p class="small text-muted mb-0">Ver Detalles</p>
+                                </div>
+                                <div class="text-center">
+                                    <i class="bi bi-printer-fill text-secondary fs-1 mb-2"></i>
+                                    <p class="small text-muted mb-0">Imprimir</p>
+                                </div>
+                                <div class="text-center">
+                                    <i class="bi bi-download text-success fs-1 mb-2"></i>
+                                    <p class="small text-muted mb-0">Descargar</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 justify-content-center">
+                            <button type="button" class="btn btn-light btn-lg px-4 me-3" data-bs-dismiss="modal">
+                                <i class="bi bi-x-circle me-1"></i>Continuar
+                            </button>
+                            <button type="button" class="btn btn-info btn-lg px-4" onclick="gestionMesas.verFactura(${ventaId})">
+                                <i class="bi bi-receipt me-1"></i>Ver Factura
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remover modal anterior si existe
+        const modalAnterior = document.getElementById('modalVerFactura');
+        if (modalAnterior) modalAnterior.remove();
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = new bootstrap.Modal(document.getElementById('modalVerFactura'));
+        modal.show();
+    }
+
+    verFactura(ventaId) {
+        // Cerrar modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalVerFactura'));
+        if (modal) modal.hide();
+        
+        // Redirigir a la factura
+        window.location.href = `/pos/venta/${ventaId}/`;
     }
 
     obtenerCSRFToken() {

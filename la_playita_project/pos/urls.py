@@ -28,6 +28,7 @@ urlpatterns = [
     
     # APIs de Mesas
     path('api/mesas/', views.api_listar_mesas, name='api_listar_mesas'),
+
     path('api/mesa/crear/', views.api_crear_mesa, name='api_crear_mesa'),
     path('api/mesa/<int:mesa_id>/editar/', views.api_editar_mesa, name='api_editar_mesa'),
     path('api/mesa/<int:mesa_id>/eliminar/', views.api_eliminar_mesa, name='api_eliminar_mesa'),

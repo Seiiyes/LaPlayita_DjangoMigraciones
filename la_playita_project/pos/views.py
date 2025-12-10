@@ -711,27 +711,60 @@ def api_crear_mesa(request):
     
     try:
         data = json.loads(request.body)
-        numero = data.get('numero')
-        nombre = data.get('nombre', f'Mesa {numero}')
-        capacidad = int(data.get('capacidad', 4))
+        nombre = data.get('nombre', '').strip()
+        descripcion = data.get('descripcion', '').strip()
+        capacidad = 4  # Capacidad fija por defecto
         
-        # Verificar que no exista una mesa con ese número
-        if Mesa.objects.filter(numero=numero).exists():
-            return JsonResponse({'success': False, 'error': 'Ya existe una mesa con ese número'}, status=400)
-        
-        mesa = Mesa.objects.create(
-            numero=numero,
-            nombre=nombre,
-            capacidad=capacidad,
-            estado=Mesa.ESTADO_DISPONIBLE,
-            activa=True,
-            cuenta_abierta=False,
-            total_cuenta=Decimal('0.00')
-        )
+        # Si no se proporciona nombre, usar un nombre por defecto basado en el ID
+        if not nombre:
+            # Crear la mesa primero para obtener el ID
+            mesa = Mesa.objects.create(
+                numero='temp',  # Temporal
+                nombre='temp',  # Temporal
+                capacidad=capacidad,
+                estado=Mesa.ESTADO_DISPONIBLE,
+                activa=True,
+                cuenta_abierta=False,
+                total_cuenta=Decimal('0.00')
+            )
+            
+            # Ahora usar el ID para generar nombre y número únicos
+            nombre = f'Mesa {mesa.id}'
+            numero = str(mesa.id)
+            
+            # Actualizar con los valores correctos
+            mesa.numero = numero
+            mesa.nombre = nombre
+            mesa.save()
+        else:
+            # Crear mesa con nombre personalizado
+            mesa = Mesa.objects.create(
+                numero='temp',  # Temporal
+                nombre='temp',  # Temporal
+                capacidad=capacidad,
+                estado=Mesa.ESTADO_DISPONIBLE,
+                activa=True,
+                cuenta_abierta=False,
+                total_cuenta=Decimal('0.00')
+            )
+            
+            # Usar el ID como número único
+            numero = str(mesa.id)
+            
+            # Si hay descripción, agregarla
+            if descripcion:
+                nombre_final = f"{nombre} ({descripcion})"
+            else:
+                nombre_final = nombre
+            
+            # Actualizar con los valores correctos
+            mesa.numero = numero
+            mesa.nombre = nombre_final
+            mesa.save()
         
         return JsonResponse({
             'success': True,
-            'mensaje': f'Mesa {numero} creada correctamente',
+            'mensaje': f'Mesa "{mesa.nombre}" creada correctamente',
             'mesa': {
                 'id': mesa.id,
                 'numero': mesa.numero,
@@ -757,14 +790,23 @@ def api_editar_mesa(request, mesa_id):
         if mesa.cuenta_abierta:
             return JsonResponse({'success': False, 'error': 'No se puede editar una mesa con cuenta abierta'}, status=400)
         
-        mesa.numero = data.get('numero', mesa.numero)
-        mesa.nombre = data.get('nombre', mesa.nombre)
-        mesa.capacidad = int(data.get('capacidad', mesa.capacidad))
+        nombre = data.get('nombre', '').strip()
+        descripcion = data.get('descripcion', '').strip()
+        
+        if not nombre:
+            return JsonResponse({'success': False, 'error': 'El nombre de la mesa es obligatorio'}, status=400)
+        
+        # Actualizar nombre con descripción si se proporciona
+        if descripcion:
+            mesa.nombre = f"{nombre} ({descripcion})"
+        else:
+            mesa.nombre = nombre
+        
         mesa.save()
         
         return JsonResponse({
             'success': True,
-            'mensaje': f'Mesa {mesa.numero} actualizada correctamente'
+            'mensaje': f'Mesa "{mesa.nombre}" actualizada correctamente'
         })
     
     except Exception as e:
@@ -1044,12 +1086,13 @@ def api_cerrar_mesa(request, mesa_id):
             item.facturado = True
             item.save()
         
-        # Cerrar la mesa
+        # Cerrar y eliminar la mesa
         mesa.cuenta_abierta = False
         mesa.estado = Mesa.ESTADO_DISPONIBLE
         mesa.total_cuenta = Decimal('0.00')
         mesa.cliente = None
         mesa.fecha_apertura = None
+        mesa.activa = False  # Desactivar la mesa (eliminarla)
         mesa.save()
         
         return JsonResponse({
@@ -1119,3 +1162,9 @@ def api_eliminar_item_mesa(request, mesa_id, item_id):
         return JsonResponse({'success': False, 'error': 'Item no encontrado'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+
+
+
+

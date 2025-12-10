@@ -3,20 +3,31 @@ nixPkgs = [
     "python311",
     "gcc",
     "pkg-config", 
+    "cairo",
     "cairo.dev",
+    "pango",
     "pango.dev",
+    "gdk-pixbuf",
     "gdk-pixbuf.dev",
+    "libffi",
     "libffi.dev",
+    "freetype",
     "freetype.dev",
+    "fontconfig",
     "fontconfig.dev",
+    "libjpeg",
     "libjpeg.dev",
+    "libpng",
     "libpng.dev",
+    "zlib",
     "zlib.dev",
+    "gobject-introspection",
     "gobject-introspection.dev"
 ]
 
 [phases.install]
 cmds = [
+    "export PKG_CONFIG_PATH=/nix/store/*/lib/pkgconfig:$PKG_CONFIG_PATH",
     "python -m venv --copies /opt/venv && . /opt/venv/bin/activate && pip install -r requirements.txt"
 ]
 

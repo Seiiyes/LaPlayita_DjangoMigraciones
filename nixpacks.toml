@@ -3,15 +3,16 @@ nixPkgs = [
     "python311",
     "gcc",
     "pkg-config", 
-    "cairo",
-    "pango",
-    "gdk-pixbuf",
-    "libffi",
-    "freetype",
-    "fontconfig",
-    "libjpeg",
-    "libpng",
-    "zlib"
+    "cairo.dev",
+    "pango.dev",
+    "gdk-pixbuf.dev",
+    "libffi.dev",
+    "freetype.dev",
+    "fontconfig.dev",
+    "libjpeg.dev",
+    "libpng.dev",
+    "zlib.dev",
+    "gobject-introspection.dev"
 ]
 
 [phases.install]

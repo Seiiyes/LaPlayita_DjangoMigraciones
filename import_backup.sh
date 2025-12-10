@@ -51,8 +51,32 @@ if [ ! -z "$DATABASE_URL" ]; then
             echo "Ejecutando migraciones fake para sincronizar..."
             python manage.py migrate --fake
             
+            echo "Verificando estructura de tabla usuario..."
+            
+            # Verificar si is_staff existe
+            IS_STAFF_EXISTS=$(mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='$DB_NAME' AND table_name='usuario' AND column_name='is_staff';" -s -N $DB_NAME)
+            
+            if [ "$IS_STAFF_EXISTS" -eq 0 ]; then
+                echo "Agregando columna is_staff..."
+                mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "ALTER TABLE usuario ADD COLUMN is_staff TINYINT(1) NOT NULL DEFAULT 0;" $DB_NAME
+            else
+                echo "Columna is_staff ya existe"
+            fi
+            
+            # Verificar si is_superuser existe
+            IS_SUPERUSER_EXISTS=$(mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='$DB_NAME' AND table_name='usuario' AND column_name='is_superuser';" -s -N $DB_NAME)
+            
+            if [ "$IS_SUPERUSER_EXISTS" -eq 0 ]; then
+                echo "Agregando columna is_superuser..."
+                mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASS --ssl=FALSE -e "ALTER TABLE usuario ADD COLUMN is_superuser TINYINT(1) NOT NULL DEFAULT 0;" $DB_NAME
+            else
+                echo "Columna is_superuser ya existe"
+            fi
+            
             echo "Aplicando migración para campos Django en usuario..."
-            python manage.py migrate users 0003_add_django_fields-initial
+            python manage.py migrate users 0003_add_django_fields --fake
+            
+            echo "✅ Estructura de tabla usuario verificada y actualizada"-initial
             
             # Marcar todas las migraciones de clients como fake ya que las tablas existen
             echo "Marcando migraciones de clients como aplicadas..."

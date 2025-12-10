@@ -12,32 +12,9 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunSQL(
             sql="""
-            -- Agregar columnas de Django si no existen
-            SET @sql = '';
-            
-            -- Verificar y agregar is_staff
-            SELECT COUNT(*) INTO @col_exists FROM information_schema.columns 
-            WHERE table_schema = DATABASE() AND table_name = 'usuario' AND column_name = 'is_staff';
-            
-            IF @col_exists = 0 THEN
-                SET @sql = CONCAT(@sql, 'ALTER TABLE usuario ADD COLUMN is_staff TINYINT(1) NOT NULL DEFAULT 0;');
-            END IF;
-            
-            -- Verificar y agregar is_superuser
-            SELECT COUNT(*) INTO @col_exists FROM information_schema.columns 
-            WHERE table_schema = DATABASE() AND table_name = 'usuario' AND column_name = 'is_superuser';
-            
-            IF @col_exists = 0 THEN
-                SET @sql = CONCAT(@sql, 'ALTER TABLE usuario ADD COLUMN is_superuser TINYINT(1) NOT NULL DEFAULT 0;');
-            END IF;
-            
-            -- Ejecutar SQL si hay cambios
-            IF LENGTH(@sql) > 0 THEN
-                SET @sql = CONCAT(@sql, '');
-                PREPARE stmt FROM @sql;
-                EXECUTE stmt;
-                DEALLOCATE PREPARE stmt;
-            END IF;
+            ALTER TABLE usuario 
+            ADD COLUMN IF NOT EXISTS is_staff TINYINT(1) NOT NULL DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS is_superuser TINYINT(1) NOT NULL DEFAULT 0;
             """,
             reverse_sql="""
             ALTER TABLE usuario DROP COLUMN IF EXISTS is_staff;

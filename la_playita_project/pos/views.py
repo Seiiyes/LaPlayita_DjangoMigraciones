@@ -21,7 +21,7 @@ from django.db.models.functions import TruncDate
 
 # Constante: 5.5 puntos por cada $66,000 pesos
 PUNTOS_POR_COMPRA = Decimal('5.5')
-VALOR_BASE_PUNTOS = Decimal('66000')
+VALOR_BASE_PUNTOS = Decimal('15000')
 # VALOR_PUNTO = Decimal('15000.00')
 
 @login_required

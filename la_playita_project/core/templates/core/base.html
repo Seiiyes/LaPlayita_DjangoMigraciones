@@ -102,11 +102,7 @@
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0">
                             {% if user|has_role:'Administrador' %}
-                            <li>
-                                <a class="dropdown-item" href="{% url 'admin:index' %}">
-                                    <i class="bi bi-gear me-2"></i>Panel Admin
-                                </a>
-                            </li>
+                           
                             <li><hr class="dropdown-divider"></li>
                             {% endif %}
                             <li>

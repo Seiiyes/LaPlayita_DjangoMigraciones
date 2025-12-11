@@ -16,23 +16,75 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
-    <!-- Global Visibility - CARGAR PRIMERO -->
-    <link rel="stylesheet" href="{% static 'core/css/global-visibility.css' %}">
-    
     <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
     <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
-    <link rel="stylesheet" href="{% static 'core/css/railway-optimized.css' %}">
-    <link rel="stylesheet" href="{% static 'core/css/railway-performance.css' %}">
-    <link rel="stylesheet" href="{% static 'core/css/railway-instant.css' %}">
-    <link rel="stylesheet" href="{% static 'core/css/railway-functional.css' %}">
-    <link rel="stylesheet" href="{% static 'core/css/railway-safe.css' %}">
-    <link rel="stylesheet" href="{% static 'core/css/railway-force-visible.css' %}">
     
-    <!-- Force Visibility - Cargar PRIMERO -->
+    <!-- CSS de emergencia inline para Railway -->
+    <style id="railway-emergency-inline">
+        /* EMERGENCY CSS - ALWAYS VISIBLE */
+        .dashboard-header, .stat-card, .action-card, .chart-card, .alert-card, .list-card,
+        .pos-header, .product-card, .category-card, .search-box .input-group,
+        .lp-top-navbar, .lp-sidebar, .footer-glassmorphism, .breadcrumb, .dropdown-menu,
+        .modal-content, .alert, .mesa-card, .client-selector {
+            background: #1e293b !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: block !important;
+            border: 3px solid #334155 !important;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9) !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            border-radius: 12px !important;
+            z-index: 100 !important;
+            position: relative !important;
+        }
+        .dashboard-header *, .stat-card *, .action-card *, .chart-card *, .alert-card *, .list-card *,
+        .pos-header *, .product-card *, .category-card *, .lp-top-navbar *, .lp-sidebar *,
+        .footer-glassmorphism *, .breadcrumb *, .dropdown-menu *, .modal-content * {
+            color: #ffffff !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        .dashboard-subtitle, .action-description, .stat-label, .text-muted {
+            color: #cbd5e1 !important;
+            opacity: 1 !important;
+        }
+        .btn, .agregar-producto-btn {
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            z-index: 110 !important;
+        }
+        .btn-primary {
+            background: #6366f1 !important;
+            border-color: #6366f1 !important;
+            color: #ffffff !important;
+        }
+        .form-control, .form-select, input, select, textarea {
+            background: #334155 !important;
+            border: 2px solid #475569 !important;
+            color: #ffffff !important;
+            opacity: 1 !important;
+            z-index: 110 !important;
+        }
+        .badge {
+            background: #6366f1 !important;
+            color: #ffffff !important;
+            opacity: 1 !important;
+        }
+        a {
+            pointer-events: auto !important;
+            cursor: pointer !important;
+        }
+        * {
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+    </style>
+    
+    <!-- Solo scripts esenciales -->
     <script src="{% static 'core/js/force-visibility.js' %}"></script>
-    
-    <!-- Railway Detector - Cargar segundo -->
-    <script src="{% static 'core/js/railway-detector.js' %}"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -110,9 +162,41 @@
             }
         }
         
-        /* FORZAR VISIBILIDAD INMEDIATA - CSS CRÍTICO INLINE */
-        .lp-top-navbar,
-        .lp-sidebar,
+        /* RAILWAY EMERGENCY CSS - INLINE CRÍTICO */
+        
+        /* Eliminar TODOS los efectos de transparencia */
+        * {
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+        
+        /* NAVBAR - Fondo sólido inmediato */
+        .lp-top-navbar {
+            background: #1e293b !important;
+            opacity: 1 !important;
+            border-bottom: 3px solid #334155 !important;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8) !important;
+        }
+        
+        .lp-top-navbar * {
+            color: #ffffff !important;
+            opacity: 1 !important;
+        }
+        
+        /* SIDEBAR - Fondo sólido inmediato */
+        .lp-sidebar {
+            background: #1e293b !important;
+            opacity: 1 !important;
+            border-right: 3px solid #334155 !important;
+            box-shadow: 6px 0 20px rgba(0, 0, 0, 0.8) !important;
+        }
+        
+        .lp-sidebar * {
+            color: #ffffff !important;
+            opacity: 1 !important;
+        }
+        
+        /* TODAS LAS TARJETAS - Fondo sólido inmediato */
         .dashboard-header,
         .stat-card,
         .action-card,
@@ -123,54 +207,200 @@
         .product-card,
         .category-card,
         .search-box .input-group,
-        .footer-glassmorphism {
+        .client-selector,
+        .modal-content,
+        .alert,
+        .breadcrumb,
+        .dropdown-menu,
+        .mesa-card {
             background: #1e293b !important;
-            backdrop-filter: none !important;
-            -webkit-backdrop-filter: none !important;
             opacity: 1 !important;
-            border: 2px solid #334155 !important;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8) !important;
             visibility: visible !important;
             display: block !important;
+            border: 3px solid #334155 !important;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9) !important;
+            border-radius: 12px !important;
+            position: relative !important;
+            z-index: 100 !important;
         }
         
+        /* FOOTER - Fondo sólido inmediato */
+        .footer-glassmorphism {
+            background: #1e293b !important;
+            opacity: 1 !important;
+            border-top: 3px solid #334155 !important;
+            box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.8) !important;
+        }
+        
+        /* TEXTO - Visible inmediatamente */
+        .dashboard-header,
         .dashboard-header *,
+        .stat-card,
         .stat-card *,
+        .action-card,
         .action-card *,
+        .chart-card,
         .chart-card *,
+        .alert-card,
         .alert-card *,
+        .list-card,
         .list-card *,
+        .pos-header,
         .pos-header *,
+        .product-card,
         .product-card *,
+        .category-card,
         .category-card *,
+        .lp-top-navbar,
         .lp-top-navbar *,
-        .lp-sidebar * {
+        .lp-sidebar,
+        .lp-sidebar *,
+        .footer-glassmorphism,
+        .footer-glassmorphism * {
             color: #ffffff !important;
             opacity: 1 !important;
             visibility: visible !important;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8) !important;
         }
         
+        /* TEXTO SECUNDARIO */
         .dashboard-subtitle,
         .action-description,
         .stat-label,
-        .text-muted {
+        .text-muted,
+        .small {
             color: #cbd5e1 !important;
             opacity: 1 !important;
         }
         
-        .btn {
+        /* BOTONES - Visibles y funcionales */
+        .btn,
+        .agregar-producto-btn {
             opacity: 1 !important;
             visibility: visible !important;
             pointer-events: auto !important;
             cursor: pointer !important;
+            position: relative !important;
+            z-index: 110 !important;
         }
         
+        .btn-primary {
+            background: #6366f1 !important;
+            border-color: #6366f1 !important;
+            color: #ffffff !important;
+        }
+        
+        /* FORMS - Visibles y funcionales */
         .form-control,
-        .form-select {
+        .form-select,
+        input,
+        select,
+        textarea {
             background: #334155 !important;
             border: 2px solid #475569 !important;
             color: #ffffff !important;
             opacity: 1 !important;
+            pointer-events: auto !important;
+            z-index: 110 !important;
+        }
+        
+        .form-control:focus,
+        .form-select:focus {
+            background: #475569 !important;
+            border-color: #6366f1 !important;
+            color: #ffffff !important;
+        }
+        
+        /* ENLACES - Visibles y funcionales */
+        a {
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            z-index: 110 !important;
+        }
+        
+        /* BADGES */
+        .badge {
+            background: #6366f1 !important;
+            color: #ffffff !important;
+            opacity: 1 !important;
+        }
+        
+        /* DROPDOWNS */
+        .dropdown-menu {
+            background: #1e293b !important;
+            border: 2px solid #334155 !important;
+            opacity: 1 !important;
+        }
+        
+        .dropdown-item {
+            color: #ffffff !important;
+            opacity: 1 !important;
+        }
+        
+        .dropdown-item:hover {
+            background: #334155 !important;
+        }
+        
+        /* MODALES */
+        .modal-content {
+            background: #1e293b !important;
+            border: 2px solid #334155 !important;
+            opacity: 1 !important;
+        }
+        
+        .modal-header {
+            background: #6366f1 !important;
+            color: #ffffff !important;
+        }
+        
+        /* BREADCRUMB */
+        .breadcrumb {
+            background: #1e293b !important;
+            border: 2px solid #334155 !important;
+            opacity: 1 !important;
+        }
+        
+        .breadcrumb-item a {
+            color: #6366f1 !important;
+        }
+        
+        .breadcrumb-item.active {
+            color: #ffffff !important;
+        }
+        
+        /* SIDEBAR ESPECÍFICO */
+        .sidebar-link {
+            color: #cbd5e1 !important;
+            opacity: 1 !important;
+        }
+        
+        .sidebar-link:hover {
+            background: rgba(255, 255, 255, 0.2) !important;
+            color: #ffffff !important;
+        }
+        
+        .sidebar-link.active {
+            background: rgba(99, 102, 241, 0.3) !important;
+            color: #a5b4fc !important;
+        }
+        
+        /* CONTENEDOR PRINCIPAL */
+        .dashboard-container {
+            opacity: 1 !important;
+            visibility: visible !important;
+            background: rgba(0, 0, 0, 0.1) !important;
+            border-radius: 16px !important;
+            padding: 1.5rem !important;
+            margin: 1rem !important;
+        }
+        
+        /* ANIMACIONES SIMPLIFICADAS */
+        .stat-card:hover,
+        .action-card:hover,
+        .product-card:hover,
+        .category-card:hover {
+            transform: translateY(-3px) !important;
+            transition: transform 0.2s ease !important;
         }
         
         /* Prevenir CLS en el contenedor principal */
@@ -214,20 +444,70 @@
                 forceVisibleCSS.id = 'railway-force-visible-immediate';
                 document.head.appendChild(forceVisibleCSS);
                 
-                // Forzar visibilidad inmediata con JavaScript
-                setTimeout(function() {
-                    const elements = document.querySelectorAll('.dashboard-header, .stat-card, .action-card, .chart-card, .alert-card, .list-card, .pos-header, .product-card, .category-card');
-                    elements.forEach(function(el) {
-                        el.style.background = '#1e293b';
-                        el.style.opacity = '1';
-                        el.style.visibility = 'visible';
-                        el.style.display = 'block';
-                        el.style.border = '2px solid #334155';
-                        el.style.boxShadow = '0 8px 30px rgba(0, 0, 0, 0.8)';
-                        el.style.backdropFilter = 'none';
-                        el.style.webkitBackdropFilter = 'none';
+                // FORZAR VISIBILIDAD INMEDIATA CON JAVASCRIPT
+                function forceVisibilityNow() {
+                    const selectors = [
+                        '.dashboard-header', '.stat-card', '.action-card', '.chart-card', 
+                        '.alert-card', '.list-card', '.pos-header', '.product-card', 
+                        '.category-card', '.search-box .input-group', '.lp-top-navbar', 
+                        '.lp-sidebar', '.footer-glassmorphism', '.breadcrumb', 
+                        '.dropdown-menu', '.modal-content', '.alert'
+                    ];
+                    
+                    selectors.forEach(function(selector) {
+                        const elements = document.querySelectorAll(selector);
+                        elements.forEach(function(el) {
+                            el.style.setProperty('background', '#1e293b', 'important');
+                            el.style.setProperty('opacity', '1', 'important');
+                            el.style.setProperty('visibility', 'visible', 'important');
+                            el.style.setProperty('display', 'block', 'important');
+                            el.style.setProperty('border', '3px solid #334155', 'important');
+                            el.style.setProperty('box-shadow', '0 10px 40px rgba(0, 0, 0, 0.9)', 'important');
+                            el.style.setProperty('backdrop-filter', 'none', 'important');
+                            el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+                            el.style.setProperty('border-radius', '12px', 'important');
+                            el.style.setProperty('z-index', '100', 'important');
+                            el.style.setProperty('position', 'relative', 'important');
+                            
+                            // Forzar color de texto
+                            const textElements = el.querySelectorAll('*');
+                            textElements.forEach(function(textEl) {
+                                if (!textEl.classList.contains('btn') && !textEl.classList.contains('badge')) {
+                                    textEl.style.setProperty('color', '#ffffff', 'important');
+                                    textEl.style.setProperty('opacity', '1', 'important');
+                                }
+                            });
+                        });
                     });
-                }, 100);
+                    
+                    // Forzar botones
+                    const buttons = document.querySelectorAll('.btn, .agregar-producto-btn');
+                    buttons.forEach(function(btn) {
+                        btn.style.setProperty('opacity', '1', 'important');
+                        btn.style.setProperty('visibility', 'visible', 'important');
+                        btn.style.setProperty('pointer-events', 'auto', 'important');
+                        btn.style.setProperty('cursor', 'pointer', 'important');
+                        btn.style.setProperty('z-index', '110', 'important');
+                    });
+                    
+                    // Forzar forms
+                    const forms = document.querySelectorAll('.form-control, .form-select, input, select, textarea');
+                    forms.forEach(function(form) {
+                        form.style.setProperty('background', '#334155', 'important');
+                        form.style.setProperty('border', '2px solid #475569', 'important');
+                        form.style.setProperty('color', '#ffffff', 'important');
+                        form.style.setProperty('opacity', '1', 'important');
+                        form.style.setProperty('z-index', '110', 'important');
+                    });
+                    
+                    console.log('🚀 Visibilidad forzada aplicada en Railway');
+                }
+                
+                // Ejecutar inmediatamente
+                forceVisibilityNow();
+                
+                // Ejecutar cada 1 segundo para asegurar
+                setInterval(forceVisibilityNow, 1000);
             }
         })();
     </script>
@@ -377,9 +657,54 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{% static 'core/js/dashboard.js' %}"></script>
     <script src="{% static 'core/js/notifications.js' %}"></script>
-    <script src="{% static 'core/js/railway-compatibility.js' %}"></script>
     
+    <!-- SCRIPT DE EMERGENCIA PARA RAILWAY -->
     <script>
+        // FORZAR VISIBILIDAD INMEDIATA - SIN ESPERAR DOM
+        (function() {
+            function emergencyForceVisibility() {
+                // Aplicar estilos críticos inmediatamente
+                const style = document.createElement('style');
+                style.innerHTML = `
+                    .dashboard-header, .stat-card, .action-card, .chart-card, .alert-card, .list-card,
+                    .pos-header, .product-card, .category-card, .search-box .input-group,
+                    .lp-top-navbar, .lp-sidebar, .footer-glassmorphism {
+                        background: #1e293b !important;
+                        opacity: 1 !important;
+                        visibility: visible !important;
+                        display: block !important;
+                        border: 3px solid #334155 !important;
+                        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9) !important;
+                        backdrop-filter: none !important;
+                        -webkit-backdrop-filter: none !important;
+                        border-radius: 12px !important;
+                        z-index: 100 !important;
+                        position: relative !important;
+                    }
+                    .dashboard-header *, .stat-card *, .action-card *, .chart-card *, .alert-card *, .list-card *,
+                    .pos-header *, .product-card *, .category-card *, .lp-top-navbar *, .lp-sidebar * {
+                        color: #ffffff !important;
+                        opacity: 1 !important;
+                        visibility: visible !important;
+                    }
+                    .btn { opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; }
+                    .form-control, .form-select { background: #334155 !important; color: #ffffff !important; opacity: 1 !important; }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            // Ejecutar inmediatamente
+            emergencyForceVisibility();
+            
+            // Ejecutar cuando el DOM esté listo
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', emergencyForceVisibility);
+            }
+            
+            // Ejecutar cuando todo esté cargado
+            window.addEventListener('load', emergencyForceVisibility);
+        })();
+        
         // Sidebar Toggle
         document.addEventListener('DOMContentLoaded', function() {
             const sidebar = document.getElementById('sidebar');

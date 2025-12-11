@@ -18,6 +18,7 @@
 
     <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
     <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'core/css/dashboard-fix.css' %}">
     <link rel="stylesheet" href="{% static 'core/css/railway-fallback.css' %}">
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -259,5 +260,8 @@
     </script>
     
     {% block extra_js %}{% endblock %}
+    
+    <!-- Railway Test Script -->
+    <script src="{% static 'core/js/railway-test.js' %}"></script>
 </body>
 </html>

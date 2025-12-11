@@ -3,6 +3,110 @@
 
 {% block title %}Dashboard - La Playita{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* CSS específico para el dashboard - Copiado del POS que funciona */
+    :root {
+        --dashboard-card-bg-override: rgba(30, 41, 59, 0.95);
+        --dashboard-shadow-override: 0 4px 12px rgba(0, 0, 0, 0.3);
+        --dashboard-border-override: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    
+    /* Forzar estilos del dashboard usando la configuración del POS */
+    .dashboard-header {
+        background: var(--dashboard-card-bg-override) !important;
+        border: var(--dashboard-border-override) !important;
+        border-radius: 12px !important;
+        box-shadow: var(--dashboard-shadow-override) !important;
+        padding: 2rem !important;
+        margin-bottom: 2rem !important;
+    }
+    
+    .stat-card {
+        background: var(--dashboard-card-bg-override) !important;
+        border: var(--dashboard-border-override) !important;
+        border-radius: 12px !important;
+        box-shadow: var(--dashboard-shadow-override) !important;
+        padding: 1.5rem !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    
+    .action-card {
+        background: var(--dashboard-card-bg-override) !important;
+        border: var(--dashboard-border-override) !important;
+        border-radius: 12px !important;
+        box-shadow: var(--dashboard-shadow-override) !important;
+        padding: 1.5rem !important;
+        text-align: center !important;
+        text-decoration: none !important;
+        color: #ffffff !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    
+    .chart-card {
+        background: var(--dashboard-card-bg-override) !important;
+        border: var(--dashboard-border-override) !important;
+        border-radius: 12px !important;
+        box-shadow: var(--dashboard-shadow-override) !important;
+        padding: 1.5rem !important;
+    }
+    
+    .alert-card {
+        background: var(--dashboard-card-bg-override) !important;
+        border: var(--dashboard-border-override) !important;
+        border-radius: 12px !important;
+        box-shadow: var(--dashboard-shadow-override) !important;
+        padding: 1.5rem !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    .list-card {
+        background: var(--dashboard-card-bg-override) !important;
+        border: var(--dashboard-border-override) !important;
+        border-radius: 12px !important;
+        box-shadow: var(--dashboard-shadow-override) !important;
+        padding: 1.5rem !important;
+    }
+    
+    /* Asegurar que todo el texto sea visible */
+    .dashboard-header *,
+    .stat-card *,
+    .action-card *,
+    .chart-card *,
+    .alert-card *,
+    .list-card * {
+        color: #ffffff !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+    
+    .dashboard-subtitle,
+    .action-description,
+    .stat-label,
+    .text-muted {
+        color: #cbd5e1 !important;
+        opacity: 1 !important;
+    }
+    
+    /* Asegurar que los botones funcionen */
+    .btn {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+    
+    /* Hover effects simples */
+    .stat-card:hover,
+    .action-card:hover {
+        transform: translateY(-3px) !important;
+        transition: transform 0.2s ease !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid dashboard-container fade-in-up">
     <!-- Dashboard Header -->

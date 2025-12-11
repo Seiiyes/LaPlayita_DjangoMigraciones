@@ -18,73 +18,7 @@
 
     <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
     <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
-    
-    <!-- CSS de emergencia inline para Railway -->
-    <style id="railway-emergency-inline">
-        /* EMERGENCY CSS - ALWAYS VISIBLE */
-        .dashboard-header, .stat-card, .action-card, .chart-card, .alert-card, .list-card,
-        .pos-header, .product-card, .category-card, .search-box .input-group,
-        .lp-top-navbar, .lp-sidebar, .footer-glassmorphism, .breadcrumb, .dropdown-menu,
-        .modal-content, .alert, .mesa-card, .client-selector {
-            background: #1e293b !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-            display: block !important;
-            border: 3px solid #334155 !important;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9) !important;
-            backdrop-filter: none !important;
-            -webkit-backdrop-filter: none !important;
-            border-radius: 12px !important;
-            z-index: 100 !important;
-            position: relative !important;
-        }
-        .dashboard-header *, .stat-card *, .action-card *, .chart-card *, .alert-card *, .list-card *,
-        .pos-header *, .product-card *, .category-card *, .lp-top-navbar *, .lp-sidebar *,
-        .footer-glassmorphism *, .breadcrumb *, .dropdown-menu *, .modal-content * {
-            color: #ffffff !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-        }
-        .dashboard-subtitle, .action-description, .stat-label, .text-muted {
-            color: #cbd5e1 !important;
-            opacity: 1 !important;
-        }
-        .btn, .agregar-producto-btn {
-            opacity: 1 !important;
-            visibility: visible !important;
-            pointer-events: auto !important;
-            cursor: pointer !important;
-            z-index: 110 !important;
-        }
-        .btn-primary {
-            background: #6366f1 !important;
-            border-color: #6366f1 !important;
-            color: #ffffff !important;
-        }
-        .form-control, .form-select, input, select, textarea {
-            background: #334155 !important;
-            border: 2px solid #475569 !important;
-            color: #ffffff !important;
-            opacity: 1 !important;
-            z-index: 110 !important;
-        }
-        .badge {
-            background: #6366f1 !important;
-            color: #ffffff !important;
-            opacity: 1 !important;
-        }
-        a {
-            pointer-events: auto !important;
-            cursor: pointer !important;
-        }
-        * {
-            backdrop-filter: none !important;
-            -webkit-backdrop-filter: none !important;
-        }
-    </style>
-    
-    <!-- Solo scripts esenciales -->
-    <script src="{% static 'core/js/force-visibility.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'core/css/railway-fallback.css' %}">
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -98,7 +32,7 @@
             font-display: swap;
         }
         
-        /* Background optimizado para Railway */
+        /* Background simple */
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             background-image: url("/static/core/images/background.jpg.jpg");
@@ -109,298 +43,11 @@
             min-height: 100vh;
         }
         
-        /* Fallback si la imagen no carga en Railway */
+        /* Fallback para móviles */
         @media (max-width: 768px) {
             body {
                 background-attachment: scroll;
             }
-        }
-        
-        /* CSS crítico para Railway - Aplicar inmediatamente */
-        .railway-critical {
-            /* Navbar sólido inmediato */
-            .lp-top-navbar {
-                background: #1e293b !important;
-                backdrop-filter: none !important;
-                border-bottom: 1px solid #334155 !important;
-            }
-            
-            /* Sidebar sólido inmediato */
-            .lp-sidebar {
-                background: #1e293b !important;
-                backdrop-filter: none !important;
-                border-right: 1px solid #334155 !important;
-            }
-            
-            /* Cards sólidas inmediatas */
-            .dashboard-header,
-            .stat-card,
-            .action-card,
-            .chart-card,
-            .alert-card,
-            .list-card,
-            .pos-header,
-            .product-card,
-            .category-card {
-                background: #1e293b !important;
-                backdrop-filter: none !important;
-                border: 1px solid #334155 !important;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
-            }
-            
-            /* Texto visible inmediatamente */
-            * {
-                color: #ffffff !important;
-                text-shadow: none !important;
-            }
-            
-            .dashboard-subtitle,
-            .action-description,
-            .stat-label,
-            .text-muted {
-                color: #cbd5e1 !important;
-            }
-        }
-        
-        /* RAILWAY EMERGENCY CSS - INLINE CRÍTICO */
-        
-        /* Eliminar TODOS los efectos de transparencia */
-        * {
-            backdrop-filter: none !important;
-            -webkit-backdrop-filter: none !important;
-        }
-        
-        /* NAVBAR - Fondo sólido inmediato */
-        .lp-top-navbar {
-            background: #1e293b !important;
-            opacity: 1 !important;
-            border-bottom: 3px solid #334155 !important;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8) !important;
-        }
-        
-        .lp-top-navbar * {
-            color: #ffffff !important;
-            opacity: 1 !important;
-        }
-        
-        /* SIDEBAR - Fondo sólido inmediato */
-        .lp-sidebar {
-            background: #1e293b !important;
-            opacity: 1 !important;
-            border-right: 3px solid #334155 !important;
-            box-shadow: 6px 0 20px rgba(0, 0, 0, 0.8) !important;
-        }
-        
-        .lp-sidebar * {
-            color: #ffffff !important;
-            opacity: 1 !important;
-        }
-        
-        /* TODAS LAS TARJETAS - Fondo sólido inmediato */
-        .dashboard-header,
-        .stat-card,
-        .action-card,
-        .chart-card,
-        .alert-card,
-        .list-card,
-        .pos-header,
-        .product-card,
-        .category-card,
-        .search-box .input-group,
-        .client-selector,
-        .modal-content,
-        .alert,
-        .breadcrumb,
-        .dropdown-menu,
-        .mesa-card {
-            background: #1e293b !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-            display: block !important;
-            border: 3px solid #334155 !important;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9) !important;
-            border-radius: 12px !important;
-            position: relative !important;
-            z-index: 100 !important;
-        }
-        
-        /* FOOTER - Fondo sólido inmediato */
-        .footer-glassmorphism {
-            background: #1e293b !important;
-            opacity: 1 !important;
-            border-top: 3px solid #334155 !important;
-            box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.8) !important;
-        }
-        
-        /* TEXTO - Visible inmediatamente */
-        .dashboard-header,
-        .dashboard-header *,
-        .stat-card,
-        .stat-card *,
-        .action-card,
-        .action-card *,
-        .chart-card,
-        .chart-card *,
-        .alert-card,
-        .alert-card *,
-        .list-card,
-        .list-card *,
-        .pos-header,
-        .pos-header *,
-        .product-card,
-        .product-card *,
-        .category-card,
-        .category-card *,
-        .lp-top-navbar,
-        .lp-top-navbar *,
-        .lp-sidebar,
-        .lp-sidebar *,
-        .footer-glassmorphism,
-        .footer-glassmorphism * {
-            color: #ffffff !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8) !important;
-        }
-        
-        /* TEXTO SECUNDARIO */
-        .dashboard-subtitle,
-        .action-description,
-        .stat-label,
-        .text-muted,
-        .small {
-            color: #cbd5e1 !important;
-            opacity: 1 !important;
-        }
-        
-        /* BOTONES - Visibles y funcionales */
-        .btn,
-        .agregar-producto-btn {
-            opacity: 1 !important;
-            visibility: visible !important;
-            pointer-events: auto !important;
-            cursor: pointer !important;
-            position: relative !important;
-            z-index: 110 !important;
-        }
-        
-        .btn-primary {
-            background: #6366f1 !important;
-            border-color: #6366f1 !important;
-            color: #ffffff !important;
-        }
-        
-        /* FORMS - Visibles y funcionales */
-        .form-control,
-        .form-select,
-        input,
-        select,
-        textarea {
-            background: #334155 !important;
-            border: 2px solid #475569 !important;
-            color: #ffffff !important;
-            opacity: 1 !important;
-            pointer-events: auto !important;
-            z-index: 110 !important;
-        }
-        
-        .form-control:focus,
-        .form-select:focus {
-            background: #475569 !important;
-            border-color: #6366f1 !important;
-            color: #ffffff !important;
-        }
-        
-        /* ENLACES - Visibles y funcionales */
-        a {
-            pointer-events: auto !important;
-            cursor: pointer !important;
-            z-index: 110 !important;
-        }
-        
-        /* BADGES */
-        .badge {
-            background: #6366f1 !important;
-            color: #ffffff !important;
-            opacity: 1 !important;
-        }
-        
-        /* DROPDOWNS */
-        .dropdown-menu {
-            background: #1e293b !important;
-            border: 2px solid #334155 !important;
-            opacity: 1 !important;
-        }
-        
-        .dropdown-item {
-            color: #ffffff !important;
-            opacity: 1 !important;
-        }
-        
-        .dropdown-item:hover {
-            background: #334155 !important;
-        }
-        
-        /* MODALES */
-        .modal-content {
-            background: #1e293b !important;
-            border: 2px solid #334155 !important;
-            opacity: 1 !important;
-        }
-        
-        .modal-header {
-            background: #6366f1 !important;
-            color: #ffffff !important;
-        }
-        
-        /* BREADCRUMB */
-        .breadcrumb {
-            background: #1e293b !important;
-            border: 2px solid #334155 !important;
-            opacity: 1 !important;
-        }
-        
-        .breadcrumb-item a {
-            color: #6366f1 !important;
-        }
-        
-        .breadcrumb-item.active {
-            color: #ffffff !important;
-        }
-        
-        /* SIDEBAR ESPECÍFICO */
-        .sidebar-link {
-            color: #cbd5e1 !important;
-            opacity: 1 !important;
-        }
-        
-        .sidebar-link:hover {
-            background: rgba(255, 255, 255, 0.2) !important;
-            color: #ffffff !important;
-        }
-        
-        .sidebar-link.active {
-            background: rgba(99, 102, 241, 0.3) !important;
-            color: #a5b4fc !important;
-        }
-        
-        /* CONTENEDOR PRINCIPAL */
-        .dashboard-container {
-            opacity: 1 !important;
-            visibility: visible !important;
-            background: rgba(0, 0, 0, 0.1) !important;
-            border-radius: 16px !important;
-            padding: 1.5rem !important;
-            margin: 1rem !important;
-        }
-        
-        /* ANIMACIONES SIMPLIFICADAS */
-        .stat-card:hover,
-        .action-card:hover,
-        .product-card:hover,
-        .category-card:hover {
-            transform: translateY(-3px) !important;
-            transition: transform 0.2s ease !important;
         }
         
         /* Prevenir CLS en el contenedor principal */
@@ -421,103 +68,22 @@
         }
     </style>
     
-    <!-- Detección inmediata de Railway -->
+    <!-- Script simple para Railway -->
     <script>
-        (function() {
-            const isRailway = window.location.hostname.includes('railway.app') || 
-                             window.location.hostname.includes('up.railway.app');
-            if (isRailway) {
-                document.documentElement.setAttribute('data-railway', 'true');
-                document.documentElement.classList.add('railway-environment');
-                
-                // Cargar CSS de emergencia inmediatamente
-                const emergencyCSS = document.createElement('link');
-                emergencyCSS.rel = 'stylesheet';
-                emergencyCSS.href = '{% static "core/css/railway-emergency.css" %}';
-                emergencyCSS.id = 'railway-emergency-immediate';
-                document.head.appendChild(emergencyCSS);
-                
-                // Cargar CSS de forzar visibilidad inmediatamente
-                const forceVisibleCSS = document.createElement('link');
-                forceVisibleCSS.rel = 'stylesheet';
-                forceVisibleCSS.href = '{% static "core/css/railway-force-visible.css" %}';
-                forceVisibleCSS.id = 'railway-force-visible-immediate';
-                document.head.appendChild(forceVisibleCSS);
-                
-                // FORZAR VISIBILIDAD INMEDIATA CON JAVASCRIPT
-                function forceVisibilityNow() {
-                    const selectors = [
-                        '.dashboard-header', '.stat-card', '.action-card', '.chart-card', 
-                        '.alert-card', '.list-card', '.pos-header', '.product-card', 
-                        '.category-card', '.search-box .input-group', '.lp-top-navbar', 
-                        '.lp-sidebar', '.footer-glassmorphism', '.breadcrumb', 
-                        '.dropdown-menu', '.modal-content', '.alert'
-                    ];
-                    
-                    selectors.forEach(function(selector) {
-                        const elements = document.querySelectorAll(selector);
-                        elements.forEach(function(el) {
-                            el.style.setProperty('background', '#1e293b', 'important');
-                            el.style.setProperty('opacity', '1', 'important');
-                            el.style.setProperty('visibility', 'visible', 'important');
-                            el.style.setProperty('display', 'block', 'important');
-                            el.style.setProperty('border', '3px solid #334155', 'important');
-                            el.style.setProperty('box-shadow', '0 10px 40px rgba(0, 0, 0, 0.9)', 'important');
-                            el.style.setProperty('backdrop-filter', 'none', 'important');
-                            el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-                            el.style.setProperty('border-radius', '12px', 'important');
-                            el.style.setProperty('z-index', '100', 'important');
-                            el.style.setProperty('position', 'relative', 'important');
-                            
-                            // Forzar color de texto
-                            const textElements = el.querySelectorAll('*');
-                            textElements.forEach(function(textEl) {
-                                if (!textEl.classList.contains('btn') && !textEl.classList.contains('badge')) {
-                                    textEl.style.setProperty('color', '#ffffff', 'important');
-                                    textEl.style.setProperty('opacity', '1', 'important');
-                                }
-                            });
-                        });
-                    });
-                    
-                    // Forzar botones
-                    const buttons = document.querySelectorAll('.btn, .agregar-producto-btn');
-                    buttons.forEach(function(btn) {
-                        btn.style.setProperty('opacity', '1', 'important');
-                        btn.style.setProperty('visibility', 'visible', 'important');
-                        btn.style.setProperty('pointer-events', 'auto', 'important');
-                        btn.style.setProperty('cursor', 'pointer', 'important');
-                        btn.style.setProperty('z-index', '110', 'important');
-                    });
-                    
-                    // Forzar forms
-                    const forms = document.querySelectorAll('.form-control, .form-select, input, select, textarea');
-                    forms.forEach(function(form) {
-                        form.style.setProperty('background', '#334155', 'important');
-                        form.style.setProperty('border', '2px solid #475569', 'important');
-                        form.style.setProperty('color', '#ffffff', 'important');
-                        form.style.setProperty('opacity', '1', 'important');
-                        form.style.setProperty('z-index', '110', 'important');
-                    });
-                    
-                    console.log('🚀 Visibilidad forzada aplicada en Railway');
-                }
-                
-                // Ejecutar inmediatamente
-                forceVisibilityNow();
-                
-                // Ejecutar cada 1 segundo para asegurar
-                setInterval(forceVisibilityNow, 1000);
-            }
-        })();
+        // Detectar Railway y aplicar clase
+        if (window.location.hostname.includes('railway.app') || window.location.hostname.includes('up.railway.app')) {
+            document.documentElement.classList.add('railway-env');
+            console.log('Railway detectado - Aplicando optimizaciones');
+        }
     </script>
+
 </head>
 <body class="d-flex flex-column min-vh-100">
 
     <!-- Top Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark lp-top-navbar shadow-sm">
         <div class="container-fluid px-4">
-            <button class="btn btn-link text-dark me-3" id="sidebarToggle" type="button">
+            <button class="btn btn-link text-white me-3" id="sidebarToggle" type="button">
                 <i class="bi bi-list fs-4"></i>
             </button>
             
@@ -529,7 +95,7 @@
             <div class="ms-auto d-flex align-items-center">
                 {% if user.is_authenticated %}
                     <div class="dropdown">
-                        <button class="btn btn-link text-dark dropdown-toggle text-decoration-none" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                        <button class="btn btn-link text-white dropdown-toggle text-decoration-none" type="button" id="userDropdown" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle fs-5 me-1"></i>
                             <span>{{ user.first_name|default:user.username }}</span>
                         </button>
@@ -657,54 +223,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{% static 'core/js/dashboard.js' %}"></script>
     <script src="{% static 'core/js/notifications.js' %}"></script>
+    <script src="{% static 'core/js/railway-test.js' %}"></script>
     
-    <!-- SCRIPT DE EMERGENCIA PARA RAILWAY -->
     <script>
-        // FORZAR VISIBILIDAD INMEDIATA - SIN ESPERAR DOM
-        (function() {
-            function emergencyForceVisibility() {
-                // Aplicar estilos críticos inmediatamente
-                const style = document.createElement('style');
-                style.innerHTML = `
-                    .dashboard-header, .stat-card, .action-card, .chart-card, .alert-card, .list-card,
-                    .pos-header, .product-card, .category-card, .search-box .input-group,
-                    .lp-top-navbar, .lp-sidebar, .footer-glassmorphism {
-                        background: #1e293b !important;
-                        opacity: 1 !important;
-                        visibility: visible !important;
-                        display: block !important;
-                        border: 3px solid #334155 !important;
-                        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9) !important;
-                        backdrop-filter: none !important;
-                        -webkit-backdrop-filter: none !important;
-                        border-radius: 12px !important;
-                        z-index: 100 !important;
-                        position: relative !important;
-                    }
-                    .dashboard-header *, .stat-card *, .action-card *, .chart-card *, .alert-card *, .list-card *,
-                    .pos-header *, .product-card *, .category-card *, .lp-top-navbar *, .lp-sidebar * {
-                        color: #ffffff !important;
-                        opacity: 1 !important;
-                        visibility: visible !important;
-                    }
-                    .btn { opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; }
-                    .form-control, .form-select { background: #334155 !important; color: #ffffff !important; opacity: 1 !important; }
-                `;
-                document.head.appendChild(style);
-            }
-            
-            // Ejecutar inmediatamente
-            emergencyForceVisibility();
-            
-            // Ejecutar cuando el DOM esté listo
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', emergencyForceVisibility);
-            }
-            
-            // Ejecutar cuando todo esté cargado
-            window.addEventListener('load', emergencyForceVisibility);
-        })();
-        
         // Sidebar Toggle
         document.addEventListener('DOMContentLoaded', function() {
             const sidebar = document.getElementById('sidebar');

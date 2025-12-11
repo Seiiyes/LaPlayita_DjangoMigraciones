@@ -8,19 +8,16 @@
     :root {
         --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        --pos-card-bg: rgba(30, 41, 59, 0.85);
-        --pos-card-hover: rgba(30, 41, 59, 0.92);
-        --pos-blur: blur(15px);
-        --pos-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        --pos-shadow-hover: 0 16px 48px rgba(0, 0, 0, 0.4);
+        --pos-card-bg: rgba(30, 41, 59, 0.95);
+        --pos-card-hover: rgba(30, 41, 59, 0.98);
+        --pos-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        --pos-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
     
     .pos-header {
-        background: var(--pos-card-bg) !important;
-        backdrop-filter: var(--pos-blur) saturate(180%);
-        -webkit-backdrop-filter: var(--pos-blur) saturate(180%);
+        background: var(--pos-card-bg);
         border: 1px solid rgba(148, 163, 184, 0.3);
-        border-radius: 16px;
+        border-radius: 12px;
         padding: 2rem;
         margin-bottom: 2rem;
         box-shadow: var(--pos-shadow);
@@ -32,11 +29,9 @@
     }
     
     .search-box .input-group {
-        background: var(--pos-card-bg) !important;
-        backdrop-filter: var(--pos-blur) saturate(180%);
-        -webkit-backdrop-filter: var(--pos-blur) saturate(180%);
+        background: var(--pos-card-bg);
         border: 1px solid rgba(148, 163, 184, 0.3);
-        border-radius: 16px;
+        border-radius: 12px;
         padding: 0.5rem;
         box-shadow: var(--pos-shadow);
     }
@@ -66,12 +61,10 @@
     }
     
     .product-card {
-        background: var(--pos-card-bg) !important;
-        backdrop-filter: var(--pos-blur) saturate(180%);
-        -webkit-backdrop-filter: var(--pos-blur) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 16px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: var(--pos-card-bg);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
+        transition: all 0.3s ease;
         cursor: pointer;
         height: 100%;
         overflow: hidden;
@@ -140,12 +133,10 @@
     }
 
     .category-card {
-        background: var(--pos-card-bg) !important;
-        backdrop-filter: var(--pos-blur) saturate(180%);
-        -webkit-backdrop-filter: var(--pos-blur) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 16px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: var(--pos-card-bg);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
+        transition: all 0.3s ease;
         cursor: pointer;
         height: 100%;
         box-shadow: var(--pos-shadow);
@@ -528,55 +519,27 @@
         }
     }
     
-    /* Railway.app Optimizations para POS */
+    /* Elementos adicionales del POS */
     .client-selector {
-        background: var(--pos-card-bg) !important;
-        backdrop-filter: var(--pos-blur) saturate(180%);
-        -webkit-backdrop-filter: var(--pos-blur) saturate(180%);
+        background: var(--pos-card-bg);
         border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        box-shadow: var(--pos-shadow);
     }
     
     .modal-content {
-        background: var(--pos-card-bg) !important;
-        backdrop-filter: var(--pos-blur) saturate(180%);
-        -webkit-backdrop-filter: var(--pos-blur) saturate(180%);
+        background: var(--pos-card-bg);
         border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
+        box-shadow: var(--pos-shadow-hover);
     }
     
     .alert {
-        background: var(--pos-card-bg) !important;
-        backdrop-filter: var(--pos-blur) saturate(180%);
-        -webkit-backdrop-filter: var(--pos-blur) saturate(180%);
+        background: var(--pos-card-bg);
         border: 1px solid rgba(148, 163, 184, 0.3);
-    }
-    
-    /* Fallback para navegadores sin soporte de backdrop-filter */
-    @supports not (backdrop-filter: blur(15px)) {
-        .pos-header,
-        .search-box .input-group,
-        .product-card,
-        .category-card,
-        .client-selector,
-        .modal-content,
-        .alert {
-            background: rgba(30, 41, 59, 0.95) !important;
-        }
-    }
-    
-    /* Mejorar legibilidad en Railway */
-    .pos-header *,
-    .product-card *,
-    .category-card *,
-    .search-box * {
-        color: #ffffff !important;
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-    }
-    
-    /* Excepciones para botones y badges */
-    .btn,
-    .badge,
-    .product-card .btn-add {
-        text-shadow: none !important;
+        border-radius: 12px;
     }
 </style>
 {% endblock %}
@@ -887,7 +850,6 @@
 <script src="{% static 'core/js/pos.js' %}?v=3.0"></script>
 <script src="{% static 'pos/js/carrito.js' %}?v=2.0"></script>
 <script src="{% static 'pos/js/mesas.js' %}?v=1.0"></script>
-<script src="{% static 'core/js/pos-debug.js' %}?v=1.0"></script>
 <script>
     // Actualizar fecha y hora
     function actualizarFechaHora() {

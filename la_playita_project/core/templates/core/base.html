@@ -16,6 +16,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
+    <!-- Global Visibility - CARGAR PRIMERO -->
+    <link rel="stylesheet" href="{% static 'core/css/global-visibility.css' %}">
+    
     <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
     <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
     <link rel="stylesheet" href="{% static 'core/css/railway-optimized.css' %}">
@@ -23,8 +26,12 @@
     <link rel="stylesheet" href="{% static 'core/css/railway-instant.css' %}">
     <link rel="stylesheet" href="{% static 'core/css/railway-functional.css' %}">
     <link rel="stylesheet" href="{% static 'core/css/railway-safe.css' %}">
+    <link rel="stylesheet" href="{% static 'core/css/railway-force-visible.css' %}">
     
-    <!-- Railway Detector - Cargar primero -->
+    <!-- Force Visibility - Cargar PRIMERO -->
+    <script src="{% static 'core/js/force-visibility.js' %}"></script>
+    
+    <!-- Railway Detector - Cargar segundo -->
     <script src="{% static 'core/js/railway-detector.js' %}"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -103,24 +110,67 @@
             }
         }
         
-        /* Aplicar estilos críticos si detectamos Railway en la URL */
-        @media screen {
-            body[data-railway="true"] .lp-top-navbar,
-            body[data-railway="true"] .lp-sidebar {
-                background: #1e293b !important;
-                backdrop-filter: none !important;
-            }
-            
-            body[data-railway="true"] .dashboard-header,
-            body[data-railway="true"] .stat-card,
-            body[data-railway="true"] .action-card,
-            body[data-railway="true"] .chart-card,
-            body[data-railway="true"] .alert-card,
-            body[data-railway="true"] .list-card {
-                background: #1e293b !important;
-                backdrop-filter: none !important;
-                border: 1px solid #334155 !important;
-            }
+        /* FORZAR VISIBILIDAD INMEDIATA - CSS CRÍTICO INLINE */
+        .lp-top-navbar,
+        .lp-sidebar,
+        .dashboard-header,
+        .stat-card,
+        .action-card,
+        .chart-card,
+        .alert-card,
+        .list-card,
+        .pos-header,
+        .product-card,
+        .category-card,
+        .search-box .input-group,
+        .footer-glassmorphism {
+            background: #1e293b !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            opacity: 1 !important;
+            border: 2px solid #334155 !important;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8) !important;
+            visibility: visible !important;
+            display: block !important;
+        }
+        
+        .dashboard-header *,
+        .stat-card *,
+        .action-card *,
+        .chart-card *,
+        .alert-card *,
+        .list-card *,
+        .pos-header *,
+        .product-card *,
+        .category-card *,
+        .lp-top-navbar *,
+        .lp-sidebar * {
+            color: #ffffff !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        
+        .dashboard-subtitle,
+        .action-description,
+        .stat-label,
+        .text-muted {
+            color: #cbd5e1 !important;
+            opacity: 1 !important;
+        }
+        
+        .btn {
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+            cursor: pointer !important;
+        }
+        
+        .form-control,
+        .form-select {
+            background: #334155 !important;
+            border: 2px solid #475569 !important;
+            color: #ffffff !important;
+            opacity: 1 !important;
         }
         
         /* Prevenir CLS en el contenedor principal */
@@ -156,6 +206,28 @@
                 emergencyCSS.href = '{% static "core/css/railway-emergency.css" %}';
                 emergencyCSS.id = 'railway-emergency-immediate';
                 document.head.appendChild(emergencyCSS);
+                
+                // Cargar CSS de forzar visibilidad inmediatamente
+                const forceVisibleCSS = document.createElement('link');
+                forceVisibleCSS.rel = 'stylesheet';
+                forceVisibleCSS.href = '{% static "core/css/railway-force-visible.css" %}';
+                forceVisibleCSS.id = 'railway-force-visible-immediate';
+                document.head.appendChild(forceVisibleCSS);
+                
+                // Forzar visibilidad inmediata con JavaScript
+                setTimeout(function() {
+                    const elements = document.querySelectorAll('.dashboard-header, .stat-card, .action-card, .chart-card, .alert-card, .list-card, .pos-header, .product-card, .category-card');
+                    elements.forEach(function(el) {
+                        el.style.background = '#1e293b';
+                        el.style.opacity = '1';
+                        el.style.visibility = 'visible';
+                        el.style.display = 'block';
+                        el.style.border = '2px solid #334155';
+                        el.style.boxShadow = '0 8px 30px rgba(0, 0, 0, 0.8)';
+                        el.style.backdropFilter = 'none';
+                        el.style.webkitBackdropFilter = 'none';
+                    });
+                }, 100);
             }
         })();
     </script>

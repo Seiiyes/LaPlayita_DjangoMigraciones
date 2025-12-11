@@ -8,17 +8,18 @@
     :root {
         --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        --pos-card-bg: rgba(255, 255, 255, 0.59);
-        --pos-card-hover: rgba(255, 255, 255, 0.75);
-        --pos-blur: blur(20px);
-        --pos-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        --pos-shadow-hover: 0 20px 40px rgba(0, 0, 0, 0.15);
+        --pos-card-bg: rgba(30, 41, 59, 0.85);
+        --pos-card-hover: rgba(30, 41, 59, 0.92);
+        --pos-blur: blur(15px);
+        --pos-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        --pos-shadow-hover: 0 16px 48px rgba(0, 0, 0, 0.4);
     }
     
     .pos-header {
-        background: var(--pos-card-bg);
-        backdrop-filter: var(--pos-blur);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: var(--pos-card-bg) !important;
+        backdrop-filter: var(--pos-blur) saturate(180%);
+        -webkit-backdrop-filter: var(--pos-blur) saturate(180%);
+        border: 1px solid rgba(148, 163, 184, 0.3);
         border-radius: 16px;
         padding: 2rem;
         margin-bottom: 2rem;
@@ -31,9 +32,10 @@
     }
     
     .search-box .input-group {
-        background: var(--pos-card-bg);
-        backdrop-filter: var(--pos-blur);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: var(--pos-card-bg) !important;
+        backdrop-filter: var(--pos-blur) saturate(180%);
+        -webkit-backdrop-filter: var(--pos-blur) saturate(180%);
+        border: 1px solid rgba(148, 163, 184, 0.3);
         border-radius: 16px;
         padding: 0.5rem;
         box-shadow: var(--pos-shadow);
@@ -43,7 +45,7 @@
         border: none;
         background: transparent;
         padding: 12px 20px;
-        color: #000000;
+        color: #ffffff;
     }
     
     .search-box input:focus {
@@ -54,7 +56,7 @@
     .search-box .input-group-text {
         background: transparent;
         border: none;
-        color: #000000;
+        color: #ffffff;
     }
     
     .search-box .btn {
@@ -64,9 +66,10 @@
     }
     
     .product-card {
-        background: var(--pos-card-bg);
-        backdrop-filter: var(--pos-blur);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: var(--pos-card-bg) !important;
+        backdrop-filter: var(--pos-blur) saturate(180%);
+        -webkit-backdrop-filter: var(--pos-blur) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.3);
         border-radius: 16px;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
@@ -108,7 +111,7 @@
     
     .product-card .card-title {
         font-weight: 600;
-        color: #2d3748;
+        color: #ffffff;
         font-size: 1rem;
         margin-bottom: 0.5rem;
     }
@@ -137,9 +140,10 @@
     }
 
     .category-card {
-        background: var(--pos-card-bg);
-        backdrop-filter: var(--pos-blur);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: var(--pos-card-bg) !important;
+        backdrop-filter: var(--pos-blur) saturate(180%);
+        -webkit-backdrop-filter: var(--pos-blur) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.3);
         border-radius: 16px;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
@@ -187,7 +191,7 @@
 
     .category-card .card-title {
         font-weight: 600;
-        color: #2d3748;
+        color: #ffffff;
         font-size: 1.25rem;
     }
 
@@ -210,7 +214,7 @@
     }
 
     .breadcrumb-item.active {
-        color: #2d3748;
+        color: #ffffff;
         font-weight: 600;
     }
 
@@ -504,13 +508,13 @@
     .card-title,
     .form-label,
     .info-item strong {
-        color: #000000 !important;
+        color: #ffffff !important;
         opacity: 0.9;
     }
     
     .text-muted {
-        color: #000000 !important;
-        opacity: 0.7;
+        color: #cbd5e1 !important;
+        opacity: 0.8;
     }
     
     @media (max-width: 768px) {
@@ -522,6 +526,57 @@
         .product-card {
             margin-bottom: 1rem;
         }
+    }
+    
+    /* Railway.app Optimizations para POS */
+    .client-selector {
+        background: var(--pos-card-bg) !important;
+        backdrop-filter: var(--pos-blur) saturate(180%);
+        -webkit-backdrop-filter: var(--pos-blur) saturate(180%);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    
+    .modal-content {
+        background: var(--pos-card-bg) !important;
+        backdrop-filter: var(--pos-blur) saturate(180%);
+        -webkit-backdrop-filter: var(--pos-blur) saturate(180%);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    
+    .alert {
+        background: var(--pos-card-bg) !important;
+        backdrop-filter: var(--pos-blur) saturate(180%);
+        -webkit-backdrop-filter: var(--pos-blur) saturate(180%);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    
+    /* Fallback para navegadores sin soporte de backdrop-filter */
+    @supports not (backdrop-filter: blur(15px)) {
+        .pos-header,
+        .search-box .input-group,
+        .product-card,
+        .category-card,
+        .client-selector,
+        .modal-content,
+        .alert {
+            background: rgba(30, 41, 59, 0.95) !important;
+        }
+    }
+    
+    /* Mejorar legibilidad en Railway */
+    .pos-header *,
+    .product-card *,
+    .category-card *,
+    .search-box * {
+        color: #ffffff !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    }
+    
+    /* Excepciones para botones y badges */
+    .btn,
+    .badge,
+    .product-card .btn-add {
+        text-shadow: none !important;
     }
 </style>
 {% endblock %}

@@ -3,531 +3,316 @@
 
 {% block title %}Dashboard - La Playita{% endblock %}
 
-{% block extra_css %}
-<style>
-    .dashboard-container {
-        padding: 2rem 0;
-    }
-    
-    /* Accesos Rápidos */
-    .quick-access-card {
-        border: none;
-        border-radius: 15px;
-        transition: all 0.3s ease;
-        cursor: pointer;
-        height: 100%;
-        text-decoration: none;
-        display: block;
-        color: white !important;
-    }
-    
-    .quick-access-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        color: white !important;
-    }
-    
-    .quick-access-card .card-body {
-        padding: 2rem;
-        text-align: center;
-        color: white !important;
-    }
-    
-    .quick-access-card i {
-        font-size: 3.5rem;
-        margin-bottom: 1rem;
-        display: block;
-        color: white !important;
-    }
-    
-    .quick-access-card h5 {
-        margin-bottom: 0.5rem;
-        font-weight: 600;
-        color: white !important;
-    }
-    
-    .quick-access-card small {
-        display: block;
-        color: rgba(255, 255, 255, 0.9) !important;
-    }
-    
-    /* KPIs */
-    .kpi-card {
-        border: none;
-        border-radius: 15px;
-        overflow: hidden;
-        height: 100%;
-        position: relative;
-        color: white;
-    }
-    
-    .kpi-card .card-body {
-        padding: 1.5rem;
-        position: relative;
-        z-index: 1;
-    }
-    
-    .kpi-icon {
-        position: absolute;
-        right: 1rem;
-        top: 1rem;
-        font-size: 3rem;
-        opacity: 0.2;
-    }
-    
-    .kpi-label {
-        font-size: 0.875rem;
-        opacity: 0.9;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 0.5rem;
-    }
-    
-    .kpi-value {
-        font-size: 2rem;
-        font-weight: bold;
-        margin-bottom: 0.5rem;
-    }
-    
-    .kpi-detail {
-        font-size: 0.875rem;
-        opacity: 0.9;
-    }
-    
-    /* Alertas */
-    .alert-card {
-        border: none;
-        border-radius: 15px;
-        transition: all 0.3s ease;
-    }
-    
-    .alert-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-    
-    /* Gráficas */
-    .chart-card {
-        border: none;
-        border-radius: 15px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    }
-    
-    .chart-container {
-        position: relative;
-        height: 350px;
-        padding: 1rem;
-    }
-    
-    /* Rankings */
-    .ranking-table {
-        margin-bottom: 0;
-    }
-    
-    .ranking-table td, .ranking-table th {
-        padding: 0.75rem;
-        vertical-align: middle;
-    }
-    
-    .badge-rank {
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-    }
-    
-    .badge-rank.gold {
-        background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
-        color: white;
-    }
-    
-    .badge-rank.silver {
-        background: linear-gradient(135deg, #bdc3c7 0%, #ecf0f1 100%);
-        color: #2c3e50;
-    }
-    
-    .badge-rank.bronze {
-        background: linear-gradient(135deg, #cd7f32 0%, #d4a574 100%);
-        color: white;
-    }
-    
-    .accordion-button:not(.collapsed) {
-        background-color: #667eea;
-        color: white;
-    }
-    
-    .accordion-button:focus {
-        box-shadow: none;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="container-fluid dashboard-container">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="mb-1"><i class="bi bi-house-door me-2"></i>Panel Principal</h2>
-            <p class="text-muted mb-0">
-                Bienvenido, {{ request.user.first_name|default:request.user.username }}
-                {% if es_vendedor %}
-                <span class="badge bg-info ms-2">Vendedor</span>
-                {% endif %}
-            </p>
-        </div>
-        <div>
-            <a href="{% url 'pos:pos_view' %}" class="btn btn-primary">
-                <i class="bi bi-cash-register me-2"></i>Nueva Venta
-            </a>
-        </div>
-    </div>
-
-    {% if es_vendedor %}
-    <div class="alert alert-info mb-4">
-        <i class="bi bi-info-circle me-2"></i>
-        <strong>Nota:</strong> Estás viendo únicamente tus métricas y ventas personales.
-    </div>
-    {% endif %}
-
-    <!-- SECCIÓN 1: ACCESOS RÁPIDOS -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-6 col-lg-3">
-            <a href="{% url 'pos:pos_view' %}" class="card quick-access-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
-                <div class="card-body">
-                    <i class="bi bi-cash-register"></i>
-                    <h5>Punto de Venta</h5>
-                    <small>Iniciar nueva venta</small>
-                </div>
-            </a>
+<div class="container-fluid dashboard-container fade-in-up">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="dashboard-title">
+                    <i class="bi bi-shop me-3"></i>Punto de Venta - Dashboard
+                </h1>
+                <p class="dashboard-subtitle">
+                    Bienvenido, {{ request.user.first_name|default:request.user.username }}
+                    {% if es_vendedor %}
+                    <span class="badge bg-info ms-2">Vendedor</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'pos:pos_view' %}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-cash-register me-2"></i>Nueva Venta
+                </a>
+            </div>
         </div>
         
-        <div class="col-md-6 col-lg-3">
-            <a href="{% url 'inventory:productos_list' %}" class="card quick-access-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-                <div class="card-body">
+        {% if es_vendedor %}
+        <div class="alert alert-info mt-3 mb-0">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Nota:</strong> Estás viendo únicamente tus métricas y ventas personales.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <a href="{% url 'pos:pos_view' %}" class="action-card pos">
+            <i class="bi bi-shop action-icon"></i>
+            <div class="action-title">Punto de Venta</div>
+            <div class="action-description">Iniciar nueva venta</div>
+        </a>
+        
+        <a href="{% url 'inventory:productos_list' %}" class="action-card inventory">
+            <i class="bi bi-box-seam action-icon"></i>
+            <div class="action-title">Inventario</div>
+            <div class="action-description">{{ total_productos }} productos</div>
+        </a>
+        
+        <a href="{% url 'inventory:alertas_stock' %}" class="action-card reports">
+            <i class="bi bi-exclamation-triangle action-icon"></i>
+            <div class="action-title">Alertas de Stock</div>
+            <div class="action-description">{{ productos_bajos_stock }} productos</div>
+        </a>
+        
+        <a href="{% url 'clients:cliente_list' %}" class="action-card clients">
+            <i class="bi bi-gift action-icon"></i>
+            <div class="action-title">Canjeables</div>
+            <div class="action-description">{{ total_clientes }} clientes</div>
+        </a>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card primary">
+            <div class="stat-header">
+                <div class="stat-icon">
+                    <i class="bi bi-cash-coin"></i>
+                </div>
+                <div class="stat-trend up">
+                    <i class="bi bi-arrow-up"></i> Hoy
+                </div>
+            </div>
+            <div class="stat-value">${{ total_hoy|floatformat:0 }}</div>
+            <div class="stat-label">Ventas de Hoy</div>
+            <small class="text-muted">{{ cantidad_hoy }} transacciones</small>
+        </div>
+        
+        <div class="stat-card success">
+            <div class="stat-header">
+                <div class="stat-icon">
+                    <i class="bi bi-calendar-month"></i>
+                </div>
+                <div class="stat-trend {% if crecimiento > 0 %}up{% elif crecimiento < 0 %}down{% endif %}">
+                    {% if crecimiento > 0 %}
+                        <i class="bi bi-arrow-up"></i> +{{ crecimiento|floatformat:1 }}%
+                    {% elif crecimiento < 0 %}
+                        <i class="bi bi-arrow-down"></i> {{ crecimiento|floatformat:1 }}%
+                    {% else %}
+                        <i class="bi bi-dash"></i> 0%
+                    {% endif %}
+                </div>
+            </div>
+            <div class="stat-value">${{ total_30dias|floatformat:0 }}</div>
+            <div class="stat-label">Ventas del Mes</div>
+            <small class="text-muted">{{ cantidad_30dias }} transacciones</small>
+        </div>
+        
+        <div class="stat-card info">
+            <div class="stat-header">
+                <div class="stat-icon">
+                    <i class="bi bi-calculator"></i>
+                </div>
+                <div class="stat-trend up">
+                    <i class="bi bi-cart"></i>
+                </div>
+            </div>
+            <div class="stat-value">${{ ticket_promedio|floatformat:0 }}</div>
+            <div class="stat-label">Ticket Promedio</div>
+            <small class="text-muted">Por transacción</small>
+        </div>
+        
+        <div class="stat-card warning">
+            <div class="stat-header">
+                <div class="stat-icon">
+                    <i class="bi bi-graph-up-arrow"></i>
+                </div>
+                <div class="stat-trend up">
+                    <i class="bi bi-currency-dollar"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ margen_porcentaje|floatformat:1 }}%</div>
+            <div class="stat-label">Margen de Ganancia</div>
+            <small class="text-muted">${{ ganancia_bruta|floatformat:0 }} ganancia</small>
+        </div>
+        
+        <div class="stat-card secondary">
+            <div class="stat-header">
+                <div class="stat-icon">
                     <i class="bi bi-box-seam"></i>
-                    <h5>Inventario</h5>
-                    <small>{{ total_productos }} productos</small>
                 </div>
-            </a>
+                <div class="stat-trend up">
+                    <i class="bi bi-boxes"></i>
+                </div>
+            </div>
+            <div class="stat-value">{{ total_productos }}</div>
+            <div class="stat-label">Total Productos</div>
+            <small class="text-muted">En inventario</small>
         </div>
         
-        <div class="col-md-6 col-lg-3">
-            <a href="{% url 'inventory:alertas_stock' %}" class="card quick-access-card" style="background: {% if productos_bajos_stock > 0 %}linear-gradient(135deg, #f093fb 0%, #f5576c 100%){% else %}linear-gradient(135deg, #667eea 0%, #764ba2 100%){% endif %};">
-                <div class="card-body">
+        <div class="stat-card danger">
+            <div class="stat-header">
+                <div class="stat-icon">
                     <i class="bi bi-exclamation-triangle"></i>
-                    <h5>Alertas de Stock</h5>
-                    <small>{{ productos_bajos_stock }} productos</small>
                 </div>
-            </a>
-        </div>
-        
-        <div class="col-md-6 col-lg-3">
-            <a href="{% url 'clients:cliente_list' %}" class="card quick-access-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
-                <div class="card-body">
-                    <i class="bi bi-gift"></i>
-                    <h5>Canjeables</h5>
-                    <small>{{ total_clientes }} clientes</small>
-                </div>
-            </a>
-        </div>
-    </div>
-
-    <!-- SECCIÓN 2: KPIs PRINCIPALES -->
-    <div class="row g-3 mb-4">
-        <div class="col-lg-3 col-md-6">
-            <div class="card kpi-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                <div class="card-body">
-                    <i class="bi bi-cash-coin kpi-icon"></i>
-                    <div class="kpi-label">Ventas Hoy</div>
-                    <div class="kpi-value">${{ total_hoy|floatformat:0 }}</div>
-                    <div class="kpi-detail">
-                        <i class="bi bi-receipt"></i> {{ cantidad_hoy }} transacciones
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6">
-            <div class="card kpi-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
-                <div class="card-body">
-                    <i class="bi bi-calendar-month kpi-icon"></i>
-                    <div class="kpi-label">Ventas del Mes</div>
-                    <div class="kpi-value">${{ total_30dias|floatformat:0 }}</div>
-                    <div class="kpi-detail">
-                        {% if crecimiento > 0 %}
-                            <i class="bi bi-arrow-up-circle"></i> +{{ crecimiento|floatformat:1 }}%
-                        {% elif crecimiento < 0 %}
-                            <i class="bi bi-arrow-down-circle"></i> {{ crecimiento|floatformat:1 }}%
-                        {% else %}
-                            <i class="bi bi-dash-circle"></i> 0%
-                        {% endif %}
-                        vs anterior
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6">
-            <div class="card kpi-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-                <div class="card-body">
-                    <i class="bi bi-calculator kpi-icon"></i>
-                    <div class="kpi-label">Ticket Promedio</div>
-                    <div class="kpi-value">${{ ticket_promedio|floatformat:0 }}</div>
-                    <div class="kpi-detail">
-                        <i class="bi bi-cart"></i> Por transacción
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6">
-            <div class="card kpi-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                <div class="card-body">
-                    <i class="bi bi-graph-up-arrow kpi-icon"></i>
-                    <div class="kpi-label">Margen de Ganancia</div>
-                    <div class="kpi-value">{{ margen_porcentaje|floatformat:1 }}%</div>
-                    <div class="kpi-detail">
-                        <i class="bi bi-currency-dollar"></i> ${{ ganancia_bruta|floatformat:0 }}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SECCIÓN 3: ALERTAS CRÍTICAS -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card alert-card {% if productos_bajos_stock > 0 %}bg-warning{% else %}bg-success{% endif %} text-white">
-                <div class="card-body">
-                    <h6 class="mb-2"><i class="bi bi-exclamation-triangle me-2"></i>Stock Bajo</h6>
-                    <h3 class="mb-2">{{ productos_bajos_stock }}</h3>
-                    {% if lista_productos_stock_bajo %}
-                        <div class="mt-3" style="max-height: 120px; overflow-y: auto;">
-                            <small class="d-block mb-1 opacity-75">Productos:</small>
-                            {% for producto in lista_productos_stock_bajo %}
-                                <small class="d-block">• {{ producto.nombre }} ({{ producto.stock_actual }})</small>
-                            {% endfor %}
-                        </div>
+                <div class="stat-trend {% if productos_bajos_stock > 0 %}down{% else %}up{% endif %}">
+                    {% if productos_bajos_stock > 0 %}
+                        <i class="bi bi-arrow-down"></i> Crítico
                     {% else %}
-                        <small>Todos los productos tienen stock adecuado</small>
+                        <i class="bi bi-check"></i> OK
                     {% endif %}
                 </div>
             </div>
+            <div class="stat-value">{{ productos_bajos_stock }}</div>
+            <div class="stat-label">Stock Bajo</div>
+            <small class="text-muted">Productos críticos</small>
         </div>
-        
-        <div class="col-md-4">
-            <div class="card alert-card {% if productos_agotados > 0 %}bg-danger{% else %}bg-success{% endif %} text-white">
-                <div class="card-body">
-                    <h6 class="mb-2"><i class="bi bi-x-circle me-2"></i>Productos Agotados</h6>
-                    <h3 class="mb-2">{{ productos_agotados }}</h3>
-                    {% if lista_productos_agotados %}
-                        <div class="mt-3" style="max-height: 120px; overflow-y: auto;">
-                            <small class="d-block mb-1 opacity-75">Productos:</small>
-                            {% for producto in lista_productos_agotados %}
-                                <small class="d-block">• {{ producto.nombre }}</small>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <small>No hay productos agotados</small>
-                    {% endif %}
+    </div>
+
+    <!-- Alerts Section -->
+    <div class="alerts-section">
+        {% if productos_bajos_stock > 0 %}
+        <div class="alert-card warning">
+            <div class="alert-header">
+                <div class="alert-title">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Stock Bajo Detectado
                 </div>
+                <span class="alert-badge warning">{{ productos_bajos_stock }} productos</span>
+            </div>
+            <p class="mb-2">Los siguientes productos requieren reabastecimiento urgente:</p>
+            <div style="max-height: 120px; overflow-y: auto;">
+                {% for producto in lista_productos_stock_bajo %}
+                    <small class="d-block">• {{ producto.nombre }} (Stock: {{ producto.stock_actual }})</small>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if productos_agotados > 0 %}
+        <div class="alert-card danger">
+            <div class="alert-header">
+                <div class="alert-title">
+                    <i class="bi bi-x-circle me-2"></i>Productos Agotados
+                </div>
+                <span class="alert-badge danger">{{ productos_agotados }} productos</span>
+            </div>
+            <p class="mb-2">Estos productos están completamente agotados:</p>
+            <div style="max-height: 120px; overflow-y: auto;">
+                {% for producto in lista_productos_agotados %}
+                    <small class="d-block">• {{ producto.nombre }}</small>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if productos_sin_movimiento > 5 %}
+        <div class="alert-card info">
+            <div class="alert-header">
+                <div class="alert-title">
+                    <i class="bi bi-pause-circle me-2"></i>Productos Sin Movimiento
+                </div>
+                <span class="alert-badge warning">{{ productos_sin_movimiento }} productos</span>
+            </div>
+            <p class="mb-2">Productos sin ventas en los últimos 30 días:</p>
+            <div style="max-height: 120px; overflow-y: auto;">
+                {% for producto in lista_productos_sin_movimiento %}
+                    <small class="d-block">• {{ producto.nombre }}</small>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title">
+                    <i class="bi bi-graph-up me-2"></i>Ventas de los Últimos 30 Días
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="chartVentas30Dias"></canvas>
             </div>
         </div>
         
-        <div class="col-md-4">
-            <div class="card alert-card {% if productos_sin_movimiento > 5 %}bg-danger{% elif productos_sin_movimiento > 0 %}bg-warning{% else %}bg-success{% endif %} text-white">
-                <div class="card-body">
-                    <h6 class="mb-2"><i class="bi bi-pause-circle me-2"></i>Sin Movimiento</h6>
-                    <h3 class="mb-2">{{ productos_sin_movimiento }}</h3>
-                    {% if lista_productos_sin_movimiento %}
-                        <div class="mt-3" style="max-height: 120px; overflow-y: auto;">
-                            <small class="d-block mb-1 opacity-75">Productos (30 días):</small>
-                            {% for producto in lista_productos_sin_movimiento %}
-                                <small class="d-block">• {{ producto.nombre }}</small>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <small>Todos los productos tienen movimiento</small>
-                    {% endif %}
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title">
+                    <i class="bi bi-trophy me-2"></i>Top 5 Productos
                 </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="chartTopProductos"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- SECCIÓN 4: GRÁFICAS -->
-    <div class="row g-4 mb-4">
-        <div class="col-lg-8">
-            <div class="card chart-card">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">
-                        <i class="bi bi-graph-up me-2"></i>Ventas de los Últimos 30 Días
-                    </h5>
-                    <div class="chart-container">
-                        <canvas id="chartVentas30Dias"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-4">
-            <div class="card chart-card">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">
-                        <i class="bi bi-trophy me-2"></i>Top 5 Productos
-                    </h5>
-                    <div class="chart-container">
-                        <canvas id="chartTopProductos"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SECCIÓN 5: RANKINGS -->
-    <div class="accordion" id="accordionRankings">
+    <!-- Top Lists -->
+    <div class="top-lists-grid">
         <!-- Top Productos -->
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProductos">
-                    <i class="bi bi-trophy me-2"></i>Top 5 Productos Más Vendidos
-                </button>
-            </h2>
-            <div id="collapseProductos" class="accordion-collapse collapse" data-bs-parent="#accordionRankings">
-                <div class="accordion-body p-0">
-                    <div class="table-responsive">
-                        <table class="table ranking-table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width: 60px;">#</th>
-                                    <th>Producto</th>
-                                    <th class="text-center">Cantidad</th>
-                                    <th class="text-end">Ingresos</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for producto in top_productos %}
-                                <tr>
-                                    <td>
-                                        <span class="badge-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}bg-secondary text-white{% endif %}">
-                                            {{ forloop.counter }}
-                                        </span>
-                                    </td>
-                                    <td>{{ producto.producto__nombre }}</td>
-                                    <td class="text-center">
-                                        <span class="badge bg-primary">{{ producto.cantidad_total }}</span>
-                                    </td>
-                                    <td class="text-end fw-bold">${{ producto.ingresos|floatformat:0 }}</td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted py-3">Sin datos disponibles</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+        <div class="list-card">
+            <div class="list-header">
+                <div class="list-icon" style="background: var(--dashboard-warning);">
+                    <i class="bi bi-trophy"></i>
                 </div>
+                <div class="list-title">Top 5 Productos</div>
+            </div>
+            <div class="list-content">
+                {% for producto in top_productos %}
+                <div class="list-item">
+                    <div>
+                        <div class="list-item-name">{{ producto.producto__nombre|truncatechars:25 }}</div>
+                        <small class="text-muted">{{ producto.cantidad_total }} vendidos</small>
+                    </div>
+                    <div class="list-item-value">${{ producto.ingresos|floatformat:0 }}</div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-3">Sin datos disponibles</div>
+                {% endfor %}
             </div>
         </div>
 
         <!-- Top Vendedores (solo para administradores) -->
         {% if not es_vendedor %}
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVendedores">
-                    <i class="bi bi-person-badge me-2"></i>Top 5 Vendedores
-                </button>
-            </h2>
-            <div id="collapseVendedores" class="accordion-collapse collapse" data-bs-parent="#accordionRankings">
-                <div class="accordion-body p-0">
-                    <div class="table-responsive">
-                        <table class="table ranking-table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width: 60px;">#</th>
-                                    <th>Vendedor</th>
-                                    <th class="text-center">Ventas</th>
-                                    <th class="text-end">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for vendedor in top_vendedores %}
-                                <tr>
-                                    <td>
-                                        <span class="badge-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}bg-secondary text-white{% endif %}">
-                                            {{ forloop.counter }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {% if vendedor.usuario__first_name %}
-                                            {{ vendedor.usuario__first_name }} {{ vendedor.usuario__last_name }}
-                                        {% else %}
-                                            {{ vendedor.usuario__username }}
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge bg-success">{{ vendedor.cantidad }}</span>
-                                    </td>
-                                    <td class="text-end fw-bold">${{ vendedor.total_ventas|floatformat:0 }}</td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted py-3">Sin datos disponibles</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+        <div class="list-card">
+            <div class="list-header">
+                <div class="list-icon" style="background: var(--dashboard-success);">
+                    <i class="bi bi-person-badge"></i>
                 </div>
+                <div class="list-title">Top 5 Vendedores</div>
+            </div>
+            <div class="list-content">
+                {% for vendedor in top_vendedores %}
+                <div class="list-item">
+                    <div>
+                        <div class="list-item-name">
+                            {% if vendedor.usuario__first_name %}
+                                {{ vendedor.usuario__first_name }} {{ vendedor.usuario__last_name }}
+                            {% else %}
+                                {{ vendedor.usuario__username }}
+                            {% endif %}
+                        </div>
+                        <small class="text-muted">{{ vendedor.cantidad }} ventas</small>
+                    </div>
+                    <div class="list-item-value">${{ vendedor.total_ventas|floatformat:0 }}</div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-3">Sin datos disponibles</div>
+                {% endfor %}
             </div>
         </div>
         {% endif %}
 
         <!-- Top Clientes -->
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseClientes">
-                    <i class="bi bi-people me-2"></i>Top 5 Clientes
-                </button>
-            </h2>
-            <div id="collapseClientes" class="accordion-collapse collapse" data-bs-parent="#accordionRankings">
-                <div class="accordion-body p-0">
-                    <div class="table-responsive">
-                        <table class="table ranking-table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width: 60px;">#</th>
-                                    <th>Cliente</th>
-                                    <th class="text-center">Compras</th>
-                                    <th class="text-end">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for cliente in top_clientes %}
-                                <tr>
-                                    <td>
-                                        <span class="badge-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}bg-secondary text-white{% endif %}">
-                                            {{ forloop.counter }}
-                                        </span>
-                                    </td>
-                                    <td>{{ cliente.cliente__nombres }} {{ cliente.cliente__apellidos }}</td>
-                                    <td class="text-center">
-                                        <span class="badge bg-warning text-dark">{{ cliente.cantidad }}</span>
-                                    </td>
-                                    <td class="text-end fw-bold">${{ cliente.total_compras|floatformat:0 }}</td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted py-3">Sin datos disponibles</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+        <div class="list-card">
+            <div class="list-header">
+                <div class="list-icon" style="background: var(--dashboard-secondary);">
+                    <i class="bi bi-people"></i>
                 </div>
+                <div class="list-title">Top 5 Clientes</div>
+            </div>
+            <div class="list-content">
+                {% for cliente in top_clientes %}
+                <div class="list-item">
+                    <div>
+                        <div class="list-item-name">{{ cliente.cliente__nombres }} {{ cliente.cliente__apellidos }}</div>
+                        <small class="text-muted">{{ cliente.cantidad }} compras</small>
+                    </div>
+                    <div class="list-item-value">${{ cliente.total_compras|floatformat:0 }}</div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-3">Sin datos disponibles</div>
+                {% endfor %}
             </div>
         </div>
     </div>
@@ -535,38 +320,29 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-    // Configuración global
-    Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
-    Chart.defaults.color = '#6c757d';
+    // Configuración global de Chart.js
+    Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+    Chart.defaults.color = '#64748b';
+    Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.9)';
+    Chart.defaults.plugins.tooltip.cornerRadius = 8;
+    Chart.defaults.plugins.tooltip.padding = 12;
     
-    // Gráfico 1: Ventas últimos 30 días (Línea)
+    // Gráfico 1: Ventas últimos 30 días
     document.addEventListener('DOMContentLoaded', function() {
         const ctx = document.getElementById('chartVentas30Dias');
         
-        if (!ctx) {
-            console.error('Canvas chartVentas30Dias no encontrado');
-            return;
-        }
+        if (!ctx) return;
         
-        // Datos desde el servidor
         const ventasFechas = {{ ventas_fechas_json|safe }};
         const ventasTotales = {{ ventas_totales_json|safe }};
         
-        console.log('Fechas:', ventasFechas);
-        console.log('Totales:', ventasTotales);
-        
         if (ventasFechas.length === 0) {
-            const context = ctx.getContext('2d');
-            context.font = '14px Arial';
-            context.fillStyle = '#6c757d';
-            context.textAlign = 'center';
-            context.fillText('No hay datos de ventas disponibles', ctx.width / 2, ctx.height / 2);
+            ctx.getContext('2d').fillText('No hay datos disponibles', ctx.width / 2, ctx.height / 2);
             return;
         }
         
-        new Chart(ctx.getContext('2d'), {
+        new Chart(ctx, {
             type: 'line',
             data: {
                 labels: ventasFechas.map(f => {
@@ -574,33 +350,38 @@
                     return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
                 }),
                 datasets: [{
-                    label: 'Ventas',
+                    label: 'Ventas Diarias',
                     data: ventasTotales,
-                    borderColor: '#667eea',
-                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
                     borderWidth: 3,
                     fill: true,
                     tension: 0.4,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    pointBackgroundColor: '#667eea',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2
+                    pointRadius: 5,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: '#4f46e5',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointHoverBackgroundColor: '#4f46e5',
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 3
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
                 plugins: {
-                    legend: { display: false },
+                    legend: { 
+                        display: false 
+                    },
                     tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.8)',
-                        padding: 12,
-                        titleFont: { size: 14 },
-                        bodyFont: { size: 13 },
                         callbacks: {
                             label: function(context) {
-                                return 'Ventas: $' + context.parsed.y.toLocaleString('es-ES');
+                                return 'Ventas: $' + context.parsed.y.toLocaleString('es-CO');
                             }
                         }
                     }
@@ -610,16 +391,20 @@
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return '$' + value.toLocaleString('es-ES');
+                                return '$' + value.toLocaleString('es-CO');
                             }
                         },
                         grid: {
-                            color: 'rgba(0,0,0,0.05)'
+                            color: 'rgba(148, 163, 184, 0.1)',
+                            drawBorder: false
                         }
                     },
                     x: {
                         grid: {
                             display: false
+                        },
+                        ticks: {
+                            maxTicksLimit: 10
                         }
                     }
                 }
@@ -627,99 +412,116 @@
         });
     });
     
-    // Gráfico 2: Top 5 Productos (Barras Horizontales)
+    // Gráfico 2: Top 5 Productos
     document.addEventListener('DOMContentLoaded', function() {
         const ctx2 = document.getElementById('chartTopProductos');
         
-        if (!ctx2) {
-            console.error('Canvas chartTopProductos no encontrado');
-            return;
-        }
+        if (!ctx2) return;
         
-        // Datos desde el servidor
         const topProductosData = [
             {% for producto in top_productos %}
             {
-                nombre: '{{ producto.producto__nombre|truncatechars:20|escapejs }}',
+                nombre: '{{ producto.producto__nombre|truncatechars:15|escapejs }}',
                 cantidad: {{ producto.cantidad_total|default:0 }}
             }{% if not forloop.last %},{% endif %}
             {% endfor %}
         ];
         
-        console.log('Top Productos Data:', topProductosData);
-        
         if (topProductosData.length === 0) {
-            const context = ctx2.getContext('2d');
-            context.font = '14px Arial';
-            context.fillStyle = '#6c757d';
-            context.textAlign = 'center';
-            context.fillText('No hay datos disponibles', ctx2.width / 2, ctx2.height / 2);
+            ctx2.getContext('2d').fillText('No hay datos disponibles', ctx2.width / 2, ctx2.height / 2);
             return;
         }
         
-        const productosNombres = topProductosData.map(p => p.nombre);
-        const productosCantidades = topProductosData.map(p => p.cantidad);
+        const gradientColors = [
+            ['#4f46e5', '#7c3aed'],
+            ['#06b6d4', '#0891b2'],
+            ['#10b981', '#059669'],
+            ['#f59e0b', '#d97706'],
+            ['#ef4444', '#dc2626']
+        ];
         
-        new Chart(ctx2.getContext('2d'), {
-            type: 'bar',
+        new Chart(ctx2, {
+            type: 'doughnut',
             data: {
-                labels: productosNombres,
+                labels: topProductosData.map(p => p.nombre),
                 datasets: [{
-                    label: 'Cantidad Vendida',
-                    data: productosCantidades,
-                    backgroundColor: [
-                        'rgba(102, 126, 234, 0.8)',
-                        'rgba(17, 153, 142, 0.8)',
-                        'rgba(240, 147, 251, 0.8)',
-                        'rgba(79, 172, 254, 0.8)',
-                        'rgba(255, 193, 7, 0.8)'
-                    ],
-                    borderColor: [
-                        '#667eea',
-                        '#11998e',
-                        '#f093fb',
-                        '#4facfe',
-                        '#ffc107'
-                    ],
-                    borderWidth: 2,
-                    borderRadius: 8
+                    data: topProductosData.map(p => p.cantidad),
+                    backgroundColor: gradientColors.map(colors => {
+                        const gradient = ctx2.getContext('2d').createLinearGradient(0, 0, 0, 300);
+                        gradient.addColorStop(0, colors[0]);
+                        gradient.addColorStop(1, colors[1]);
+                        return gradient;
+                    }),
+                    borderWidth: 0,
+                    hoverBorderWidth: 3,
+                    hoverBorderColor: '#ffffff'
                 }]
             },
             options: {
-                indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
                     tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.8)',
-                        padding: 12,
                         callbacks: {
                             label: function(context) {
-                                return 'Vendidos: ' + context.parsed.x;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
                             }
                         }
                     }
                 },
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1,
-                            precision: 0
-                        },
-                        grid: {
-                            color: 'rgba(0,0,0,0.05)'
-                        }
-                    },
-                    y: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
+                cutout: '60%'
             }
         });
     });
+    
+    // Animaciones de entrada
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animar las tarjetas de estadísticas
+        const statCards = document.querySelectorAll('.stat-card');
+        statCards.forEach((card, index) => {
+            setTimeout(() => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'all 0.6s ease';
+                
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, 100);
+            }, index * 100);
+        });
+        
+        // Animar las tarjetas de acción
+        const actionCards = document.querySelectorAll('.action-card');
+        actionCards.forEach((card, index) => {
+            setTimeout(() => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'all 0.6s ease';
+                
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, 100);
+            }, index * 150);
+        });
+    });
+    
+    // Actualización automática cada 5 minutos
+    setInterval(function() {
+        if (document.visibilityState === 'visible') {
+            location.reload();
+        }
+    }, 300000); // 5 minutos
 </script>
 {% endblock %}

@@ -20,6 +20,13 @@
     <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
     <link rel="stylesheet" href="{% static 'core/css/railway-optimized.css' %}">
     <link rel="stylesheet" href="{% static 'core/css/railway-performance.css' %}">
+    <link rel="stylesheet" href="{% static 'core/css/railway-instant.css' %}">
+    <link rel="stylesheet" href="{% static 'core/css/railway-functional.css' %}">
+    <link rel="stylesheet" href="{% static 'core/css/railway-safe.css' %}">
+    
+    <!-- Railway Detector - Cargar primero -->
+    <script src="{% static 'core/js/railway-detector.js' %}"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -50,6 +57,72 @@
             }
         }
         
+        /* CSS crítico para Railway - Aplicar inmediatamente */
+        .railway-critical {
+            /* Navbar sólido inmediato */
+            .lp-top-navbar {
+                background: #1e293b !important;
+                backdrop-filter: none !important;
+                border-bottom: 1px solid #334155 !important;
+            }
+            
+            /* Sidebar sólido inmediato */
+            .lp-sidebar {
+                background: #1e293b !important;
+                backdrop-filter: none !important;
+                border-right: 1px solid #334155 !important;
+            }
+            
+            /* Cards sólidas inmediatas */
+            .dashboard-header,
+            .stat-card,
+            .action-card,
+            .chart-card,
+            .alert-card,
+            .list-card,
+            .pos-header,
+            .product-card,
+            .category-card {
+                background: #1e293b !important;
+                backdrop-filter: none !important;
+                border: 1px solid #334155 !important;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+            }
+            
+            /* Texto visible inmediatamente */
+            * {
+                color: #ffffff !important;
+                text-shadow: none !important;
+            }
+            
+            .dashboard-subtitle,
+            .action-description,
+            .stat-label,
+            .text-muted {
+                color: #cbd5e1 !important;
+            }
+        }
+        
+        /* Aplicar estilos críticos si detectamos Railway en la URL */
+        @media screen {
+            body[data-railway="true"] .lp-top-navbar,
+            body[data-railway="true"] .lp-sidebar {
+                background: #1e293b !important;
+                backdrop-filter: none !important;
+            }
+            
+            body[data-railway="true"] .dashboard-header,
+            body[data-railway="true"] .stat-card,
+            body[data-railway="true"] .action-card,
+            body[data-railway="true"] .chart-card,
+            body[data-railway="true"] .alert-card,
+            body[data-railway="true"] .list-card {
+                background: #1e293b !important;
+                backdrop-filter: none !important;
+                border: 1px solid #334155 !important;
+            }
+        }
+        
         /* Prevenir CLS en el contenedor principal */
         main.container {
             min-height: calc(100vh - 200px);
@@ -67,6 +140,25 @@
             100% { background-position: -200% 0; }
         }
     </style>
+    
+    <!-- Detección inmediata de Railway -->
+    <script>
+        (function() {
+            const isRailway = window.location.hostname.includes('railway.app') || 
+                             window.location.hostname.includes('up.railway.app');
+            if (isRailway) {
+                document.documentElement.setAttribute('data-railway', 'true');
+                document.documentElement.classList.add('railway-environment');
+                
+                // Cargar CSS de emergencia inmediatamente
+                const emergencyCSS = document.createElement('link');
+                emergencyCSS.rel = 'stylesheet';
+                emergencyCSS.href = '{% static "core/css/railway-emergency.css" %}';
+                emergencyCSS.id = 'railway-emergency-immediate';
+                document.head.appendChild(emergencyCSS);
+            }
+        })();
+    </script>
 </head>
 <body class="d-flex flex-column min-vh-100">
 

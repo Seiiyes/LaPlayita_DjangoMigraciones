@@ -884,8 +884,10 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'core/js/pos.js' %}?v=3.0"></script>
 <script src="{% static 'pos/js/carrito.js' %}?v=2.0"></script>
 <script src="{% static 'pos/js/mesas.js' %}?v=1.0"></script>
+<script src="{% static 'core/js/pos-debug.js' %}?v=1.0"></script>
 <script>
     // Actualizar fecha y hora
     function actualizarFechaHora() {

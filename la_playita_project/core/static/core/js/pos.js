@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         console.log("Sending fetch request to /ventas/procesar/ with data:", saleData);
 
-        fetch('/ventas/procesar/', {
+        fetch('/pos/api/procesar-venta/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -176,9 +176,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 completeSaleButton.disabled = false;
                 completeSaleButton.textContent = 'Finalizar Venta';
             } else {
-                alert('Venta completada exitosamente. ID de venta: ' + data.venta_id);
-                console.log("Sale successful. Reloading page.");
-                window.location.reload();
+                // Mostrar modal en lugar de alert
+                console.log("Sale successful. Showing invoice modal.");
+                showInvoiceModal(data.venta_id);
             }
         })
         .catch(error => {
@@ -218,18 +218,62 @@ document.addEventListener('DOMContentLoaded', function () {
     const toggleCompactModeButton = document.getElementById('btn-toggle-compact-mode');
     const productListContainer = document.getElementById('product-list');
 
-    toggleCompactModeButton.addEventListener('click', function() {
-        productListContainer.classList.toggle('compact-mode');
+    if (toggleCompactModeButton && productListContainer) {
+        toggleCompactModeButton.addEventListener('click', function() {
+            productListContainer.classList.toggle('compact-mode');
 
-        const icon = toggleCompactModeButton.querySelector('i');
-        if (productListContainer.classList.contains('compact-mode')) {
-            icon.classList.remove('fa-compress');
-            icon.classList.add('fa-expand');
-            toggleCompactModeButton.innerHTML = '<i class="fas fa-expand"></i> Modo Normal';
-        } else {
-            icon.classList.remove('fa-expand');
-            icon.classList.add('fa-compress');
-            toggleCompactModeButton.innerHTML = '<i class="fas fa-compress"></i> Modo Compacto';
-        }
-    });
+            const icon = toggleCompactModeButton.querySelector('i');
+            if (productListContainer.classList.contains('compact-mode')) {
+                icon.classList.remove('fa-compress');
+                icon.classList.add('fa-expand');
+                toggleCompactModeButton.innerHTML = '<i class="fas fa-expand"></i> Modo Normal';
+            } else {
+                icon.classList.remove('fa-expand');
+                icon.classList.add('fa-compress');
+                toggleCompactModeButton.innerHTML = '<i class="fas fa-compress"></i> Modo Compacto';
+            }
+        });
+    }
+
+    // Función para mostrar el modal de factura
+    function showInvoiceModal(ventaId) {
+        const modal = document.getElementById('modalVerFactura');
+        const ventaIdSpan = document.getElementById('ventaIdModal');
+        const btnVerFactura = document.getElementById('btnVerFactura');
+        const btnNoVerFactura = document.getElementById('btnNoVerFactura');
+
+        // Establecer el ID de venta en el modal
+        ventaIdSpan.textContent = ventaId;
+
+        // Mostrar el modal
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+
+        // Manejar click en "Ver Factura"
+        btnVerFactura.onclick = function() {
+            // Abrir la factura en una nueva ventana/pestaña
+            window.open(`/pos/venta/${ventaId}/factura/`, '_blank');
+            bootstrapModal.hide();
+            // Recargar la página después de un breve delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        };
+
+        // Manejar click en "No, gracias"
+        btnNoVerFactura.onclick = function() {
+            bootstrapModal.hide();
+            // Recargar la página
+            setTimeout(() => {
+                window.location.reload();
+            }, 300);
+        };
+
+        // También recargar si se cierra el modal de otra forma
+        modal.addEventListener('hidden.bs.modal', function() {
+            setTimeout(() => {
+                window.location.reload();
+            }, 300);
+        }, { once: true });
+    }
 });

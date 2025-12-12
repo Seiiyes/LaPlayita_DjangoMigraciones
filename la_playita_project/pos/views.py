@@ -332,6 +332,24 @@ def descargar_factura(request, venta_id):
     return response
 
 @login_required
+def ver_factura(request, venta_id):
+    """Vista para mostrar la factura en el navegador"""
+    venta = get_object_or_404(Venta.objects.select_related('cliente', 'usuario'), pk=venta_id)
+    detalles = VentaDetalle.objects.filter(venta=venta).select_related('producto', 'lote')
+    pago = Pago.objects.filter(venta=venta).first()
+    impuesto = float(venta.total_venta) * 0.19
+    
+    context = {
+        'venta': venta,
+        'detalles': detalles,
+        'pago': pago,
+        'impuesto': impuesto,
+        'mostrar_en_navegador': True  # Flag para indicar que se muestra en navegador
+    }
+    
+    return render(request, 'pos/factura_navegador.html', context)
+
+@login_required
 def enviar_factura(request, venta_id):
     venta = get_object_or_404(Venta.objects.select_related('cliente', 'usuario'), pk=venta_id)
     if venta.cliente.nombres == "Consumidor" and venta.cliente.apellidos == "Final":

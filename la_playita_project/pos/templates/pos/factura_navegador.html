@@ -1,0 +1,324 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Factura #{{ venta.id }} - La Playita{% endblock %}
+
+{% block extra_css %}
+<style>
+    .factura-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .factura-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .factura-header h2 {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
+    
+    .factura-header p {
+        margin: 0.5rem 0 0 0;
+        font-size: 1.2rem;
+        opacity: 0.9;
+    }
+    
+    .factura-body {
+        padding: 2rem;
+    }
+    
+    .factura-details {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+    
+    .detail-row:last-child {
+        margin-bottom: 0;
+    }
+    
+    .detail-label {
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .detail-value {
+        color: #212529;
+    }
+    
+    .factura-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 2rem;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .factura-table th {
+        background: #343a40;
+        color: white;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+    }
+    
+    .factura-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .factura-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .factura-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .factura-totals {
+        background: #e9ecef;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+    }
+    
+    .total-row:last-child {
+        margin-bottom: 0;
+        font-weight: 700;
+        font-size: 1.3rem;
+        color: #28a745;
+        border-top: 2px solid #28a745;
+        padding-top: 0.5rem;
+    }
+    
+    .factura-actions {
+        text-align: center;
+        padding-bottom: 1rem;
+    }
+    
+    .btn-print {
+        background: #28a745;
+        border: none;
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 25px;
+        font-weight: 600;
+        margin: 0 0.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-print:hover {
+        background: #218838;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+    }
+    
+    .btn-download {
+        background: #007bff;
+        border: none;
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 25px;
+        font-weight: 600;
+        margin: 0 0.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-download:hover {
+        background: #0056b3;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
+    }
+    
+    .btn-back {
+        background: #6c757d;
+        border: none;
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 25px;
+        font-weight: 600;
+        margin: 0 0.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-back:hover {
+        background: #545b62;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+    }
+    
+    @media print {
+        .factura-actions {
+            display: none;
+        }
+        
+        .factura-container {
+            box-shadow: none;
+            margin: 0;
+            max-width: none;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .factura-container {
+            margin: 1rem;
+        }
+        
+        .factura-header {
+            padding: 1.5rem;
+        }
+        
+        .factura-header h2 {
+            font-size: 2rem;
+        }
+        
+        .factura-body {
+            padding: 1rem;
+        }
+        
+        .factura-table {
+            font-size: 0.9rem;
+        }
+        
+        .factura-table th,
+        .factura-table td {
+            padding: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="factura-container">
+        <!-- Header -->
+        <div class="factura-header">
+            <h2><i class="bi bi-shop me-2"></i>La Playita</h2>
+            <p>Factura de Venta #{{ venta.id }}</p>
+        </div>
+        
+        <!-- Body -->
+        <div class="factura-body">
+            <!-- Detalles de la venta -->
+            <div class="factura-details">
+                <div class="detail-row">
+                    <span class="detail-label">Fecha:</span>
+                    <span class="detail-value">{{ venta.fecha_venta|date:"d/m/Y H:i" }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Vendedor:</span>
+                    <span class="detail-value">{{ venta.usuario.get_full_name|default:venta.usuario.username }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Cliente:</span>
+                    <span class="detail-value">{{ venta.cliente.nombres }} {{ venta.cliente.apellidos }}</span>
+                </div>
+                {% if venta.cliente.documento %}
+                <div class="detail-row">
+                    <span class="detail-label">Documento:</span>
+                    <span class="detail-value">{{ venta.cliente.documento }}</span>
+                </div>
+                {% endif %}
+                <div class="detail-row">
+                    <span class="detail-label">Método de Pago:</span>
+                    <span class="detail-value">{{ pago.metodo_pago|title }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Canal de Venta:</span>
+                    <span class="detail-value">{{ venta.canal_venta|title }}</span>
+                </div>
+            </div>
+            
+            <!-- Tabla de productos -->
+            <table class="factura-table">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Lote</th>
+                        <th>Cantidad</th>
+                        <th>Precio Unitario</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detalle in detalles %}
+                    <tr>
+                        <td>{{ detalle.producto.nombre }}</td>
+                        <td>{{ detalle.lote.numero_lote|default:"N/A" }}</td>
+                        <td>{{ detalle.cantidad }}</td>
+                        <td>${{ detalle.producto.precio_unitario|floatformat:0 }}</td>
+                        <td>${{ detalle.subtotal|floatformat:0 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <!-- Totales -->
+            <div class="factura-totals">
+                <div class="total-row">
+                    <span>Subtotal:</span>
+                    <span>${{ venta.total_venta|floatformat:0 }}</span>
+                </div>
+                <div class="total-row">
+                    <span>Impuestos (19%):</span>
+                    <span>${{ impuesto|floatformat:0 }}</span>
+                </div>
+                <div class="total-row">
+                    <span>Total:</span>
+                    <span>${{ venta.total_venta|floatformat:0 }}</span>
+                </div>
+            </div>
+            
+            <!-- Acciones -->
+            <div class="factura-actions">
+                <button onclick="window.print()" class="btn btn-print">
+                    <i class="bi bi-printer me-2"></i>Imprimir
+                </button>
+                <a href="{% url 'pos:descargar_factura' venta.id %}" class="btn btn-download">
+                    <i class="bi bi-download me-2"></i>Descargar PDF
+                </a>
+                <button onclick="window.close()" class="btn btn-back">
+                    <i class="bi bi-arrow-left me-2"></i>Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-focus para mejor experiencia
+    document.addEventListener('DOMContentLoaded', function() {
+        // Si se abrió en una nueva ventana, enfocar
+        if (window.opener) {
+            window.focus();
+        }
+    });
+</script>
+{% endblock %}

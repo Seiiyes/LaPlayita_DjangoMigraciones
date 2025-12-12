@@ -16,6 +16,7 @@ urlpatterns = [
     # Vistas de ventas
     path('venta/<int:venta_id>/', views.venta_detalle, name='venta_detalle'),
     path('ventas/', views.listar_ventas, name='listar_ventas'),
+    path('venta/<int:venta_id>/factura/', views.ver_factura, name='ver_factura'),
     path('venta/<int:venta_id>/descargar/', views.descargar_factura, name='descargar_factura'),
     path('venta/<int:venta_id>/enviar-factura/', views.enviar_factura, name='enviar_factura'),
     path('api/crear-cliente/', views.crear_cliente, name='crear_cliente'),

@@ -17,7 +17,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
     <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'core/css/dashboard-fix.css' %}">
+    <link rel="stylesheet" href="{% static 'core/css/railway-fallback.css' %}">
+    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     {% block extra_head %}
         {% block extra_css %}{% endblock %}
@@ -28,13 +33,22 @@
             font-display: swap;
         }
         
-        /* Background optimizado */
+        /* Background simple */
         body {
-            background-image: url("{% static 'core/images/background.jpg.jpg' %}");
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-image: url("/static/core/images/background.jpg.jpg");
             background-size: cover;
             background-repeat: no-repeat;
             background-position: center center;
             background-attachment: fixed;
+            min-height: 100vh;
+        }
+        
+        /* Fallback para móviles */
+        @media (max-width: 768px) {
+            body {
+                background-attachment: scroll;
+            }
         }
         
         /* Prevenir CLS en el contenedor principal */
@@ -54,6 +68,16 @@
             100% { background-position: -200% 0; }
         }
     </style>
+    
+    <!-- Script simple para Railway -->
+    <script>
+        // Detectar Railway y aplicar clase
+        if (window.location.hostname.includes('railway.app') || window.location.hostname.includes('up.railway.app')) {
+            document.documentElement.classList.add('railway-env');
+            console.log('Railway detectado - Aplicando optimizaciones');
+        }
+    </script>
+
 </head>
 <body class="d-flex flex-column min-vh-100">
 
@@ -78,11 +102,7 @@
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0">
                             {% if user|has_role:'Administrador' %}
-                            <li>
-                                <a class="dropdown-item" href="{% url 'admin:index' %}">
-                                    <i class="bi bi-gear me-2"></i>Panel Admin
-                                </a>
-                            </li>
+                           
                             <li><hr class="dropdown-divider"></li>
                             {% endif %}
                             <li>
@@ -189,15 +209,18 @@
         </div>
     </main>
 
-    <footer class="footer mt-auto py-3 bg-white text-center border-top">
+    <footer class="footer-glassmorphism mt-auto py-3 text-center">
         <div class="container">
-            <p class="text-muted mb-0">© 2025 La Playita - Todos los derechos reservados</p>
+            <p class="mb-0" style="color: #ffffff; opacity: 0.8;">© 2025 La Playita - Todos los derechos reservados</p>
         </div>
     </footer>
 
     {% block modals %}{% endblock %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'core/js/dashboard.js' %}"></script>
+    <script src="{% static 'core/js/notifications.js' %}"></script>
+    <script src="{% static 'core/js/railway-test.js' %}"></script>
     
     <script>
         // Sidebar Toggle
@@ -220,9 +243,21 @@
             if (overlay) {
                 overlay.addEventListener('click', toggleSidebar);
             }
+            
+            // Cerrar sidebar en móvil al hacer click en un enlace
+            document.querySelectorAll('.sidebar-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 992) {
+                        toggleSidebar();
+                    }
+                });
+            });
         });
     </script>
     
     {% block extra_js %}{% endblock %}
+    
+    <!-- Railway Test Script -->
+    <script src="{% static 'core/js/railway-test.js' %}"></script>
 </body>
 </html>

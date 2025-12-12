@@ -8,55 +8,95 @@
     :root {
         --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-    }
-    
-    body {
-        background-color: #f5f7fa;
+        --pos-card-bg: rgba(30, 41, 59, 0.95);
+        --pos-card-hover: rgba(30, 41, 59, 0.98);
+        --pos-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        --pos-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
     
     .pos-header {
-        background: white;
-        border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        background: var(--pos-card-bg);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--pos-shadow);
     }
     
     .search-box {
         position: relative;
-        margin-bottom: 20px;
+        margin-bottom: 2rem;
+    }
+    
+    .search-box .input-group {
+        background: var(--pos-card-bg);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
+        padding: 0.5rem;
+        box-shadow: var(--pos-shadow);
     }
     
     .search-box input {
-        border-radius: 25px;
+        border: none;
+        background: transparent;
         padding: 12px 20px;
-        border: 2px solid #e9ecef;
-        transition: all 0.3s;
+        color: #ffffff;
     }
     
     .search-box input:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        box-shadow: none;
+        background: transparent;
+    }
+    
+    .search-box .input-group-text {
+        background: transparent;
+        border: none;
+        color: #ffffff;
     }
     
     .search-box .btn {
-        border-radius: 25px;
+        border-radius: 12px;
+        border: none;
+        backdrop-filter: blur(10px);
     }
     
     .product-card {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        cursor: pointer;
-        border: 1px solid #e9ecef;
+        background: var(--pos-card-bg);
+        border: 1px solid rgba(148, 163, 184, 0.3);
         border-radius: 12px;
+        transition: all 0.3s ease;
+        cursor: pointer;
         height: 100%;
         overflow: hidden;
+        box-shadow: var(--pos-shadow);
+        position: relative;
+    }
+    
+    .product-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--product-color, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
     }
 
     .product-card:hover {
+        background: var(--pos-card-hover);
         transform: translateY(-8px);
-        box-shadow: 0 12px 24px rgba(0,0,0,0.15);
-        border-color: #667eea;
+        box-shadow: var(--pos-shadow-hover);
+        border-color: rgba(102, 126, 234, 0.3);
     }
+    
+    /* Colores vibrantes para productos */
+    .product-card:nth-child(3n+1) { --product-color: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); }
+    .product-card:nth-child(3n+2) { --product-color: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%); }
+    .product-card:nth-child(3n+3) { --product-color: linear-gradient(135deg, #45b7d1 0%, #96c93d 100%); }
+    .product-card:nth-child(4n+1) { --product-color: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%); }
+    .product-card:nth-child(4n+2) { --product-color: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .product-card:nth-child(4n+3) { --product-color: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+    .product-card:nth-child(4n+4) { --product-color: linear-gradient(135deg, #e17055 0%, #fdcb6e 100%); }
     
     .product-card .card-body {
         padding: 1.25rem;
@@ -64,7 +104,7 @@
     
     .product-card .card-title {
         font-weight: 600;
-        color: #2d3748;
+        color: #ffffff;
         font-size: 1rem;
         margin-bottom: 0.5rem;
     }
@@ -72,7 +112,10 @@
     .product-price {
         font-size: 1.5rem;
         font-weight: bold;
-        color: #11998e;
+        background: var(--product-color, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         margin: 0.75rem 0;
     }
     
@@ -90,47 +133,66 @@
     }
 
     .category-card {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: var(--pos-card-bg);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
+        transition: all 0.3s ease;
         cursor: pointer;
-        border: 2px solid #e9ecef;
-        border-radius: 15px;
-        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
         height: 100%;
+        box-shadow: var(--pos-shadow);
     }
 
     .category-card:hover {
+        background: var(--pos-card-hover);
         transform: translateY(-10px) scale(1.02);
-        box-shadow: 0 15px 30px rgba(102, 126, 234, 0.2);
-        border-color: #667eea;
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        box-shadow: var(--pos-shadow-hover);
+        border-color: rgba(102, 126, 234, 0.3);
     }
 
     .category-card .card-body {
         padding: 2rem 1.5rem;
     }
 
-    .category-icon {
-        font-size: 3.5rem;
-        color: #667eea;
-        transition: all 0.3s ease;
+    /* Colores vibrantes para categorías */
+    .category-card {
+        position: relative;
+        overflow: hidden;
     }
-
-    .category-card:hover .category-icon {
-        transform: scale(1.1) rotate(5deg);
-        color: #764ba2;
+    
+    .category-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: var(--category-color, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
     }
+    
+    .category-card:nth-child(1) { --category-color: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); }
+    .category-card:nth-child(2) { --category-color: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%); }
+    .category-card:nth-child(3) { --category-color: linear-gradient(135deg, #45b7d1 0%, #96c93d 100%); }
+    .category-card:nth-child(4) { --category-color: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%); }
+    .category-card:nth-child(5) { --category-color: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .category-card:nth-child(6) { --category-color: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+    .category-card:nth-child(7) { --category-color: linear-gradient(135deg, #fd79a8 0%, #fdcb6e 100%); }
+    .category-card:nth-child(8) { --category-color: linear-gradient(135deg, #00b894 0%, #00cec9 100%); }
+    .category-card:nth-child(9) { --category-color: linear-gradient(135deg, #e17055 0%, #fdcb6e 100%); }
+    .category-card:nth-child(10) { --category-color: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
 
     .category-card .card-title {
         font-weight: 600;
-        color: #2d3748;
+        color: #ffffff;
         font-size: 1.25rem;
     }
 
     .breadcrumb {
-        background: white;
-        border-radius: 10px;
+        background: var(--pos-card-bg);
+        backdrop-filter: var(--pos-blur);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
         padding: 0.75rem 1.25rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        box-shadow: var(--pos-shadow);
     }
 
     .breadcrumb-item a {
@@ -143,7 +205,7 @@
     }
 
     .breadcrumb-item.active {
-        color: #2d3748;
+        color: #ffffff;
         font-weight: 600;
     }
 
@@ -221,9 +283,11 @@
     }
     
     .cart-card {
-        border: none;
-        border-radius: 15px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        background: var(--pos-card-bg);
+        backdrop-filter: var(--pos-blur);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 16px;
+        box-shadow: var(--pos-shadow);
         overflow: hidden;
     }
     
@@ -235,9 +299,11 @@
     }
     
     .cart-items-container {
-        background-color: #f8f9fa;
-        border-radius: 10px;
-        padding: 15px;
+        background: rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1rem;
         max-height: 350px;
         overflow-y: auto;
     }
@@ -298,11 +364,13 @@
     }
     
     .info-panel {
-        background: white;
-        border-radius: 12px;
-        padding: 1rem;
-        margin-top: 1rem;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        background: var(--pos-card-bg);
+        backdrop-filter: var(--pos-blur);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        box-shadow: var(--pos-shadow);
     }
     
     .info-item {
@@ -324,11 +392,13 @@
     }
     
     .client-selector {
-        background: white;
-        border-radius: 12px;
-        padding: 1rem;
-        margin-top: 1rem;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        background: var(--pos-card-bg);
+        backdrop-filter: var(--pos-blur);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        box-shadow: var(--pos-shadow);
     }
     
     .client-selector select {
@@ -341,14 +411,17 @@
     }
     
     .modal-content {
-        border-radius: 15px;
-        border: none;
+        background: var(--pos-card-bg);
+        backdrop-filter: var(--pos-blur);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 16px;
+        box-shadow: var(--pos-shadow-hover);
     }
     
     .modal-header {
         background: var(--primary-gradient);
         color: white;
-        border-radius: 15px 15px 0 0;
+        border-radius: 16px 16px 0 0;
         border: none;
     }
     
@@ -356,6 +429,83 @@
         max-height: 70vh;
         overflow-y: auto;
         padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Estilos adicionales para glassmorphism */
+    .form-control, .form-select {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: #000000;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        background: rgba(255, 255, 255, 0.9);
+        border-color: rgba(102, 126, 234, 0.5);
+        box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.1);
+    }
+    
+    .alert {
+        background: var(--pos-card-bg);
+        backdrop-filter: var(--pos-blur);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+    }
+    
+    .badge {
+        backdrop-filter: blur(10px);
+    }
+    
+    /* Mejorar el badge de stock con colores */
+    .badge-stock {
+        background: var(--product-color, linear-gradient(135deg, #667eea 0%, #764ba2 100%)) !important;
+        color: white !important;
+        border: none;
+        font-weight: 600;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+    }
+    
+    /* Botón agregar con color del producto */
+    .product-card .btn-add {
+        background: var(--product-color, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        transition: all 0.3s;
+        color: white;
+        font-weight: 600;
+    }
+    
+    .product-card .btn-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        filter: brightness(1.1);
+    }
+    
+    /* Animación de hover para círculo de categoría */
+    .category-color-circle {
+        transition: all 0.3s ease;
+    }
+    
+    .category-card:hover .category-color-circle {
+        transform: scale(1.1);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Mejorar contraste de texto */
+    .pos-header h3,
+    .card-title,
+    .form-label,
+    .info-item strong {
+        color: #ffffff !important;
+        opacity: 0.9;
+    }
+    
+    .text-muted {
+        color: #cbd5e1 !important;
+        opacity: 0.8;
     }
     
     @media (max-width: 768px) {
@@ -367,6 +517,29 @@
         .product-card {
             margin-bottom: 1rem;
         }
+    }
+    
+    /* Elementos adicionales del POS */
+    .client-selector {
+        background: var(--pos-card-bg);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        box-shadow: var(--pos-shadow);
+    }
+    
+    .modal-content {
+        background: var(--pos-card-bg);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
+        box-shadow: var(--pos-shadow-hover);
+    }
+    
+    .alert {
+        background: var(--pos-card-bg);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 12px;
     }
 </style>
 {% endblock %}
@@ -388,7 +561,7 @@
                     <i class="bi bi-list-check me-1"></i>Historial
                 </a>
                 <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalMesas">
-                    <i class="bi bi-grid-3x3-gap me-1"></i>Mesas
+                    <i class="bi bi-circle me-1"></i>Mesas
                 </button>
             </div>
         </div>
@@ -420,7 +593,7 @@
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
                         <a href="{% url 'pos:pos_view' %}" class="text-decoration-none">
-                            <i class="bi bi-house-door me-1"></i>Categorías
+                            <i class="bi bi-grid-3x2-gap me-1"></i>Categorías
                         </a>
                     </li>
                     <li class="breadcrumb-item active" aria-current="page">
@@ -440,8 +613,10 @@
                                 <a href="?categoria={{ categoria.id }}" class="text-decoration-none">
                                     <div class="card category-card h-100">
                                         <div class="card-body text-center">
-                                            <div class="category-icon mb-3">
-                                                <i class="bi bi-box-seam"></i>
+                                            <div class="mb-4 mt-3">
+                                                <div class="category-color-circle mx-auto mb-3" style="width: 80px; height: 80px; border-radius: 50%; background: var(--category-color); display: flex; align-items: center; justify-content: center;">
+                                                    <span style="font-size: 2rem; font-weight: bold; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">{{ categoria.nombre|first|upper }}</span>
+                                                </div>
                                             </div>
                                             <h5 class="card-title mb-2">{{ categoria.nombre }}</h5>
                                             <p class="text-muted mb-0">
@@ -592,7 +767,7 @@
     <div class="modal-content">
       <div class="modal-header bg-success text-white">
         <h5 class="modal-title" id="modalMesasLabel">
-          <i class="bi bi-grid-3x3-gap me-2"></i>Gestión de Mesas
+          <i class="bi bi-circle me-2"></i>Gestión de Mesas
         </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
@@ -702,6 +877,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'core/js/pos.js' %}?v=3.0"></script>
 <script src="{% static 'pos/js/carrito.js' %}?v=2.0"></script>
 <script src="{% static 'pos/js/mesas.js' %}?v=1.0"></script>
 <script>

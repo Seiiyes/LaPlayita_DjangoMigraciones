@@ -14,7 +14,7 @@ echo "🔧 Ejecutando migraciones..."
 python manage.py migrate --noinput
 
 echo "📧 Probando configuración de correos..."
-python manage.py test_sendgrid --email soporte.laplayita@gmail.com
+python manage.py test_sendgrid --email soporte.laplayita@gmail.com || echo "⚠️ Comando test_sendgrid no disponible"
 
 echo "🚀 Iniciando servidor..."
 gunicorn la_playita_project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --timeout 120

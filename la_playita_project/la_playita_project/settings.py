@@ -237,12 +237,11 @@ if DEBUG and not EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Configuraciones alternativas para diferentes proveedores
-# Configuración de proveedor de correo
-EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "gmail").lower()
-
-# Forzar SendGrid si DEBUG=False (producción)
-if not DEBUG and EMAIL_PROVIDER == "gmail":
+# FORZAR SENDGRID EN PRODUCCIÓN (Railway)
+if not DEBUG:
     EMAIL_PROVIDER = "sendgrid"
+else:
+    EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "gmail").lower()
 
 if EMAIL_PROVIDER == "sendgrid":
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
@@ -250,9 +249,10 @@ if EMAIL_PROVIDER == "sendgrid":
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
     EMAIL_HOST_USER = "apikey"
-    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
-    # IMPORTANTE: Usar un email verificado en SendGrid
-    DEFAULT_FROM_EMAIL = os.environ.get("SENDGRID_FROM_EMAIL", "soporte.laplayita@gmail.com")
+    # Usar la API key de Railway
+    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", os.environ.get("SECRET_KEY", ""))
+    # Email verificado en SendGrid
+    DEFAULT_FROM_EMAIL = "soporte.laplayita@gmail.com"
 elif EMAIL_PROVIDER == "mailgun":
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = "smtp.mailgun.org"

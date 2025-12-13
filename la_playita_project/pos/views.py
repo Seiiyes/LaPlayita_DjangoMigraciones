@@ -7,6 +7,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.template.loader import render_to_string
+from django.contrib import messages
+from django.conf import settings
 from weasyprint import HTML
 from inventory.models import Producto, Lote, MovimientoInventario
 from clients.models import Cliente, PuntosFidelizacion
@@ -344,11 +346,21 @@ def enviar_factura(request, venta_id):
     result = send_invoice_email(venta)
     
     if result['success']:
-        return JsonResponse({
-            'success': True, 
-            'mensaje': result['message'],
-            'method': result['method']
-        })
+        # Si es Railway fallback, mostrar mensaje especial
+        if result.get('railway_blocked'):
+            return JsonResponse({
+                'success': True, 
+                'mensaje': result['message'],
+                'method': result['method'],
+                'railway_blocked': True,
+                'help_url': '/pos/emails-pendientes/'
+            })
+        else:
+            return JsonResponse({
+                'success': True, 
+                'mensaje': result['message'],
+                'method': result['method']
+            })
     else:
         return JsonResponse({
             'success': False, 
@@ -393,6 +405,43 @@ def test_email_config(request):
         'config': config_test,
         'user_email': request.user.email,
         'debug_mode': settings.DEBUG
+    })
+
+@login_required
+def emails_pendientes(request):
+    """
+    Vista para mostrar correos que no se pudieron enviar
+    """
+    import os
+    
+    log_file = os.path.join(settings.BASE_DIR, 'emails_pendientes.log')
+    emails_pendientes = []
+    
+    try:
+        if os.path.exists(log_file):
+            with open(log_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+                
+            # Parsear el contenido del log
+            email_blocks = content.split('=' * 50)
+            for block in email_blocks:
+                if block.strip():
+                    lines = block.strip().split('\n')
+                    email_data = {}
+                    for line in lines:
+                        if ':' in line:
+                            key, value = line.split(':', 1)
+                            email_data[key.strip()] = value.strip()
+                    
+                    if email_data:
+                        emails_pendientes.append(email_data)
+    
+    except Exception as e:
+        messages.error(request, f'Error leyendo correos pendientes: {e}')
+    
+    return render(request, 'pos/emails_pendientes.html', {
+        'emails_pendientes': emails_pendientes,
+        'total_pendientes': len(emails_pendientes)
     })
 
 @csrf_exempt

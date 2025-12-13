@@ -141,7 +141,7 @@ echo "🎨 Recolectando archivos estáticos..."
 
 # Verificar estructura antes de collectstatic
 echo "📁 Verificando estructura de archivos estáticos..."
-python manage.py verificar_static
+find . -name "static" -type d
 
 # Ejecutar collectstatic con verbose para debugging
 echo "Ejecutando collectstatic..."
@@ -178,9 +178,9 @@ else
     ls -la
 fi
 
-# Verificación final con el comando personalizado
+# Verificación final de archivos estáticos
 echo "🔍 Verificación final de archivos estáticos:"
-python manage.py verificar_static
+echo "total $(find staticfiles -type f | wc -l)"
 
 echo "🚀 Iniciando servidor..."
 gunicorn la_playita_project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --timeout 120

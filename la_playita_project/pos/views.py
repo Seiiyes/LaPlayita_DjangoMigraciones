@@ -7,6 +7,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.template.loader import render_to_string
+from django.contrib import messages
+from django.conf import settings
 from weasyprint import HTML
 from inventory.models import Producto, Lote, MovimientoInventario
 from clients.models import Cliente, PuntosFidelizacion
@@ -351,38 +353,114 @@ def ver_factura(request, venta_id):
 
 @login_required
 def enviar_factura(request, venta_id):
-    venta = get_object_or_404(Venta.objects.select_related('cliente', 'usuario'), pk=venta_id)
-    if venta.cliente.nombres == "Consumidor" and venta.cliente.apellidos == "Final":
-        return JsonResponse({'success': False, 'error': 'No se puede enviar factura por correo a Consumidor Final.'}, status=400)
-    detalles = VentaDetalle.objects.filter(venta=venta).select_related('producto', 'lote')
-    pago = Pago.objects.filter(venta=venta).first()
-    impuesto = float(venta.total_venta) * 0.19
-    html_string = render_to_string('pos/factura.html', {
-        'venta': venta,
-        'detalles': detalles,
-        'pago': pago,
-        'impuesto': impuesto
-    })
-    pdf_file = HTML(string=html_string).write_pdf()
-    destinatario = venta.cliente.correo
-    asunto = f"Factura de venta #{venta.id} - La Playita"
-    cuerpo = f"""
-        Estimado/a {venta.cliente.nombres} {venta.cliente.apellidos},
-        Adjunto encontrará la factura generada para su compra en La Playita.
-        ¡Gracias por su preferencia!
     """
-    email = EmailMessage(
-        subject=asunto,
-        body=cuerpo,
-        from_email=None,
-        to=[destinatario]
-    )
-    email.attach(filename=f"factura_venta_{venta.id}.pdf", content=pdf_file, mimetype="application/pdf")
+    Envía factura por correo usando las utilidades mejoradas
+    """
+    from core.email_utils import send_invoice_email
+    
+    venta = get_object_or_404(Venta.objects.select_related('cliente', 'usuario'), pk=venta_id)
+    
+    # Usar las nuevas utilidades de correo
+    result = send_invoice_email(venta)
+    
+    if result['success']:
+        # Si es Railway fallback, mostrar mensaje especial
+        if result.get('railway_blocked'):
+            return JsonResponse({
+                'success': True, 
+                'mensaje': result['message'],
+                'method': result['method'],
+                'railway_blocked': True,
+                'help_url': '/pos/emails-pendientes/'
+            })
+        else:
+            return JsonResponse({
+                'success': True, 
+                'mensaje': result['message'],
+                'method': result['method']
+            })
+    else:
+        return JsonResponse({
+            'success': False, 
+            'error': result['message'],
+            'method': result['method']
+        }, status=400)
+
+@login_required
+def test_email_config(request):
+    """
+    Vista para probar la configuración de correo
+    """
+    from core.email_utils import test_email_configuration, send_email_with_fallback
+    
+    if request.method == 'POST':
+        # Probar enviando un correo de prueba
+        test_email = request.POST.get('test_email', request.user.email)
+        
+        if not test_email:
+            return JsonResponse({
+                'success': False,
+                'message': 'Email de prueba requerido'
+            })
+        
+        result = send_email_with_fallback(
+            subject="Prueba de correo - La Playita",
+            message="Este es un correo de prueba para verificar la configuración.",
+            recipient_list=[test_email],
+            html_message="""
+            <h2>Prueba de Correo - La Playita</h2>
+            <p>Este es un correo de prueba para verificar que la configuración funciona correctamente.</p>
+            <p><strong>¡Si recibes este mensaje, la configuración está funcionando!</strong></p>
+            """
+        )
+        
+        return JsonResponse(result)
+    
+    # GET: Mostrar información de configuración
+    config_test = test_email_configuration()
+    
+    return JsonResponse({
+        'config': config_test,
+        'user_email': request.user.email,
+        'debug_mode': settings.DEBUG
+    })
+
+@login_required
+def emails_pendientes(request):
+    """
+    Vista para mostrar correos que no se pudieron enviar
+    """
+    import os
+    
+    log_file = os.path.join(settings.BASE_DIR, 'emails_pendientes.log')
+    emails_pendientes = []
+    
     try:
-        email.send()
-        return JsonResponse({'success': True, 'mensaje': 'Factura enviada correctamente.'})
+        if os.path.exists(log_file):
+            with open(log_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+                
+            # Parsear el contenido del log
+            email_blocks = content.split('=' * 50)
+            for block in email_blocks:
+                if block.strip():
+                    lines = block.strip().split('\n')
+                    email_data = {}
+                    for line in lines:
+                        if ':' in line:
+                            key, value = line.split(':', 1)
+                            email_data[key.strip()] = value.strip()
+                    
+                    if email_data:
+                        emails_pendientes.append(email_data)
+    
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        messages.error(request, f'Error leyendo correos pendientes: {e}')
+    
+    return render(request, 'pos/emails_pendientes.html', {
+        'emails_pendientes': emails_pendientes,
+        'total_pendientes': len(emails_pendientes)
+    })
 
 @csrf_exempt
 @login_required

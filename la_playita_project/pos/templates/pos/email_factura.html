@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factura La Playita</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2em;
+        }
+        .content {
+            background: #f9f9f9;
+            padding: 30px;
+            border-radius: 0 0 10px 10px;
+        }
+        .invoice-details {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .label {
+            font-weight: bold;
+            color: #555;
+        }
+        .value {
+            color: #333;
+        }
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .products-table th {
+            background: #343a40;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        .products-table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .products-table tr:last-child td {
+            border-bottom: none;
+        }
+        .totals {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        .total-final {
+            font-weight: bold;
+            font-size: 1.3em;
+            color: #28a745;
+            border-top: 2px solid #28a745;
+            padding-top: 10px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            color: #666;
+        }
+        .button {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 5px;
+            font-weight: bold;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .header, .content {
+                padding: 20px;
+            }
+            .products-table {
+                font-size: 0.9em;
+            }
+            .products-table th,
+            .products-table td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏪 La Playita</h1>
+        <p>Factura de Venta #{{ venta.id }}</p>
+    </div>
+    
+    <div class="content">
+        <p>Estimado/a <strong>{{ cliente_nombre }}</strong>,</p>
+        <p>Gracias por su compra en La Playita. Adjunto encontrará los detalles de su factura:</p>
+        
+        <div class="invoice-details">
+            <div class="detail-row">
+                <span class="label">Fecha de Venta:</span>
+                <span class="value">{{ venta.fecha_venta|date:"d/m/Y H:i" }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Vendedor:</span>
+                <span class="value">{{ venta.usuario.get_full_name|default:venta.usuario.username }}</span>
+            </div>
+            {% if venta.cliente.documento %}
+            <div class="detail-row">
+                <span class="label">Documento:</span>
+                <span class="value">{{ venta.cliente.documento }}</span>
+            </div>
+            {% endif %}
+            <div class="detail-row">
+                <span class="label">Método de Pago:</span>
+                <span class="value">{{ pago.metodo_pago|title }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Canal de Venta:</span>
+                <span class="value">{{ venta.canal_venta|title }}</span>
+            </div>
+        </div>
+        
+        <table class="products-table">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Precio Unit.</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for detalle in detalles %}
+                <tr>
+                    <td>{{ detalle.producto.nombre }}</td>
+                    <td>{{ detalle.cantidad }}</td>
+                    <td>${{ detalle.producto.precio_unitario|floatformat:0 }}</td>
+                    <td>${{ detalle.subtotal|floatformat:0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div class="totals">
+            <div class="total-row">
+                <span>Subtotal:</span>
+                <span>${{ venta.total_venta|floatformat:0 }}</span>
+            </div>
+            <div class="total-row">
+                <span>Impuestos (19%):</span>
+                <span>${{ impuesto|floatformat:0 }}</span>
+            </div>
+            <div class="total-row total-final">
+                <span>Total:</span>
+                <span>${{ venta.total_venta|floatformat:0 }}</span>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>¡Gracias por su preferencia!</strong></p>
+            <p>La Playita - Su tienda de confianza</p>
+            <p style="font-size: 0.9em; color: #888;">
+                Este es un correo automático, por favor no responda a este mensaje.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

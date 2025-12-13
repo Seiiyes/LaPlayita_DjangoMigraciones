@@ -237,13 +237,13 @@ if DEBUG and not EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Configuraciones alternativas para diferentes proveedores
-# FORZAR SENDGRID SIEMPRE EN RAILWAY
+# FORZAR SENDGRID SIEMPRE EN RAILWAY - API KEY HARDCODEADA
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.sendgrid.net"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = "apikey"
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_HOST_PASSWORD = "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"
 DEFAULT_FROM_EMAIL = "soporte.laplayita@gmail.com"
 EMAIL_PROVIDER = "sendgrid"
 

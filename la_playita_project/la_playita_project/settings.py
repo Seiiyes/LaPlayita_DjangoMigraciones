@@ -247,6 +247,8 @@ if EMAIL_PROVIDER == "sendgrid":
     EMAIL_USE_TLS = True
     EMAIL_HOST_USER = "apikey"
     EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+    # IMPORTANTE: Usar un email verificado en SendGrid
+    DEFAULT_FROM_EMAIL = os.environ.get("SENDGRID_FROM_EMAIL", "soporte.laplayita@gmail.com")
 elif EMAIL_PROVIDER == "mailgun":
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = "smtp.mailgun.org"

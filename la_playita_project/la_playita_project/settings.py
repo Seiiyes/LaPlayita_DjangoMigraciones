@@ -237,11 +237,12 @@ if DEBUG and not EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Configuraciones alternativas para diferentes proveedores
-# Forzar SendGrid en producción (Railway)
-if not DEBUG and os.environ.get("RAILWAY_ENVIRONMENT"):
+# Configuración de proveedor de correo
+EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "gmail").lower()
+
+# Forzar SendGrid si DEBUG=False (producción)
+if not DEBUG and EMAIL_PROVIDER == "gmail":
     EMAIL_PROVIDER = "sendgrid"
-else:
-    EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "gmail").lower()
 
 if EMAIL_PROVIDER == "sendgrid":
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

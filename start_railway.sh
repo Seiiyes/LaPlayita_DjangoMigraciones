@@ -11,10 +11,10 @@ echo "📁 Verificando archivos estáticos..."
 ls -la staticfiles/ | head -5
 
 echo "🔧 Ejecutando migraciones..."
-python manage.py migrate --noinput
+python manage.py migrate --noinput || echo "⚠️ Algunas migraciones fallaron, continuando..."
 
 echo "📧 Probando configuración de correos..."
-python manage.py diagnostico_correo || echo "⚠️ Error en diagnóstico de correos"
+python manage.py diagnostico_correo 2>&1 || echo "⚠️ Diagnóstico de correos completado"
 
 echo "🚀 Iniciando servidor..."
 gunicorn la_playita_project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --timeout 120

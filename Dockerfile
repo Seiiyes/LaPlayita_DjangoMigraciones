@@ -29,8 +29,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar el proyecto y el backup
 COPY la_playita_project/ ./la_playita_project/
 COPY database/ult_ver_backup_912.sql ./backup.sql
-COPY verify_static.py ./
-COPY diagnostico_static.py ./
 
 # Cambiar al directorio del proyecto Django
 WORKDIR /app/la_playita_project

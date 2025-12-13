@@ -243,7 +243,7 @@ EMAIL_HOST = "smtp.sendgrid.net"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = "apikey"
-EMAIL_HOST_PASSWORD = "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"
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = "soporte.laplayita@gmail.com"
 EMAIL_PROVIDER = "sendgrid"
 

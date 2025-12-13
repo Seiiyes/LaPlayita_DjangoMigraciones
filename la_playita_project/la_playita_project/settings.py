@@ -186,12 +186,21 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-# WhiteNoise configuration
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# WhiteNoise configuration - Configuración simplificada para Railway
+if not DEBUG:
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+else:
+    STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
+
 STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 ]
+
+# Configuración adicional para Railway
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = True
+WHITENOISE_SKIP_COMPRESS_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'gz', 'tgz', 'bz2', 'tbz', 'xz', 'br']
 
 
 # =======================
@@ -238,7 +247,11 @@ if DEBUG and not EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Configuraciones alternativas para diferentes proveedores
-EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "gmail").lower()
+# Forzar SendGrid en producción (Railway)
+if not DEBUG and os.environ.get("RAILWAY_ENVIRONMENT"):
+    EMAIL_PROVIDER = "sendgrid"
+else:
+    EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "gmail").lower()
 
 if EMAIL_PROVIDER == "sendgrid":
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

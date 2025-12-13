@@ -4,7 +4,9 @@
 {% block title %}Punto de Venta - La Playita{% endblock %}
 
 {% block extra_css %}
-<style>
+<!-- CSS específico del POS -->
+<link rel="stylesheet" href="{% static 'pos/css/pos.css' %}?v=2.1">
+<style></style>
     :root {
         --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
@@ -877,9 +879,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'core/js/pos.js' %}?v=3.0"></script>
-<script src="{% static 'pos/js/carrito.js' %}?v=2.0"></script>
-<script src="{% static 'pos/js/mesas.js' %}?v=1.0"></script>
+<script src="{% static 'core/js/pos.js' %}?v=3.1"></script>
+<script src="{% static 'pos/js/carrito.js' %}?v=2.1"></script>
+<script src="{% static 'pos/js/mesas.js' %}?v=1.1"></script>
 <script>
     // Actualizar fecha y hora
     function actualizarFechaHora() {

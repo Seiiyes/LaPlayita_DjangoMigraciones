@@ -137,8 +137,50 @@ else
     python manage.py migrate
 fi
 
-echo "Recolectando archivos estáticos..."
-python manage.py collectstatic --noinput
+echo "🎨 Recolectando archivos estáticos..."
 
-echo "Iniciando servidor..."
-gunicorn la_playita_project.wsgi:application --bind 0.0.0.0:${PORT:-8000}
+# Verificar estructura antes de collectstatic
+echo "📁 Verificando estructura de archivos estáticos..."
+python manage.py verificar_static
+
+# Ejecutar collectstatic con verbose para debugging
+echo "Ejecutando collectstatic..."
+python manage.py collectstatic --noinput --clear --verbosity=2
+
+# Verificar que los archivos estáticos se recolectaron correctamente
+if [ -d "staticfiles" ]; then
+    echo "✅ Archivos estáticos recolectados correctamente"
+    echo "📁 Contenido de staticfiles:"
+    ls -la staticfiles/ | head -10
+    
+    # Verificar archivos críticos del POS
+    echo "🔍 Verificando archivos críticos del POS:"
+    if [ -f "staticfiles/core/js/pos.js" ]; then
+        echo "✅ pos.js encontrado"
+    else
+        echo "❌ pos.js NO encontrado"
+    fi
+    
+    if [ -f "staticfiles/pos/js/carrito.js" ]; then
+        echo "✅ carrito.js encontrado"
+    else
+        echo "❌ carrito.js NO encontrado"
+    fi
+    
+    if [ -f "staticfiles/pos/js/mesas.js" ]; then
+        echo "✅ mesas.js encontrado"
+    else
+        echo "❌ mesas.js NO encontrado"
+    fi
+else
+    echo "❌ Error: No se encontró el directorio staticfiles"
+    echo "Listando contenido del directorio actual:"
+    ls -la
+fi
+
+# Verificación final con el comando personalizado
+echo "🔍 Verificación final de archivos estáticos:"
+python manage.py verificar_static
+
+echo "🚀 Iniciando servidor..."
+gunicorn la_playita_project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --timeout 120

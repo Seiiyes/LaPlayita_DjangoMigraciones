@@ -29,9 +29,18 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar el proyecto y el backup
 COPY la_playita_project/ ./la_playita_project/
 COPY database/ult_ver_backup_912.sql ./backup.sql
+COPY verify_static.py ./
+COPY diagnostico_static.py ./
 
 # Cambiar al directorio del proyecto Django
 WORKDIR /app/la_playita_project
+
+# Crear directorio para archivos estáticos y verificar estructura
+RUN mkdir -p staticfiles && \
+    echo "📁 Verificando estructura de archivos estáticos..." && \
+    find . -name "static" -type d && \
+    echo "📄 Archivos JavaScript encontrados:" && \
+    find . -name "*.js" -path "*/static/*" | head -10
 
 # Exponer el puerto
 EXPOSE 8000

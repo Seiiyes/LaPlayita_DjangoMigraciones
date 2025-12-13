@@ -188,6 +188,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # WhiteNoise configuration
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
 
 
 # =======================
@@ -242,7 +246,7 @@ if EMAIL_PROVIDER == "sendgrid":
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
     EMAIL_HOST_USER = "apikey"
-    EMAIL_HOST_PASSWORD = os.environ.get("SENDGRID_API_KEY", "")
+    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 elif EMAIL_PROVIDER == "mailgun":
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = "smtp.mailgun.org"

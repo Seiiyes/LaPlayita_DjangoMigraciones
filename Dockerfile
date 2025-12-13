@@ -43,9 +43,10 @@ RUN mkdir -p staticfiles && \
 # Exponer el puerto
 EXPOSE 8000
 
-# Copiar y configurar script de importación
-COPY import_backup.sh /start.sh
-RUN chmod +x /start.sh
+# Copiar scripts
+COPY import_backup.sh /import.sh
+COPY start_railway.sh /start.sh
+RUN chmod +x /import.sh /start.sh
 
 # Comando por defecto
 CMD ["/start.sh"]

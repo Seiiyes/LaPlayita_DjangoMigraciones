@@ -212,72 +212,32 @@ class DisableMigrations(dict):
 
 
 # =======================
-# Email Configuration (Resend + Fallbacks)
+# =======================
+# Email Configuration
 # =======================
 
-# =======================
-# Email Configuration - Simplificada y Robusta
-# =======================
-
-# Variables de entorno
-EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "gmail").lower()  # Cambiar default a gmail
-RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
-USE_CONSOLE_EMAIL = os.environ.get("USE_CONSOLE_EMAIL", "False").lower() == "true"
-
-# Configuración por defecto (Gmail para desarrollo)
+# Siempre configurar valores por defecto primero
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
 EMAIL_HOST_USER = "soporte.laplayita@gmail.com"
 EMAIL_HOST_PASSWORD = "mafqcymwowaxzvdb"
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+DEFAULT_FROM_EMAIL = "soporte.laplayita@gmail.com"
+EMAIL_TIMEOUT = 30
 
-# Sobrescribir según el proveedor configurado SOLO si está completamente configurado
-if EMAIL_PROVIDER == "resend" and RESEND_API_KEY:
-    # Usar Resend si está completamente configurado
+# Variables de entorno para producción
+_EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "").lower()
+_RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+
+# Si hay Resend configurado, usarlo
+if _RESEND_API_KEY:
     EMAIL_HOST = "smtp.resend.com"
     EMAIL_HOST_USER = "resend"
-    EMAIL_HOST_PASSWORD = RESEND_API_KEY
-    DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@laplayita.com")
-    
-elif EMAIL_PROVIDER == "sendgrid" and os.environ.get("SENDGRID_API_KEY"):
-    # SendGrid si está completamente configurado
-    EMAIL_HOST = "smtp.sendgrid.net"
-    EMAIL_HOST_USER = "apikey"
-    EMAIL_HOST_PASSWORD = os.environ.get("SENDGRID_API_KEY", "")
-    DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@laplayita.com")
-    
-elif EMAIL_PROVIDER == "gmail":
-    # Gmail explícitamente solicitado
-    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "soporte.laplayita@gmail.com")
-    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "mafqcymwowaxzvdb")
-    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-
-# Si EMAIL_PROVIDER es "resend" pero no hay API key, mantener Gmail por defecto
-# (no hacer nada, ya está configurado Gmail arriba)
-
-# Configuración especial para desarrollo
-if DEBUG and USE_CONSOLE_EMAIL:
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-    DEFAULT_FROM_EMAIL = "desarrollo@laplayita.com"
-
-# Debug logging para desarrollo (comentado para producción)
-# if DEBUG:
-#     print(f"[EMAIL DEBUG] EMAIL_PROVIDER: {EMAIL_PROVIDER}")
-#     print(f"[EMAIL DEBUG] EMAIL_HOST: {EMAIL_HOST}")
-#     print(f"[EMAIL DEBUG] EMAIL_HOST_USER: {EMAIL_HOST_USER}")
-
-# Configuración adicional
-EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "30"))
-EMAIL_USE_SSL = False  # Resend usa TLS, no SSL
-
-# Configuración específica para Railway
-if not DEBUG:
-    # En producción (Railway), usar timeout más largo
-    EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "60"))
-    
-    # Si no hay configuración de Resend en producción, mostrar advertencia
+    EMAIL_HOST_PASSWORD = _RESEND_API_KEY
+    DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "onboarding@resend.dev")
+    EMAIL_TIMEOUT = 60
     if EMAIL_PROVIDER == "resend" and not RESEND_API_KEY:
         import logging
         logger = logging.getLogger(__name__)

@@ -37,21 +37,8 @@ def send_email_with_fallback(subject, message, recipient_list, html_message=None
     # Validar configuración de correo
     email_provider = getattr(settings, 'EMAIL_PROVIDER', 'resend')
     
-    # Validar configuración básica
-    email_host_user = getattr(settings, 'EMAIL_HOST_USER', None)
-    email_host_password = getattr(settings, 'EMAIL_HOST_PASSWORD', None)
-    
-    # Validación básica de configuración
-    if not email_host_user or not email_host_password:
-        logger.error(f"Configuración de correo incompleta - Usuario: {email_host_user}, Password: {'Sí' if email_host_password else 'No'}")
-        return {
-            'success': False, 
-            'message': 'Configuración de correo incompleta. Verifica EMAIL_HOST_USER y EMAIL_HOST_PASSWORD.',
-            'method': 'config_error'
-        }
-    
     # Log de configuración para debugging
-    logger.info(f"Enviando correo via {email_provider} - Host: {getattr(settings, 'EMAIL_HOST', 'No definido')}")
+    logger.info(f"Enviando correo - Host: {getattr(settings, 'EMAIL_HOST', 'No definido')}, User: {getattr(settings, 'EMAIL_HOST_USER', 'No definido')}")
     
     # Intentar envío con configuración principal
     try:

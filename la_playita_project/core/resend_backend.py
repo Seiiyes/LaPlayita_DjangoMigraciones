@@ -1,8 +1,9 @@
 """
 Backend de correo personalizado para Resend usando API HTTP
 Evita el bloqueo de SMTP en Railway
+Usa requests directamente sin dependencias adicionales
 """
-import resend
+import requests
 from django.conf import settings
 from django.core.mail.backends.base import BaseEmailBackend
 
@@ -13,12 +14,11 @@ class ResendEmailBackend(BaseEmailBackend):
     en lugar de SMTP para evitar bloqueos en Railway
     """
     
+    API_URL = "https://api.resend.com/emails"
+    
     def __init__(self, fail_silently=False, **kwargs):
         super().__init__(fail_silently=fail_silently, **kwargs)
         self.api_key = getattr(settings, 'RESEND_API_KEY', '')
-        
-        if self.api_key:
-            resend.api_key = self.api_key
     
     def send_messages(self, email_messages):
         """
@@ -43,34 +43,44 @@ class ResendEmailBackend(BaseEmailBackend):
     
     def _send(self, message):
         """
-        Envía un mensaje individual usando la API de Resend
+        Envía un mensaje individual usando la API HTTP de Resend
         """
-        try:
-            # Preparar el contenido
-            params = {
-                "from": message.from_email or settings.DEFAULT_FROM_EMAIL,
-                "to": list(message.to),
-                "subject": message.subject,
-            }
-            
-            # Agregar CC y BCC si existen
-            if message.cc:
-                params["cc"] = list(message.cc)
-            if message.bcc:
-                params["bcc"] = list(message.bcc)
-            
-            # Determinar si es HTML o texto plano
-            if hasattr(message, 'content_subtype') and message.content_subtype == 'html':
-                params["html"] = message.body
-            else:
-                params["text"] = message.body
-            
-            # Enviar usando la API de Resend
-            response = resend.Emails.send(params)
-            
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        # Preparar el payload
+        payload = {
+            "from": message.from_email or settings.DEFAULT_FROM_EMAIL,
+            "to": list(message.to),
+            "subject": message.subject,
+        }
+        
+        # Agregar CC y BCC si existen
+        if message.cc:
+            payload["cc"] = list(message.cc)
+        if message.bcc:
+            payload["bcc"] = list(message.bcc)
+        
+        # Determinar si es HTML o texto plano
+        if hasattr(message, 'content_subtype') and message.content_subtype == 'html':
+            payload["html"] = message.body
+        else:
+            payload["text"] = message.body
+        
+        # Enviar usando requests
+        response = requests.post(
+            self.API_URL,
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
             return True
-            
-        except Exception as e:
+        else:
+            error_msg = f"Resend API error: {response.status_code} - {response.text}"
             if not self.fail_silently:
-                raise
+                raise Exception(error_msg)
             return False

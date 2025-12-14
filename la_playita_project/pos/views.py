@@ -404,36 +404,22 @@ def debug_email_config(request):
         socket.setdefaulttimeout(10)  # 10 segundos máximo
         
         try:
-            from django.core.mail import get_connection, EmailMessage
+            from django.core.mail import send_mail
             
-            # Crear conexión con timeout corto
-            connection = get_connection(
-                backend=settings.EMAIL_BACKEND,
-                host=settings.EMAIL_HOST,
-                port=settings.EMAIL_PORT,
-                username=settings.EMAIL_HOST_USER,
-                password=settings.EMAIL_HOST_PASSWORD,
-                use_tls=settings.EMAIL_USE_TLS,
-                timeout=10
-            )
-            
-            email = EmailMessage(
+            # Enviar correo de prueba
+            send_mail(
                 subject='Test desde Railway - La Playita',
-                body='Este es un correo de prueba desde Railway.',
+                message='Este es un correo de prueba desde Railway usando API HTTP.',
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                to=['test@example.com'],
-                connection=connection
+                recipient_list=['test@example.com'],
+                fail_silently=False,
             )
-            email.send(fail_silently=False)
             
-            debug_info['test_result'] = {'success': True, 'message': 'Correo enviado exitosamente'}
-            
-        except socket.timeout:
             debug_info['test_result'] = {
-                'success': False, 
-                'error': 'TIMEOUT - Railway está bloqueando conexiones SMTP',
-                'solution': 'Verifica que RESEND_API_KEY esté configurado correctamente en Railway'
+                'success': True, 
+                'message': 'Correo enviado exitosamente via ' + settings.EMAIL_BACKEND
             }
+            
         except Exception as e:
             debug_info['test_result'] = {
                 'success': False, 

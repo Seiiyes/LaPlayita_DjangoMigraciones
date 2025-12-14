@@ -215,25 +215,24 @@ class DisableMigrations(dict):
 # Email Configuration
 # =======================
 
-# Configuración por defecto (Gmail)
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_USE_SSL = False
-EMAIL_HOST_USER = "soporte.laplayita@gmail.com"
-EMAIL_HOST_PASSWORD = "mafqcymwowaxzvdb"
-DEFAULT_FROM_EMAIL = "soporte.laplayita@gmail.com"
-EMAIL_TIMEOUT = 30
-
-# Si hay RESEND_API_KEY configurado, usar Resend en producción
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+
+# En producción con Resend: usar API HTTP (evita bloqueo SMTP de Railway)
 if RESEND_API_KEY and not DEBUG:
-    EMAIL_HOST = "smtp.resend.com"
-    EMAIL_HOST_USER = "resend"
-    EMAIL_HOST_PASSWORD = RESEND_API_KEY
+    EMAIL_BACKEND = "core.resend_backend.ResendEmailBackend"
     DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "onboarding@resend.dev")
-    EMAIL_TIMEOUT = 60
+
+# En desarrollo: usar Gmail SMTP
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = "smtp.gmail.com"
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_USE_SSL = False
+    EMAIL_HOST_USER = "soporte.laplayita@gmail.com"
+    EMAIL_HOST_PASSWORD = "mafqcymwowaxzvdb"
+    DEFAULT_FROM_EMAIL = "soporte.laplayita@gmail.com"
+    EMAIL_TIMEOUT = 30
 
 
 

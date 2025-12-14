@@ -219,52 +219,70 @@ class DisableMigrations(dict):
 # Email Configuration
 # =======================
 
-# Obtener el proveedor de correo desde variables de entorno
-EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "gmail")
-
-# Configuración base
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "30"))
-
-# Configuración según el proveedor
-if EMAIL_PROVIDER == "sendgrid":
-    # CONFIGURACIÓN SENDGRID PARA RAILWAY
-    EMAIL_HOST = "smtp.sendgrid.net"
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
+# FORZAR SENDGRID EN RAILWAY - Configuración usando variables de entorno
+if os.environ.get("DATABASE_URL"):  # Detectar que estamos en Railway
+    # CONFIGURACIÓN SENDGRID FORZADA PARA RAILWAY
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.sendgrid.net")
+    EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+    EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
     EMAIL_USE_SSL = False
-    EMAIL_HOST_USER = "apikey"
+    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "apikey")
     EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
-    DEFAULT_FROM_EMAIL = "soporte.laplayita@gmail.com"
+    DEFAULT_FROM_EMAIL = os.environ.get("SENDGRID_FROM_EMAIL", "soporte.laplayita@gmail.com")
+    EMAIL_TIMEOUT = 30
     
-elif EMAIL_PROVIDER == "mailgun":
-    EMAIL_HOST = "smtp.mailgun.org"
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = os.environ.get("MAILGUN_SMTP_LOGIN", "")
-    EMAIL_HOST_PASSWORD = os.environ.get("MAILGUN_SMTP_PASSWORD", "")
-    DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
-    
-elif EMAIL_PROVIDER == "outlook":
-    EMAIL_HOST = "smtp-mail.outlook.com"
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
-    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
-    DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
+    print("🔧 RAILWAY DETECTADO - USANDO SENDGRID")
+    print(f"📧 EMAIL_HOST: {EMAIL_HOST}")
+    print(f"📧 EMAIL_HOST_USER: {EMAIL_HOST_USER}")
+    print(f"📧 DEFAULT_FROM_EMAIL: {DEFAULT_FROM_EMAIL}")
+    print(f"📧 EMAIL_HOST_PASSWORD configurado: {'Sí' if EMAIL_HOST_PASSWORD else 'No'}")
     
 else:
-    # CONFIGURACIÓN GMAIL (por defecto)
-    EMAIL_HOST = "smtp.gmail.com"
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = "soporte.laplayita@gmail.com"
-    EMAIL_HOST_PASSWORD = "mafqcymwowaxzvdb"
-    DEFAULT_FROM_EMAIL = "soporte.laplayita@gmail.com"
+    # CONFIGURACIÓN LOCAL (desarrollo)
+    EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "gmail")
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "30"))
 
-# En desarrollo, usar backend de consola si no hay configuración de correo
-if DEBUG and not EMAIL_HOST_PASSWORD:
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    # Configuración según el proveedor
+    if EMAIL_PROVIDER == "sendgrid":
+        # CONFIGURACIÓN SENDGRID PARA DESARROLLO
+        EMAIL_HOST = "smtp.sendgrid.net"
+        EMAIL_PORT = 587
+        EMAIL_USE_TLS = True
+        EMAIL_USE_SSL = False
+        EMAIL_HOST_USER = "apikey"
+        EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+        DEFAULT_FROM_EMAIL = "soporte.laplayita@gmail.com"
+        
+    elif EMAIL_PROVIDER == "mailgun":
+        EMAIL_HOST = "smtp.mailgun.org"
+        EMAIL_PORT = 587
+        EMAIL_USE_TLS = True
+        EMAIL_HOST_USER = os.environ.get("MAILGUN_SMTP_LOGIN", "")
+        EMAIL_HOST_PASSWORD = os.environ.get("MAILGUN_SMTP_PASSWORD", "")
+        DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
+        
+    elif EMAIL_PROVIDER == "outlook":
+        EMAIL_HOST = "smtp-mail.outlook.com"
+        EMAIL_PORT = 587
+        EMAIL_USE_TLS = True
+        EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+        EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+        DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
+        
+    else:
+        # CONFIGURACIÓN GMAIL (por defecto local)
+        EMAIL_HOST = "smtp.gmail.com"
+        EMAIL_PORT = 587
+        EMAIL_USE_TLS = True
+        EMAIL_HOST_USER = "soporte.laplayita@gmail.com"
+        EMAIL_HOST_PASSWORD = "mafqcymwowaxzvdb"
+        DEFAULT_FROM_EMAIL = "soporte.laplayita@gmail.com"
+
+    # En desarrollo, usar backend de consola si no hay configuración de correo
+    if DEBUG and not EMAIL_HOST_PASSWORD:
+        EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 
 # =======================

@@ -375,25 +375,41 @@ def debug_email_config(request):
     """
     import os
     
+    # Intentar enviar correo de prueba si se solicita
+    test_result = None
+    if request.GET.get('test') == '1':
+        try:
+            from django.core.mail import send_mail
+            send_mail(
+                subject='Test desde Railway - La Playita',
+                message='Este es un correo de prueba desde Railway.',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[request.user.email or 'test@test.com'],
+                fail_silently=False,
+            )
+            test_result = {'success': True, 'message': 'Correo enviado exitosamente'}
+        except Exception as e:
+            test_result = {'success': False, 'error': str(e), 'type': type(e).__name__}
+    
     debug_info = {
-        'environment_vars': {
-            'EMAIL_PROVIDER': os.environ.get('EMAIL_PROVIDER', 'No definido'),
-            'RESEND_API_KEY': 'Configurado' if os.environ.get('RESEND_API_KEY') else 'No configurado',
-            'USE_CONSOLE_EMAIL': os.environ.get('USE_CONSOLE_EMAIL', 'No definido'),
-            'DEBUG': os.environ.get('DEBUG', 'No definido'),
+        'environment': {
+            'DEBUG_env': os.environ.get('DEBUG', 'No definido'),
+            'RESEND_API_KEY_env': 'Configurado (' + os.environ.get('RESEND_API_KEY', '')[:10] + '...)' if os.environ.get('RESEND_API_KEY') else 'No configurado',
+            'DEFAULT_FROM_EMAIL_env': os.environ.get('DEFAULT_FROM_EMAIL', 'No definido'),
         },
-        'django_settings': {
-            'DEBUG': getattr(settings, 'DEBUG', 'No definido'),
-            'EMAIL_PROVIDER': getattr(settings, 'EMAIL_PROVIDER', 'No definido'),
-            'RESEND_API_KEY': 'Configurado' if getattr(settings, 'RESEND_API_KEY', None) else 'No configurado',
-            'USE_CONSOLE_EMAIL': getattr(settings, 'USE_CONSOLE_EMAIL', 'No definido'),
-            'EMAIL_BACKEND': getattr(settings, 'EMAIL_BACKEND', 'No definido'),
-            'EMAIL_HOST': getattr(settings, 'EMAIL_HOST', 'No definido'),
-            'EMAIL_PORT': getattr(settings, 'EMAIL_PORT', 'No definido'),
-            'EMAIL_HOST_USER': getattr(settings, 'EMAIL_HOST_USER', 'No definido'),
-            'EMAIL_HOST_PASSWORD': 'Configurado' if getattr(settings, 'EMAIL_HOST_PASSWORD', None) else 'No configurado',
-            'DEFAULT_FROM_EMAIL': getattr(settings, 'DEFAULT_FROM_EMAIL', 'No definido'),
-        }
+        'django_config': {
+            'DEBUG': settings.DEBUG,
+            'EMAIL_BACKEND': settings.EMAIL_BACKEND,
+            'EMAIL_HOST': settings.EMAIL_HOST,
+            'EMAIL_PORT': settings.EMAIL_PORT,
+            'EMAIL_USE_TLS': settings.EMAIL_USE_TLS,
+            'EMAIL_HOST_USER': settings.EMAIL_HOST_USER,
+            'EMAIL_HOST_PASSWORD': 'Configurado (' + str(len(getattr(settings, 'EMAIL_HOST_PASSWORD', '') or '')) + ' chars)' if getattr(settings, 'EMAIL_HOST_PASSWORD', None) else 'No configurado',
+            'DEFAULT_FROM_EMAIL': settings.DEFAULT_FROM_EMAIL,
+            'EMAIL_TIMEOUT': getattr(settings, 'EMAIL_TIMEOUT', 'No definido'),
+        },
+        'test_result': test_result,
+        'test_url': '?test=1'
     }
     
     return JsonResponse(debug_info, json_dumps_params={'indent': 2})

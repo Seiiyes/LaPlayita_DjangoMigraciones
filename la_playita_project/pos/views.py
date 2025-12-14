@@ -368,7 +368,6 @@ def enviar_factura(request, venta_id):
             'method': result['method']
         }, status=400)
 
-@login_required
 def debug_email_config(request):
     """
     Vista de debug para mostrar toda la configuración de correo

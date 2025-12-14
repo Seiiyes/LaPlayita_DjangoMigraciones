@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 def send_email_with_fallback(subject, message, recipient_list, html_message=None, attachment=None):
     """
     Envía correo con manejo de errores y fallbacks
+    Soporte especial para Resend y otros proveedores
     
     Args:
         subject (str): Asunto del correo
@@ -28,14 +29,29 @@ def send_email_with_fallback(subject, message, recipient_list, html_message=None
         dict: {'success': bool, 'message': str, 'method': str}
     """
     
+    # En desarrollo, verificar si se debe usar consola
+    if settings.DEBUG and getattr(settings, 'USE_CONSOLE_EMAIL', False):
+        logger.info("Modo desarrollo: usando backend de consola (USE_CONSOLE_EMAIL=True)")
+        return _send_with_console_backend(subject, message, recipient_list, html_message)
+    
     # Validar configuración de correo
-    if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
-        logger.warning("Configuración de correo incompleta")
+    email_provider = getattr(settings, 'EMAIL_PROVIDER', 'resend')
+    
+    # Validar configuración básica
+    email_host_user = getattr(settings, 'EMAIL_HOST_USER', None)
+    email_host_password = getattr(settings, 'EMAIL_HOST_PASSWORD', None)
+    
+    # Validación básica de configuración
+    if not email_host_user or not email_host_password:
+        logger.error(f"Configuración de correo incompleta - Usuario: {email_host_user}, Password: {'Sí' if email_host_password else 'No'}")
         return {
             'success': False, 
-            'message': 'Configuración de correo no disponible',
-            'method': 'none'
+            'message': 'Configuración de correo incompleta. Verifica EMAIL_HOST_USER y EMAIL_HOST_PASSWORD.',
+            'method': 'config_error'
         }
+    
+    # Log de configuración para debugging
+    logger.info(f"Enviando correo via {email_provider} - Host: {getattr(settings, 'EMAIL_HOST', 'No definido')}")
     
     # Intentar envío con configuración principal
     try:
@@ -58,29 +74,51 @@ def send_email_with_fallback(subject, message, recipient_list, html_message=None
         
         email.send()
         
-        logger.info(f"Correo enviado exitosamente a {recipient_list}")
+        logger.info(f"Correo enviado exitosamente via {email_provider} a {recipient_list}")
         return {
             'success': True,
-            'message': 'Correo enviado exitosamente',
-            'method': 'smtp'
+            'message': f'Correo enviado exitosamente via {email_provider.title()}',
+            'method': email_provider
         }
         
     except Exception as e:
         error_msg = str(e)
-        logger.error(f"Error enviando correo: {error_msg}")
+        logger.error(f"Error enviando correo via {email_provider}: {error_msg}")
         
-        # Detectar errores específicos de Railway
-        if "Network is unreachable" in error_msg or "Connection refused" in error_msg:
-            logger.warning("Railway.app está bloqueando conexiones SMTP. Usando fallback.")
-            
-            # Fallback inmediato: Simular envío exitoso y registrar para revisión manual
+        # Detectar errores específicos de Railway y otros
+        if any(err in error_msg.lower() for err in [
+            "network is unreachable", "connection refused", "connection timed out",
+            "name or service not known", "temporary failure in name resolution"
+        ]):
+            logger.warning(f"Conexión SMTP bloqueada en Railway: {error_msg}")
             _log_email_for_manual_review(subject, message, recipient_list, html_message)
             
             return {
                 'success': True,
-                'message': 'Railway.app bloquea SMTP. Correo guardado para envío manual. Configura SendGrid para solucionar.',
-                'method': 'railway_fallback',
-                'railway_blocked': True
+                'message': 'Railway bloquea SMTP. Correo guardado para envío manual. Configura Resend para solucionar.',
+                'method': 'railway_blocked',
+                'railway_blocked': True,
+                'help_url': '/pos/emails-pendientes/'
+            }
+        
+        # Errores de autenticación
+        if any(err in error_msg.lower() for err in [
+            "authentication", "unauthorized", "invalid credentials", "login failed"
+        ]):
+            logger.error(f"Error de autenticación: {error_msg}")
+            return {
+                'success': False,
+                'message': f'Error de autenticación con {email_provider}. Verifica tus credenciales.',
+                'method': 'auth_error'
+            }
+        
+        # Errores de configuración de Resend
+        if email_provider == 'resend' and "api key" in error_msg.lower():
+            logger.error(f"Error de API key de Resend: {error_msg}")
+            return {
+                'success': False,
+                'message': 'API Key de Resend inválida. Verifica que sea correcta y tenga permisos de envío.',
+                'method': 'resend_key_error'
             }
         
         # Para otros errores, intentar servicio alternativo
@@ -97,6 +135,41 @@ def send_email_with_fallback(subject, message, recipient_list, html_message=None
                 'message': f'Error enviando correo: {error_msg}',
                 'method': 'failed'
             }
+
+def _send_with_console_backend(subject, message, recipient_list, html_message=None):
+    """
+    Envía correo usando el backend de consola para desarrollo
+    """
+    try:
+        from django.core.mail.backends.console import EmailBackend
+        
+        console_backend = EmailBackend()
+        email = EmailMessage(
+            subject=subject,
+            body=html_message or message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=recipient_list,
+            connection=console_backend
+        )
+        
+        if html_message:
+            email.content_subtype = "html"
+        
+        email.send()
+        
+        logger.info(f"[DESARROLLO] Correo enviado a consola: {recipient_list}")
+        return {
+            'success': True,
+            'message': 'Correo enviado a consola (modo desarrollo)',
+            'method': 'console'
+        }
+    except Exception as e:
+        logger.error(f"Error en backend de consola: {e}")
+        return {
+            'success': False,
+            'message': f'Error en modo desarrollo: {e}',
+            'method': 'console_error'
+        }
 
 def _try_alternative_email_service(subject, message, recipient_list, html_message=None, attachment=None):
     """
@@ -286,12 +359,44 @@ def send_invoice_email(venta, recipient_email=None):
 
 def test_email_configuration():
     """
-    Prueba la configuración de correo
+    Prueba la configuración de correo con soporte para Resend
     
     Returns:
         dict: Resultado de la prueba
     """
+    email_provider = getattr(settings, 'EMAIL_PROVIDER', 'resend')
+    
     try:
+        # Información de configuración
+        config_info = {
+            'provider': email_provider,
+            'host': getattr(settings, 'EMAIL_HOST', 'No configurado'),
+            'port': getattr(settings, 'EMAIL_PORT', 'No configurado'),
+            'user': getattr(settings, 'EMAIL_HOST_USER', 'No configurado'),
+            'from_email': getattr(settings, 'DEFAULT_FROM_EMAIL', 'No configurado'),
+            'backend': getattr(settings, 'EMAIL_BACKEND', 'No configurado')
+        }
+        
+        # Validaciones específicas por proveedor
+        if email_provider == 'resend':
+            resend_key = getattr(settings, 'RESEND_API_KEY', None)
+            if not resend_key:
+                return {
+                    'success': False,
+                    'message': 'RESEND_API_KEY no configurado',
+                    'config': config_info,
+                    'help': 'Configura RESEND_API_KEY en las variables de entorno'
+                }
+            
+            if not resend_key.startswith('re_'):
+                return {
+                    'success': False,
+                    'message': 'RESEND_API_KEY parece inválido (debe empezar con "re_")',
+                    'config': config_info,
+                    'help': 'Verifica que copiaste correctamente la API key de Resend'
+                }
+        
+        # Probar conexión
         from django.core.mail import get_connection
         
         connection = get_connection()
@@ -300,17 +405,24 @@ def test_email_configuration():
         
         return {
             'success': True,
-            'message': 'Configuración de correo válida',
-            'host': settings.EMAIL_HOST,
-            'port': settings.EMAIL_PORT,
-            'user': settings.EMAIL_HOST_USER
+            'message': f'Configuración de {email_provider} válida',
+            'config': config_info
         }
         
     except Exception as e:
+        error_msg = str(e)
+        
+        # Mensajes de error específicos
+        if "authentication" in error_msg.lower():
+            help_msg = "Verifica tu API key de Resend" if email_provider == 'resend' else "Verifica tus credenciales"
+        elif "network" in error_msg.lower() or "unreachable" in error_msg.lower():
+            help_msg = "Problema de red. En Railway, considera usar Resend en lugar de SMTP tradicional"
+        else:
+            help_msg = "Revisa la configuración de correo"
+        
         return {
             'success': False,
-            'message': f'Error en configuración: {str(e)}',
-            'host': settings.EMAIL_HOST,
-            'port': settings.EMAIL_PORT,
-            'user': settings.EMAIL_HOST_USER
+            'message': f'Error en configuración de {email_provider}: {error_msg}',
+            'config': config_info,
+            'help': help_msg
         }

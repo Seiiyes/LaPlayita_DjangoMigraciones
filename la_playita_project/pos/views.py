@@ -369,9 +369,39 @@ def enviar_factura(request, venta_id):
         }, status=400)
 
 @login_required
+def debug_email_config(request):
+    """
+    Vista de debug para mostrar toda la configuración de correo
+    """
+    import os
+    
+    debug_info = {
+        'environment_vars': {
+            'EMAIL_PROVIDER': os.environ.get('EMAIL_PROVIDER', 'No definido'),
+            'RESEND_API_KEY': 'Configurado' if os.environ.get('RESEND_API_KEY') else 'No configurado',
+            'USE_CONSOLE_EMAIL': os.environ.get('USE_CONSOLE_EMAIL', 'No definido'),
+            'DEBUG': os.environ.get('DEBUG', 'No definido'),
+        },
+        'django_settings': {
+            'DEBUG': getattr(settings, 'DEBUG', 'No definido'),
+            'EMAIL_PROVIDER': getattr(settings, 'EMAIL_PROVIDER', 'No definido'),
+            'RESEND_API_KEY': 'Configurado' if getattr(settings, 'RESEND_API_KEY', None) else 'No configurado',
+            'USE_CONSOLE_EMAIL': getattr(settings, 'USE_CONSOLE_EMAIL', 'No definido'),
+            'EMAIL_BACKEND': getattr(settings, 'EMAIL_BACKEND', 'No definido'),
+            'EMAIL_HOST': getattr(settings, 'EMAIL_HOST', 'No definido'),
+            'EMAIL_PORT': getattr(settings, 'EMAIL_PORT', 'No definido'),
+            'EMAIL_HOST_USER': getattr(settings, 'EMAIL_HOST_USER', 'No definido'),
+            'EMAIL_HOST_PASSWORD': 'Configurado' if getattr(settings, 'EMAIL_HOST_PASSWORD', None) else 'No configurado',
+            'DEFAULT_FROM_EMAIL': getattr(settings, 'DEFAULT_FROM_EMAIL', 'No definido'),
+        }
+    }
+    
+    return JsonResponse(debug_info, json_dumps_params={'indent': 2})
+
+@login_required
 def test_email_config(request):
     """
-    Vista para probar la configuración de correo
+    Vista para probar la configuración de correo con soporte para Resend
     """
     from core.email_utils import test_email_configuration, send_email_with_fallback
     
@@ -385,15 +415,48 @@ def test_email_config(request):
                 'message': 'Email de prueba requerido'
             })
         
+        # HTML mejorado para el correo de prueba
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Prueba de Correo - La Playita</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-align: center;">
+                <h1>🏪 La Playita POS</h1>
+                <h2>Prueba de Configuración de Correo</h2>
+            </div>
+            
+            <div style="padding: 20px; background: #f9f9f9; margin: 20px 0; border-radius: 10px;">
+                <p><strong>¡Felicidades!</strong> Si estás leyendo este mensaje, significa que:</p>
+                <ul>
+                    <li>✅ La configuración de correo está funcionando correctamente</li>
+                    <li>✅ Resend está enviando correos exitosamente</li>
+                    <li>✅ El sistema está listo para enviar facturas</li>
+                </ul>
+                
+                <p><strong>Detalles de la prueba:</strong></p>
+                <ul>
+                    <li>Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</li>
+                    <li>Usuario: {request.user.username}</li>
+                    <li>Proveedor: {getattr(settings, 'EMAIL_PROVIDER', 'resend')}</li>
+                </ul>
+            </div>
+            
+            <div style="text-align: center; color: #666; font-size: 0.9em;">
+                <p>Este es un correo automático de prueba del sistema La Playita POS</p>
+            </div>
+        </body>
+        </html>
+        """
+        
         result = send_email_with_fallback(
-            subject="Prueba de correo - La Playita",
-            message="Este es un correo de prueba para verificar la configuración.",
+            subject="✅ Prueba de correo exitosa - La Playita POS",
+            message="Este es un correo de prueba para verificar la configuración de Resend.",
             recipient_list=[test_email],
-            html_message="""
-            <h2>Prueba de Correo - La Playita</h2>
-            <p>Este es un correo de prueba para verificar que la configuración funciona correctamente.</p>
-            <p><strong>¡Si recibes este mensaje, la configuración está funcionando!</strong></p>
-            """
+            html_message=html_content
         )
         
         return JsonResponse(result)
@@ -402,10 +465,69 @@ def test_email_config(request):
     config_test = test_email_configuration()
     
     return JsonResponse({
-        'config': config_test,
-        'user_email': request.user.email,
-        'debug_mode': settings.DEBUG
+        'config_test': config_test,
+        'user_email': request.user.email or 'No disponible',
+        'debug_mode': settings.DEBUG,
+        'email_provider': getattr(settings, 'EMAIL_PROVIDER', 'resend'),
+        'resend_configured': bool(getattr(settings, 'RESEND_API_KEY', None))
     })
+
+@login_required
+def configurar_resend(request):
+    """
+    Vista para mostrar la página de configuración de Resend
+    """
+    context = {
+        'debug_mode': settings.DEBUG,
+        'email_provider': getattr(settings, 'EMAIL_PROVIDER', 'resend'),
+        'resend_configured': bool(getattr(settings, 'RESEND_API_KEY', None)),
+        'use_console_email': getattr(settings, 'USE_CONSOLE_EMAIL', False),
+        'current_backend': settings.EMAIL_BACKEND,
+        'current_host': getattr(settings, 'EMAIL_HOST', 'No configurado'),
+        'current_port': getattr(settings, 'EMAIL_PORT', 'No configurado'),
+        'current_user': getattr(settings, 'EMAIL_HOST_USER', 'No configurado'),
+        'current_password_set': bool(getattr(settings, 'EMAIL_HOST_PASSWORD', None)),
+        'default_from_email': getattr(settings, 'DEFAULT_FROM_EMAIL', 'No configurado')
+    }
+    return render(request, 'pos/test_resend.html', context)
+
+@login_required
+def railway_status(request):
+    """
+    Vista para verificar el estado de la configuración en Railway
+    """
+    import os
+    
+    # Verificar configuración
+    is_railway = not settings.DEBUG
+    email_provider = getattr(settings, 'EMAIL_PROVIDER', 'gmail')
+    resend_configured = bool(getattr(settings, 'RESEND_API_KEY', None))
+    
+    status = {
+        'environment': 'Railway (Producción)' if is_railway else 'Desarrollo Local',
+        'email_provider': email_provider,
+        'resend_configured': resend_configured,
+        'gmail_fallback': email_provider == 'gmail' or (email_provider == 'resend' and not resend_configured),
+        'ready_for_railway': resend_configured if is_railway else True,
+        'recommendations': []
+    }
+    
+    # Generar recomendaciones
+    if is_railway and not resend_configured:
+        status['recommendations'].append({
+            'type': 'warning',
+            'message': 'Configura RESEND_API_KEY en Railway para envío confiable de correos',
+            'action': 'Agregar variable EMAIL_PROVIDER=resend y RESEND_API_KEY=tu_api_key'
+        })
+    
+    if not is_railway and email_provider == 'resend' and not resend_configured:
+        status['recommendations'].append({
+            'type': 'info',
+            'message': 'Usando Gmail como fallback en desarrollo (normal)',
+            'action': 'Configura RESEND_API_KEY para probar Resend localmente'
+        })
+    
+    return JsonResponse(status, json_dumps_params={'indent': 2})
 
 @login_required
 def emails_pendientes(request):

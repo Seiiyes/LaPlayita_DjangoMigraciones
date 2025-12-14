@@ -19,6 +19,9 @@ urlpatterns = [
     path('venta/<int:venta_id>/descargar/', views.descargar_factura, name='descargar_factura'),
     path('venta/<int:venta_id>/enviar-factura/', views.enviar_factura, name='enviar_factura'),
     path('test-email/', views.test_email_config, name='test_email_config'),
+    path('debug-email/', views.debug_email_config, name='debug_email_config'),
+    path('railway-status/', views.railway_status, name='railway_status'),
+    path('configurar-resend/', views.configurar_resend, name='configurar_resend'),
     path('emails-pendientes/', views.emails_pendientes, name='emails_pendientes'),
     path('api/crear-cliente/', views.crear_cliente, name='crear_cliente'),
     

@@ -1,0 +1,392 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Configurar Resend - La Playita{% endblock %}
+
+{% block extra_css %}
+<style>
+    .config-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .config-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .step-card {
+        background: #f8f9fa;
+        border-left: 4px solid #007bff;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border-radius: 0 10px 10px 0;
+    }
+    
+    .step-number {
+        background: #007bff;
+        color: white;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 1rem;
+    }
+    
+    .code-block {
+        background: #2d3748;
+        color: #e2e8f0;
+        padding: 1rem;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        margin: 1rem 0;
+        overflow-x: auto;
+    }
+    
+    .status-success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+    
+    .status-error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+    
+    .status-warning {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+    
+    .btn-test {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border: none;
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 25px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-test:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="config-header">
+        <h1><i class="bi bi-envelope-at me-2"></i>Configuración de Resend</h1>
+        <p class="mb-0">Configura Resend para envío de correos confiable en Railway.app</p>
+    </div>
+    
+    <!-- Estado actual -->
+    <div class="config-card">
+        <h3><i class="bi bi-info-circle me-2"></i>Estado Actual</h3>
+        
+        {% if debug_mode %}
+        <div class="status-warning">
+            <h5><i class="bi bi-exclamation-triangle me-2"></i>Modo Desarrollo</h5>
+            <p><strong>Configuración actual:</strong></p>
+            <ul>
+                <li><strong>Backend:</strong> {{ current_backend }}</li>
+                <li><strong>Host:</strong> {{ current_host }}</li>
+                <li><strong>Puerto:</strong> {{ current_port }}</li>
+                <li><strong>Usuario:</strong> {{ current_user }}</li>
+                <li><strong>Password configurado:</strong> {% if current_password_set %}✅ Sí{% else %}❌ No{% endif %}</li>
+                <li><strong>Email por defecto:</strong> {{ default_from_email }}</li>
+                <li><strong>Proveedor solicitado:</strong> {{ email_provider }}</li>
+                <li><strong>Resend API Key:</strong> {% if resend_configured %}✅ Configurado{% else %}❌ No configurado{% endif %}</li>
+            </ul>
+            
+            {% if not resend_configured and current_host == "smtp.gmail.com" %}
+            <div class="alert alert-info mt-3">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Usando Gmail por defecto:</strong> Como no tienes RESEND_API_KEY configurado, 
+                el sistema está usando Gmail para que puedas probar el envío de correos en desarrollo.
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <div id="current-status">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Verificando configuración...</span>
+                </div>
+                <p class="mt-2">Verificando configuración actual...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Guía de configuración -->
+    <div class="config-card">
+        <h3><i class="bi bi-gear me-2"></i>Guía de Configuración</h3>
+        
+        <div class="step-card">
+            <div class="d-flex align-items-center mb-3">
+                <span class="step-number">1</span>
+                <h5 class="mb-0">Crear cuenta en Resend</h5>
+            </div>
+            <p>Ve a <a href="https://resend.com/signup" target="_blank">https://resend.com/signup</a> y crea una cuenta gratuita.</p>
+            <p><strong>Plan gratuito:</strong> 3,000 correos/mes - perfecto para La Playita</p>
+        </div>
+        
+        <div class="step-card">
+            <div class="d-flex align-items-center mb-3">
+                <span class="step-number">2</span>
+                <h5 class="mb-0">Obtener API Key</h5>
+            </div>
+            <p>En el dashboard de Resend:</p>
+            <ol>
+                <li>Ve a <strong>API Keys</strong></li>
+                <li>Click en <strong>"Create API Key"</strong></li>
+                <li>Nombre: <code>LaPlayita-Railway</code></li>
+                <li>Permisos: <strong>"Sending access"</strong></li>
+                <li>Copia la API Key (empieza con <code>re_</code>)</li>
+            </ol>
+        </div>
+        
+        <div class="step-card">
+            <div class="d-flex align-items-center mb-3">
+                <span class="step-number">3</span>
+                <h5 class="mb-0">Configurar Variables de Entorno</h5>
+            </div>
+            
+            <h6>Para Railway (Producción):</h6>
+            <p>En tu proyecto Railway → <strong>Variables</strong>, agrega:</p>
+            <div class="code-block">
+EMAIL_PROVIDER=resend<br>
+RESEND_API_KEY=re_tu_api_key_aqui<br>
+DEFAULT_FROM_EMAIL=noreply@tudominio.com
+            </div>
+            
+            <h6 class="mt-3">Para Desarrollo Local (Opcional):</h6>
+            <p>Crea un archivo <code>.env</code> en la raíz del proyecto:</p>
+            <div class="code-block">
+EMAIL_PROVIDER=resend<br>
+RESEND_API_KEY=re_tu_api_key_aqui<br>
+DEFAULT_FROM_EMAIL=noreply@tudominio.com<br>
+<br>
+# O para usar solo consola en desarrollo:<br>
+USE_CONSOLE_EMAIL=True
+            </div>
+            
+            <div class="alert alert-info mt-3">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Nota:</strong> Si no configuras RESEND_API_KEY en desarrollo, 
+                el sistema usará Gmail automáticamente para que puedas probar.
+            </div>
+        </div>
+        
+        <div class="step-card">
+            <div class="d-flex align-items-center mb-3">
+                <span class="step-number">4</span>
+                <h5 class="mb-0">Configurar dominio (Opcional)</h5>
+            </div>
+            <p>Para usar tu propio dominio:</p>
+            <ol>
+                <li>En Resend → <strong>Domains</strong></li>
+                <li>Agrega tu dominio</li>
+                <li>Configura los registros DNS</li>
+                <li>Actualiza <code>DEFAULT_FROM_EMAIL</code></li>
+            </ol>
+            <p><small><strong>Nota:</strong> Puedes usar el dominio compartido de Resend mientras tanto.</small></p>
+        </div>
+    </div>
+    
+    <!-- Prueba de configuración -->
+    <div class="config-card">
+        <h3><i class="bi bi-envelope-check me-2"></i>Probar Configuración</h3>
+        
+        <form id="test-form">
+            <div class="mb-3">
+                <label for="test-email" class="form-label">Email de prueba:</label>
+                <input type="email" class="form-control" id="test-email" 
+                       placeholder="tu@email.com" required>
+                <div class="form-text">Se enviará un correo de prueba a esta dirección</div>
+            </div>
+            
+            <button type="submit" class="btn btn-test">
+                <i class="bi bi-send me-2"></i>Enviar Correo de Prueba
+            </button>
+        </form>
+        
+        <div id="test-result" class="mt-3"></div>
+    </div>
+    
+    <!-- Enlaces útiles -->
+    <div class="config-card">
+        <h3><i class="bi bi-link-45deg me-2"></i>Enlaces Útiles</h3>
+        <div class="row">
+            <div class="col-md-6">
+                <ul class="list-unstyled">
+                    <li><a href="https://resend.com/" target="_blank"><i class="bi bi-globe me-2"></i>Resend.com</a></li>
+                    <li><a href="https://resend.com/docs" target="_blank"><i class="bi bi-book me-2"></i>Documentación</a></li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <ul class="list-unstyled">
+                    <li><a href="{% url 'pos:emails_pendientes' %}"><i class="bi bi-envelope-exclamation me-2"></i>Correos Pendientes</a></li>
+                    <li><a href="{% url 'pos:pos_view' %}"><i class="bi bi-arrow-left me-2"></i>Volver al POS</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar estado actual al cargar
+    checkCurrentStatus();
+    
+    // Manejar formulario de prueba
+    document.getElementById('test-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        sendTestEmail();
+    });
+});
+
+function checkCurrentStatus() {
+    fetch('{% url "pos:test_email_config" %}')
+        .then(response => response.json())
+        .then(data => {
+            displayCurrentStatus(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('current-status').innerHTML = `
+                <div class="status-error">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Error verificando configuración: ${error.message}
+                </div>
+            `;
+        });
+}
+
+function displayCurrentStatus(data) {
+    const statusDiv = document.getElementById('current-status');
+    const config = data.config_test;
+    
+    let statusHtml = '';
+    
+    if (config.success) {
+        statusHtml = `
+            <div class="status-success">
+                <h5><i class="bi bi-check-circle me-2"></i>Configuración Válida</h5>
+                <p>${config.message}</p>
+                <ul class="mb-0">
+                    <li><strong>Proveedor:</strong> ${data.email_provider}</li>
+                    <li><strong>Host:</strong> ${config.config.host}</li>
+                    <li><strong>Puerto:</strong> ${config.config.port}</li>
+                    <li><strong>Email por defecto:</strong> ${config.config.from_email}</li>
+                </ul>
+            </div>
+        `;
+    } else {
+        statusHtml = `
+            <div class="status-error">
+                <h5><i class="bi bi-x-circle me-2"></i>Configuración Incompleta</h5>
+                <p>${config.message}</p>
+                ${config.help ? `<p><strong>Solución:</strong> ${config.help}</p>` : ''}
+            </div>
+        `;
+    }
+    
+    if (data.debug_mode) {
+        statusHtml += `
+            <div class="status-warning">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Modo Desarrollo:</strong> Los correos se mostrarán en la consola del servidor.
+            </div>
+        `;
+    }
+    
+    statusDiv.innerHTML = statusHtml;
+}
+
+function sendTestEmail() {
+    const email = document.getElementById('test-email').value;
+    const resultDiv = document.getElementById('test-result');
+    
+    // Mostrar loading
+    resultDiv.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Enviando correo...</span>
+            </div>
+            <p class="mt-2">Enviando correo de prueba...</p>
+        </div>
+    `;
+    
+    // Enviar solicitud
+    const formData = new FormData();
+    formData.append('test_email', email);
+    
+    fetch('{% url "pos:test_email_config" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultDiv.innerHTML = `
+                <div class="status-success">
+                    <h5><i class="bi bi-check-circle me-2"></i>¡Correo Enviado!</h5>
+                    <p>${data.message}</p>
+                    <p><strong>Método:</strong> ${data.method}</p>
+                    <p><small>Revisa tu bandeja de entrada (y spam) en unos minutos.</small></p>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="status-error">
+                    <h5><i class="bi bi-x-circle me-2"></i>Error al Enviar</h5>
+                    <p>${data.message || data.error}</p>
+                    ${data.method ? `<p><strong>Método intentado:</strong> ${data.method}</p>` : ''}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        resultDiv.innerHTML = `
+            <div class="status-error">
+                <h5><i class="bi bi-exclamation-triangle me-2"></i>Error de Red</h5>
+                <p>Error enviando correo de prueba: ${error.message}</p>
+            </div>
+        `;
+    });
+}
+</script>
+{% endblock %}

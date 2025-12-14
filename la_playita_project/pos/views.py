@@ -373,27 +373,13 @@ def debug_email_config(request):
     Vista de debug para mostrar toda la configuración de correo
     """
     import os
+    import socket
     
-    # Intentar enviar correo de prueba si se solicita
-    test_result = None
-    if request.GET.get('test') == '1':
-        try:
-            from django.core.mail import send_mail
-            send_mail(
-                subject='Test desde Railway - La Playita',
-                message='Este es un correo de prueba desde Railway.',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[request.user.email or 'test@test.com'],
-                fail_silently=False,
-            )
-            test_result = {'success': True, 'message': 'Correo enviado exitosamente'}
-        except Exception as e:
-            test_result = {'success': False, 'error': str(e), 'type': type(e).__name__}
-    
+    # Configuración actual
     debug_info = {
         'environment': {
             'DEBUG_env': os.environ.get('DEBUG', 'No definido'),
-            'RESEND_API_KEY_env': 'Configurado (' + os.environ.get('RESEND_API_KEY', '')[:10] + '...)' if os.environ.get('RESEND_API_KEY') else 'No configurado',
+            'RESEND_API_KEY_env': 'Configurado (' + os.environ.get('RESEND_API_KEY', '')[:10] + '...)' if os.environ.get('RESEND_API_KEY') else 'NO CONFIGURADO - AGREGAR EN RAILWAY',
             'DEFAULT_FROM_EMAIL_env': os.environ.get('DEFAULT_FROM_EMAIL', 'No definido'),
         },
         'django_config': {
@@ -403,13 +389,59 @@ def debug_email_config(request):
             'EMAIL_PORT': settings.EMAIL_PORT,
             'EMAIL_USE_TLS': settings.EMAIL_USE_TLS,
             'EMAIL_HOST_USER': settings.EMAIL_HOST_USER,
-            'EMAIL_HOST_PASSWORD': 'Configurado (' + str(len(getattr(settings, 'EMAIL_HOST_PASSWORD', '') or '')) + ' chars)' if getattr(settings, 'EMAIL_HOST_PASSWORD', None) else 'No configurado',
+            'EMAIL_HOST_PASSWORD': 'Configurado (' + str(len(getattr(settings, 'EMAIL_HOST_PASSWORD', '') or '')) + ' chars)' if getattr(settings, 'EMAIL_HOST_PASSWORD', None) else 'NO CONFIGURADO',
             'DEFAULT_FROM_EMAIL': settings.DEFAULT_FROM_EMAIL,
             'EMAIL_TIMEOUT': getattr(settings, 'EMAIL_TIMEOUT', 'No definido'),
         },
-        'test_result': test_result,
+        'test_result': None,
         'test_url': '?test=1'
     }
+    
+    # Intentar enviar correo de prueba si se solicita
+    if request.GET.get('test') == '1':
+        # Timeout corto para no quedarse colgado
+        old_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(10)  # 10 segundos máximo
+        
+        try:
+            from django.core.mail import get_connection, EmailMessage
+            
+            # Crear conexión con timeout corto
+            connection = get_connection(
+                backend=settings.EMAIL_BACKEND,
+                host=settings.EMAIL_HOST,
+                port=settings.EMAIL_PORT,
+                username=settings.EMAIL_HOST_USER,
+                password=settings.EMAIL_HOST_PASSWORD,
+                use_tls=settings.EMAIL_USE_TLS,
+                timeout=10
+            )
+            
+            email = EmailMessage(
+                subject='Test desde Railway - La Playita',
+                body='Este es un correo de prueba desde Railway.',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=['test@example.com'],
+                connection=connection
+            )
+            email.send(fail_silently=False)
+            
+            debug_info['test_result'] = {'success': True, 'message': 'Correo enviado exitosamente'}
+            
+        except socket.timeout:
+            debug_info['test_result'] = {
+                'success': False, 
+                'error': 'TIMEOUT - Railway está bloqueando conexiones SMTP',
+                'solution': 'Verifica que RESEND_API_KEY esté configurado correctamente en Railway'
+            }
+        except Exception as e:
+            debug_info['test_result'] = {
+                'success': False, 
+                'error': str(e), 
+                'type': type(e).__name__
+            }
+        finally:
+            socket.setdefaulttimeout(old_timeout)
     
     return JsonResponse(debug_info, json_dumps_params={'indent': 2})
 

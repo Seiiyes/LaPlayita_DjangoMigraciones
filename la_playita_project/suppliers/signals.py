@@ -13,12 +13,9 @@ logger = logging.getLogger(__name__)
 @receiver(post_save, sender=Reabastecimiento)
 def enviar_correo_solicitud(sender, instance, created, **kwargs):
     """
-    Envía un correo al proveedor cuando se crea una nueva solicitud de reabastecimiento.
+    Signal deshabilitado para evitar correos duplicados.
+    Los correos se envían manualmente desde las vistas después de guardar los detalles.
     """
-    if created and instance.estado == Reabastecimiento.ESTADO_SOLICITADO:
-        logger.info(f"[SIGNAL] Enviando correo para reabastecimiento {instance.id}")
-        try:
-            result = send_supply_request_email(instance, None)
-            logger.info(f"[SIGNAL] Correo enviado: {result}")
-        except Exception as e:
-            logger.error(f"[SIGNAL] Error al enviar correo: {e}", exc_info=True)
+    # Signal deshabilitado para evitar duplicados
+    # Los correos se manejan desde las vistas
+    pass

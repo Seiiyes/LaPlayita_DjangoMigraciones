@@ -111,6 +111,12 @@ def send_supply_request_email(reabastecimiento, request=None):
             logger.warning(f"[EMAIL] Proveedor {proveedor.nombre_empresa if proveedor else 'N/A'} sin correo. No se puede enviar la solicitud.")
             return False
 
+        # Verificar que tenga productos antes de enviar
+        detalles = reabastecimiento.reabastecimientodetalle_set.all()
+        if not detalles.exists():
+            logger.warning(f"[EMAIL] Reabastecimiento {reabastecimiento.id} no tiene productos. No se enviará correo.")
+            return False
+
         subject = f'Solicitud de Reabastecimiento #{reabastecimiento.id}'
         
         # Contexto para la plantilla
@@ -131,12 +137,8 @@ def send_supply_request_email(reabastecimiento, request=None):
         text_content += f"Observaciones: {reabastecimiento.observaciones or 'N/A'}\n\n"
         text_content += "Productos solicitados:\n"
         
-        detalles = reabastecimiento.reabastecimientodetalle_set.all()
-        if detalles:
-            for detalle in detalles:
-                text_content += f"- {detalle.producto.nombre}: {detalle.cantidad} unidades\n"
-        else:
-            text_content += "(No se especificaron productos)\n"
+        for detalle in detalles:
+            text_content += f"- {detalle.producto.nombre}: {detalle.cantidad} unidades\n"
             
         text_content += "\nAgradecemos su pronta atención a esta solicitud.\n\n"
         text_content += "Saludos cordiales,\nEl equipo de La Playita"
@@ -482,11 +484,13 @@ def reabastecimiento_create(request):
 
                     if reab.estado == Reabastecimiento.ESTADO_SOLICITADO:
                         logger.info(f"[REAB] Programando envío de correo para reabastecimiento {reab.id}")
-                        # Enviar correo en segundo plano para no bloquear la respuesta
-                        email_thread = threading.Thread(
-                            target=send_supply_request_email,
-                            args=(reab, request)
-                        )
+                        # Enviar correo en segundo plano con delay para asegurar que se guarden los detalles
+                        def send_email_with_delay():
+                            import time
+                            time.sleep(2)  # Esperar 2 segundos para que se guarden los detalles
+                            send_supply_request_email(reab, request)
+                        
+                        email_thread = threading.Thread(target=send_email_with_delay)
                         email_thread.daemon = True
                         email_thread.start()
                     
@@ -682,11 +686,13 @@ def reabastecimiento_update(request, pk):
                 logger.info(f"[UPDATE] Reabastecimiento {reab_instance.id} guardado exitosamente")
 
                 if reab_instance.estado == Reabastecimiento.ESTADO_SOLICITADO:
-                    # Enviar correo en segundo plano
-                    email_thread = threading.Thread(
-                        target=send_supply_request_email,
-                        args=(reab_instance, request)
-                    )
+                    # Enviar correo en segundo plano con delay para asegurar que se guarden los detalles
+                    def send_email_with_delay():
+                        import time
+                        time.sleep(2)  # Esperar 2 segundos para que se guarden los detalles
+                        send_supply_request_email(reab_instance, request)
+                    
+                    email_thread = threading.Thread(target=send_email_with_delay)
                     email_thread.daemon = True
                     email_thread.start()
 
@@ -935,10 +941,12 @@ def reabastecimiento_enviar_borrador(request, pk):
             
             # Enviar correo al proveedor en segundo plano
             logger.info(f"[REAB] Programando envío de correo para borrador {reab.id}")
-            email_thread = threading.Thread(
-                target=send_supply_request_email,
-                args=(reab, request)
-            )
+            def send_email_with_delay():
+                import time
+                time.sleep(1)  # Esperar 1 segundo para asegurar que se guarden los cambios
+                send_supply_request_email(reab, request)
+            
+            email_thread = threading.Thread(target=send_email_with_delay)
             email_thread.daemon = True
             email_thread.start()
             

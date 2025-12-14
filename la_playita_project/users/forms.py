@@ -8,12 +8,8 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
-from core.email_utils import send_email_with_fallback
 import os
 from email.mime.image import MIMEImage
-import logging
-
-logger = logging.getLogger(__name__)
 
 
 class VendedorRegistrationForm(UserCreationForm):
@@ -79,37 +75,28 @@ class CustomPasswordResetForm(PasswordResetForm):
             # Render email body to a string
             body = render_to_string(email_template_name, context)
             
-            # Create the email subject
+            # Create the email, and attach the HTML version
             subject = render_to_string(subject_template_name, context)
             # Email subject *must not* contain newlines
             subject = ''.join(subject.splitlines())
             
-            # Prepare HTML content if template is provided
-            html_content = None
+            from_email = settings.DEFAULT_FROM_EMAIL
+            
+            msg = EmailMultiAlternatives(subject, body, from_email, [email])
+            
             if html_email_template_name:
-                html_content = render_to_string(html_email_template_name, context)
-            
-            # Prepare logo attachment
-            attachment = None
-            image_path = os.path.join(settings.BASE_DIR, 'core', 'static', 'core', 'img', 'la-playita-logo.png')
-            try:
-                with open(image_path, 'rb') as f:
-                    attachment = {
-                        'filename': 'la-playita-logo.png',
-                        'content': f.read(),
-                        'mimetype': 'image/png'
-                    }
-            except FileNotFoundError:
-                logger.warning("Logo no encontrado para correo de reset de contraseña")
-            
-            # Send email using the fallback system with Brevo
-            logger.info(f"[PASSWORD_RESET] Enviando correo de reset a {email}")
-            result = send_email_with_fallback(
-                subject=subject,
-                message=body,
-                recipient_list=[email],
-                html_message=html_content,
-                attachment=attachment
-            )
-            
-            logger.info(f"[PASSWORD_RESET] Resultado envío correo a {email}: {result}")
+                html_body = render_to_string(html_email_template_name, context)
+                msg.attach_alternative(html_body, "text/html")
+
+                # Attach image
+                image_path = os.path.join(settings.BASE_DIR, 'core', 'static', 'core', 'img', 'la-playita-logo.png')
+                try:
+                    with open(image_path, 'rb') as f:
+                        logo_image = MIMEImage(f.read())
+                        logo_image.add_header('Content-ID', '<logo>')
+                        msg.attach(logo_image)
+                except FileNotFoundError:
+                    # Handle case where image is not found, maybe log it
+                    pass
+
+            msg.send()

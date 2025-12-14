@@ -215,12 +215,12 @@ class DisableMigrations(dict):
 # Email Configuration
 # =======================
 
-RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
 
-# En producción con Resend: usar API HTTP (evita bloqueo SMTP de Railway)
-if RESEND_API_KEY and not DEBUG:
-    EMAIL_BACKEND = "core.resend_backend.ResendEmailBackend"
-    DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "onboarding@resend.dev")
+# En producción: usar Brevo API HTTP (evita bloqueo SMTP de Railway)
+if BREVO_API_KEY and not DEBUG:
+    EMAIL_BACKEND = "core.brevo_backend.BrevoEmailBackend"
+    DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "michaeldaramirez117@gmail.com")
 
 # En desarrollo: usar Gmail SMTP
 else:

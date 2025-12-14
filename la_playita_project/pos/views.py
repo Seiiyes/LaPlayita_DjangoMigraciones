@@ -379,7 +379,7 @@ def debug_email_config(request):
     debug_info = {
         'environment': {
             'DEBUG_env': os.environ.get('DEBUG', 'No definido'),
-            'RESEND_API_KEY_env': 'Configurado (' + os.environ.get('RESEND_API_KEY', '')[:10] + '...)' if os.environ.get('RESEND_API_KEY') else 'NO CONFIGURADO - AGREGAR EN RAILWAY',
+            'BREVO_API_KEY_env': 'Configurado (' + os.environ.get('BREVO_API_KEY', '')[:10] + '...)' if os.environ.get('BREVO_API_KEY') else 'NO CONFIGURADO - AGREGAR EN RAILWAY',
             'DEFAULT_FROM_EMAIL_env': os.environ.get('DEFAULT_FROM_EMAIL', 'No definido'),
         },
         'django_config': {

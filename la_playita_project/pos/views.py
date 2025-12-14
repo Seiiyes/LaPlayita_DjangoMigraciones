@@ -271,6 +271,7 @@ def procesar_venta(request):
         return JsonResponse({
             'success': True,
             'venta_id': nueva_venta.id,
+            'total': float(total_venta),
             'puntos_ganados': float(puntos_ganados) if cliente.id != 1 else 0,
             'mensaje': f'Venta #{nueva_venta.id} procesada con éxito.'
         })
@@ -604,8 +605,23 @@ def emails_pendientes(request):
 @login_required
 def crear_cliente(request):
     if request.method == 'POST':
-        data = json.loads(request.body)
         try:
+            data = json.loads(request.body)
+            
+            # Validar campos requeridos
+            campos_requeridos = ['documento', 'nombres', 'apellidos', 'correo', 'telefono']
+            for campo in campos_requeridos:
+                if not data.get(campo):
+                    return JsonResponse({'success': False, 'error': f'El campo {campo} es requerido'}, status=400)
+            
+            # Verificar si ya existe un cliente con el mismo documento
+            if Cliente.objects.filter(documento=data['documento']).exists():
+                return JsonResponse({'success': False, 'error': 'Ya existe un cliente con este documento'}, status=400)
+            
+            # Verificar si ya existe un cliente con el mismo correo
+            if Cliente.objects.filter(correo=data['correo']).exists():
+                return JsonResponse({'success': False, 'error': 'Ya existe un cliente con este correo electrónico'}, status=400)
+            
             cliente = Cliente.objects.create(
                 documento=data['documento'],
                 nombres=data['nombres'],
@@ -614,6 +630,8 @@ def crear_cliente(request):
                 telefono=data['telefono']
             )
             return JsonResponse({'success': True, 'cliente_id': cliente.id})
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Datos JSON inválidos'}, status=400)
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
     return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)

@@ -1224,19 +1224,17 @@ class CarritoPOS {
             const data = await response.json();
 
             if (data.success) {
+                // Guardar el total ANTES de vaciar el carrito
+                const totalVenta = data.total || this.calcularTotal();
+                
                 // Cerrar modal
                 const modal = bootstrap.Modal.getInstance(document.getElementById('modalCompletarVenta'));
                 if (modal) modal.hide();
 
-                this.mostrarNotificacion('Venta procesada exitosamente', 'success');
                 this.vaciarCarrito();
 
-                // Redirigir a detalle de venta
-                setTimeout(() => {
-                    if (confirm('¿Desea ver la factura?')) {
-                        window.location.href = `/pos/venta/${data.venta_id}/`;
-                    }
-                }, 500);
+                // Mostrar modal de éxito con opciones
+                this.mostrarModalExitoVenta(data.venta_id, totalVenta);
             } else {
                 this.mostrarNotificacion('Error: ' + data.error, 'danger');
             }
@@ -1244,6 +1242,123 @@ class CarritoPOS {
             console.error('Error:', error);
             this.mostrarNotificacion('Error al procesar la venta', 'danger');
         }
+    }
+
+    mostrarModalExitoVenta(ventaId, total) {
+        // Remover modal anterior si existe
+        const modalAnterior = document.getElementById('modalExitoVenta');
+        if (modalAnterior) modalAnterior.remove();
+
+        const modalHTML = `
+            <div class="modal fade" id="modalExitoVenta" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+                        <!-- Header con animación de éxito -->
+                        <div class="modal-header border-0 text-white py-4" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                            <div class="w-100 text-center">
+                                <div class="mb-3">
+                                    <div class="success-checkmark">
+                                        <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" style="width: 80px; height: 80px;">
+                                            <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" stroke="#fff" stroke-width="2"/>
+                                            <path class="checkmark__check" fill="none" stroke="#fff" stroke-width="4" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <h4 class="modal-title fw-bold mb-1">¡Venta Exitosa!</h4>
+                                <p class="mb-0 opacity-75">Factura #${ventaId} generada correctamente</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Body -->
+                        <div class="modal-body text-center py-4">
+                            <div class="mb-4">
+                                <p class="text-muted mb-2">Total de la venta</p>
+                                <h2 class="fw-bold text-success mb-0">$${this.formatearMoneda(total)}</h2>
+                            </div>
+                            
+                            <p class="text-muted mb-0">
+                                <i class="bi bi-question-circle me-1"></i>
+                                ¿Qué deseas hacer ahora?
+                            </p>
+                        </div>
+                        
+                        <!-- Footer con botones -->
+                        <div class="modal-footer border-0 justify-content-center gap-2 pb-4">
+                            <button type="button" class="btn btn-outline-secondary btn-lg px-4" id="btn-nueva-venta" style="border-radius: 12px;">
+                                <i class="bi bi-plus-circle me-2"></i>Nueva Venta
+                            </button>
+                            <button type="button" class="btn btn-success btn-lg px-4" id="btn-ver-factura" style="border-radius: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                                <i class="bi bi-receipt me-2"></i>Ver Factura
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <style>
+                .success-checkmark {
+                    animation: scaleIn 0.5s ease-in-out;
+                }
+                
+                @keyframes scaleIn {
+                    0% {
+                        transform: scale(0);
+                        opacity: 0;
+                    }
+                    50% {
+                        transform: scale(1.2);
+                    }
+                    100% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                }
+                
+                .checkmark__circle {
+                    stroke-dasharray: 166;
+                    stroke-dashoffset: 166;
+                    animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+                }
+                
+                .checkmark__check {
+                    stroke-dasharray: 48;
+                    stroke-dashoffset: 48;
+                    animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+                }
+                
+                @keyframes stroke {
+                    100% {
+                        stroke-dashoffset: 0;
+                    }
+                }
+                
+                #modalExitoVenta .btn:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                }
+                
+                #modalExitoVenta .btn {
+                    transition: all 0.3s ease;
+                }
+            </style>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        const modal = new bootstrap.Modal(document.getElementById('modalExitoVenta'));
+        modal.show();
+
+        // Evento para ver factura
+        document.getElementById('btn-ver-factura').addEventListener('click', () => {
+            window.location.href = `/pos/venta/${ventaId}/`;
+        });
+
+        // Evento para nueva venta
+        document.getElementById('btn-nueva-venta').addEventListener('click', () => {
+            modal.hide();
+            // Recargar la página para una nueva venta limpia
+            window.location.reload();
+        });
     }
 
     mostrarNotificacion(mensaje, tipo = 'info') {

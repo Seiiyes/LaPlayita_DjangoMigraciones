@@ -77,6 +77,70 @@ def cliente_create_ajax(request):
         return JsonResponse({"error": str(e)}, status=400)
 
 
+@login_required
+@check_user_role(allowed_roles=["Administrador"])
+def cliente_get_ajax(request, cliente_id):
+    """Obtiene los datos de un cliente para editar."""
+    try:
+        cliente = get_object_or_404(Cliente, pk=cliente_id)
+        return JsonResponse({
+            "success": True,
+            "cliente": {
+                "id": cliente.id,
+                "nombres": cliente.nombres,
+                "apellidos": cliente.apellidos,
+                "documento": cliente.documento,
+                "correo": cliente.correo,
+                "telefono": cliente.telefono,
+                "puntos_totales": float(cliente.puntos_totales),
+            }
+        })
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
+@login_required
+@require_POST
+@check_user_role(allowed_roles=["Administrador"])
+def cliente_update_ajax(request, cliente_id):
+    """Actualiza los datos de un cliente."""
+    try:
+        cliente = get_object_or_404(Cliente, pk=cliente_id)
+        data = json.loads(request.body)
+        
+        # Verificar documento duplicado (excluyendo el cliente actual)
+        nuevo_documento = data.get("documento")
+        if nuevo_documento and nuevo_documento != cliente.documento:
+            if Cliente.objects.filter(documento=nuevo_documento).exclude(id=cliente_id).exists():
+                return JsonResponse({"success": False, "error": "Ya existe otro cliente con este documento."}, status=400)
+        
+        # Verificar correo duplicado (excluyendo el cliente actual)
+        nuevo_correo = data.get("correo")
+        if nuevo_correo and nuevo_correo != cliente.correo:
+            if Cliente.objects.filter(correo=nuevo_correo).exclude(id=cliente_id).exists():
+                return JsonResponse({"success": False, "error": "Ya existe otro cliente con este correo."}, status=400)
+        
+        # Actualizar campos
+        cliente.nombres = data.get("nombres", cliente.nombres)
+        cliente.apellidos = data.get("apellidos", cliente.apellidos)
+        cliente.documento = nuevo_documento or cliente.documento
+        cliente.correo = nuevo_correo or cliente.correo
+        cliente.telefono = data.get("telefono", cliente.telefono)
+        cliente.save()
+        
+        return JsonResponse({
+            "success": True,
+            "mensaje": "Cliente actualizado exitosamente",
+            "cliente": {
+                "id": cliente.id,
+                "nombres": cliente.nombres,
+                "apellidos": cliente.apellidos,
+            }
+        })
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
 # ==================== PANEL Y PUNTOS ====================
 
 

@@ -64,6 +64,13 @@
                 <span class="puntos-badge">{{ cliente.puntos_totales }} pts</span>
               </td>
               <td class="text-center">
+                {% if not es_vendedor %}
+                <button class="btn btn-sm btn-warning me-1 btn-editar-cliente" 
+                        data-cliente-id="{{ cliente.id }}" 
+                        title="Editar Cliente">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                {% endif %}
                 <a href="{% url 'clients:panel_puntos' cliente.id %}" class="btn btn-sm btn-info" title="Ver Puntos y Canjes">
                   <i class="bi bi-gift"></i> Ver Puntos
                 </a>
@@ -78,6 +85,51 @@
         <p class="text-muted"><i class="bi bi-inbox me-2" style="font-size: 2rem;"></i><br>No hay clientes registrados</p>
       </div>
       {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Modal para editar cliente -->
+<div class="modal fade" id="modalEditarCliente" tabindex="-1" aria-labelledby="modalEditarClienteLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="formEditarCliente">
+        <input type="hidden" id="edit-cliente-id">
+        <div class="modal-header bg-warning">
+          <h5 class="modal-title" id="modalEditarClienteLabel">
+            <i class="bi bi-pencil-square me-2"></i>Editar Cliente
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="edit-documento" class="form-label">Documento</label>
+            <input type="text" class="form-control" id="edit-documento" name="documento" required>
+          </div>
+          <div class="mb-3">
+            <label for="edit-nombres" class="form-label">Nombres</label>
+            <input type="text" class="form-control" id="edit-nombres" name="nombres" required>
+          </div>
+          <div class="mb-3">
+            <label for="edit-apellidos" class="form-label">Apellidos</label>
+            <input type="text" class="form-control" id="edit-apellidos" name="apellidos" required>
+          </div>
+          <div class="mb-3">
+            <label for="edit-correo" class="form-label">Email</label>
+            <input type="email" class="form-control" id="edit-correo" name="correo" required>
+          </div>
+          <div class="mb-3">
+            <label for="edit-telefono" class="form-label">Teléfono</label>
+            <input type="text" class="form-control" id="edit-telefono" name="telefono" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-warning">
+            <i class="bi bi-check-circle me-1"></i>Guardar Cambios
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
@@ -130,13 +182,111 @@
 
 {% block extra_js %}
 <script>
+// ==================== EDITAR CLIENTE ====================
+document.querySelectorAll('.btn-editar-cliente').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const clienteId = this.dataset.clienteId;
+    
+    // Cargar datos del cliente
+    fetch(`/clients/api/cliente/${clienteId}/`, {
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}'
+      }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success && data.cliente) {
+        document.getElementById('edit-cliente-id').value = data.cliente.id;
+        document.getElementById('edit-documento').value = data.cliente.documento;
+        document.getElementById('edit-nombres').value = data.cliente.nombres;
+        document.getElementById('edit-apellidos').value = data.cliente.apellidos;
+        document.getElementById('edit-correo').value = data.cliente.correo;
+        document.getElementById('edit-telefono').value = data.cliente.telefono;
+        
+        const modal = new bootstrap.Modal(document.getElementById('modalEditarCliente'));
+        modal.show();
+      } else {
+        mostrarNotificacion('Error al cargar datos del cliente', 'danger');
+      }
+    })
+    .catch(err => {
+      mostrarNotificacion('Error de conexión', 'danger');
+    });
+  });
+});
+
+document.getElementById('formEditarCliente').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const clienteId = document.getElementById('edit-cliente-id').value;
+  const btnSubmit = e.target.querySelector('button[type="submit"]');
+  const btnText = btnSubmit.innerHTML;
+  btnSubmit.disabled = true;
+  btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
+  
+  const datos = {
+    documento: document.getElementById('edit-documento').value,
+    nombres: document.getElementById('edit-nombres').value,
+    apellidos: document.getElementById('edit-apellidos').value,
+    correo: document.getElementById('edit-correo').value,
+    telefono: document.getElementById('edit-telefono').value
+  };
+
+  fetch(`/clients/api/cliente/${clienteId}/editar/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token }}'
+    },
+    body: JSON.stringify(datos)
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      mostrarNotificacion(`¡Cliente ${datos.nombres} ${datos.apellidos} actualizado!`, 'success');
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      mostrarNotificacion(data.error || 'Error al actualizar', 'danger');
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = btnText;
+    }
+  })
+  .catch(err => {
+    mostrarNotificacion('Error de conexión', 'danger');
+    btnSubmit.disabled = false;
+    btnSubmit.innerHTML = btnText;
+  });
+});
+
+// Función auxiliar para notificaciones
+function mostrarNotificacion(mensaje, tipo) {
+  const notification = document.createElement('div');
+  notification.className = `alert alert-${tipo} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+  notification.style.zIndex = '9999';
+  const icono = tipo === 'success' ? 'check-circle-fill' : 'exclamation-triangle-fill';
+  notification.innerHTML = `
+    <i class="bi bi-${icono} me-2"></i>
+    ${mensaje}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  `;
+  document.body.appendChild(notification);
+  setTimeout(() => notification.remove(), 5000);
+}
+
+// ==================== CREAR CLIENTE ====================
 document.getElementById('formAgregarCliente').addEventListener('submit', function (e) {
   e.preventDefault();
+  
+  const btnSubmit = e.target.querySelector('button[type="submit"]');
+  const btnText = btnSubmit.innerHTML;
+  btnSubmit.disabled = true;
+  btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Creando...';
+  
   const datos = {
     documento: document.getElementById('documento').value,
     nombres: document.getElementById('nombres').value,
     apellidos: document.getElementById('apellidos').value,
-    email: document.getElementById('email').value,
+    correo: document.getElementById('email').value,
     telefono: document.getElementById('telefono').value
   };
 
@@ -150,14 +300,20 @@ document.getElementById('formAgregarCliente').addEventListener('submit', functio
   })
   .then(r => r.json())
   .then(data => {
-    if (data.id) {
-      alert('Cliente creado exitosamente');
-      location.reload();
+    if (data.cliente && data.cliente.id) {
+      mostrarNotificacion(`¡Cliente ${datos.nombres} ${datos.apellidos} creado exitosamente!`, 'success');
+      setTimeout(() => location.reload(), 1500);
     } else {
-      alert('Error: ' + data.error);
+      mostrarNotificacion(data.error || 'Error al crear el cliente', 'danger');
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = btnText;
     }
   })
-  .catch(err => alert('Error al crear cliente'));
+  .catch(err => {
+    mostrarNotificacion('Error de conexión', 'danger');
+    btnSubmit.disabled = false;
+    btnSubmit.innerHTML = btnText;
+  });
 });
 </script>
 {% endblock %}

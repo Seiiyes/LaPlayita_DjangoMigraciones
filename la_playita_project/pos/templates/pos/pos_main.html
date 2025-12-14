@@ -770,8 +770,13 @@
                 'X-CSRFToken': '{{ csrf_token }}'
             },
             body: JSON.stringify(datos)
-        }).then(r => r.json()).then(data => {
-            if(data.success){
+        }).then(r => {
+            if (!r.ok) {
+                return r.json().then(err => Promise.reject(err));
+            }
+            return r.json();
+        }).then(data => {
+            if(data.success && data.cliente_id){
                 // Añade el cliente al select
                 var s = document.getElementById('cliente-select');
                 var opcion = document.createElement('option');
@@ -817,10 +822,38 @@
                 console.log('Cliente seleccionado:', s.value);
                 
             } else {
-                alert('Error al registrar cliente: ' + data.error);
+                // Mostrar notificación de error
+                const errorMsg = data.error || 'Error desconocido al crear el cliente';
+                const errorNotification = document.createElement('div');
+                errorNotification.className = 'alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+                errorNotification.style.zIndex = '9999';
+                errorNotification.innerHTML = `
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Error:</strong> ${errorMsg}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(errorNotification);
+                
+                setTimeout(() => {
+                    errorNotification.remove();
+                }, 5000);
             }
         }).catch(error => {
-            alert('Error de conexión: ' + error);
+            // Mostrar notificación de error de conexión
+            const errorMsg = error.error || error.message || 'Error de conexión';
+            const errorNotification = document.createElement('div');
+            errorNotification.className = 'alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+            errorNotification.style.zIndex = '9999';
+            errorNotification.innerHTML = `
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>Error:</strong> ${errorMsg}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(errorNotification);
+            
+            setTimeout(() => {
+                errorNotification.remove();
+            }, 5000);
         }).finally(() => {
             btnSubmit.disabled = false;
             btnSubmit.innerHTML = btnText;

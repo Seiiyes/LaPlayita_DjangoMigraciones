@@ -406,12 +406,13 @@ def debug_email_config(request):
         try:
             from django.core.mail import send_mail
             
-            # Enviar correo de prueba
+            # Enviar correo de prueba (a tu email registrado en Resend)
+            test_email = request.GET.get('email', 'michaeldaramirez117@gmail.com')
             send_mail(
                 subject='Test desde Railway - La Playita',
-                message='Este es un correo de prueba desde Railway usando API HTTP.',
+                message='Este es un correo de prueba desde Railway usando API HTTP de Resend.',
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=['test@example.com'],
+                recipient_list=[test_email],
                 fail_silently=False,
             )
             

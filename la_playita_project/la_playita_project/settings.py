@@ -110,7 +110,7 @@ WSGI_APPLICATION = "la_playita_project.wsgi.application"
 # Base de datos
 # =======================
 # Producción: usa DATABASE_URL (Railway)
-# Desarrollo: tu configuración actual local (localhost:3309)
+# Desarrollo: MySQL local (localhost:3309)
 
 if os.environ.get("DATABASE_URL"):
     DATABASES = {
@@ -175,7 +175,6 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
@@ -213,50 +212,35 @@ class DisableMigrations(dict):
 
 
 # =======================
-# Email Configuration
+# Email (Resend SMTP)
 # =======================
 
-# Configuración de correo usando variables de entorno para seguridad
-EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
-EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
-EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
-EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "False") == "True"
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "soporte.laplayita@gmail.com")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "mafqcymwowaxzvdb")
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
-# Configuración de timeout para Railway
+# Config SMTP de Resend
+EMAIL_HOST = "smtp.resend.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+
+# Usuario SMTP de Resend siempre es 'resend'
+EMAIL_HOST_USER = "resend"
+
+# Password = API key de Resend, desde variable de entorno
+EMAIL_HOST_PASSWORD = os.environ.get("RESEND_API_KEY", "")
+
+# Remitente por defecto
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "RESEND_FROM_EMAIL",
+    "Soporte La Playita <soporte.laplayita@gmail.com>",
+)
+
+# Timeout para conexiones de correo
 EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "30"))
 
-# En desarrollo, usar backend de consola si no hay configuración de correo
+# En desarrollo, si no hay API key, usa backend de consola
 if DEBUG and not EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-
-# Configuraciones alternativas para diferentes proveedores
-EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "gmail").lower()
-
-if EMAIL_PROVIDER == "sendgrid":
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_HOST = "smtp.sendgrid.net"
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = "apikey"
-    EMAIL_HOST_PASSWORD = os.environ.get("SENDGRID_API_KEY", "")
-elif EMAIL_PROVIDER == "mailgun":
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_HOST = "smtp.mailgun.org"
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = os.environ.get("MAILGUN_SMTP_LOGIN", "")
-    EMAIL_HOST_PASSWORD = os.environ.get("MAILGUN_SMTP_PASSWORD", "")
-elif EMAIL_PROVIDER == "outlook":
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_HOST = "smtp-mail.outlook.com"
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
-    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 
 
 # =======================
@@ -336,38 +320,29 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOW_CREDENTIALS = True
 
+# Solo para desarrollo/testing; en producción conviene restringir
+CORS_ALLOW_ALL_ORIGINS = True
+
+
 # =======================
 # CSRF Configuration for Railway
 # =======================
 
-# Permitir CSRF desde cualquier origen en producción
 CSRF_TRUSTED_ORIGINS = [
-    'https://*.railway.app',
-    'https://*.up.railway.app',
+    "https://*.railway.app",
+    "https://*.up.railway.app",
 ]
 
-# También agregar el dominio específico si existe
 if RAILWAY_STATIC_URL:
-    CSRF_TRUSTED_ORIGINS.append(f'https://{RAILWAY_STATIC_URL}')
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RAILWAY_STATIC_URL}")
 
-# Agregar todos los hosts permitidos a CSRF_TRUSTED_ORIGINS
 for host in ALLOWED_HOSTS:
-    if host != '*' and host:
-        if not host.startswith('http'):
-            CSRF_TRUSTED_ORIGINS.append(f'https://{host}')
-            CSRF_TRUSTED_ORIGINS.append(f'http://{host}')
+    if host and host != "*":
+        if not host.startswith("http"):
+            CSRF_TRUSTED_ORIGINS.append(f"https://{host}")
+            CSRF_TRUSTED_ORIGINS.append(f"http://{host}")
 
-# En desarrollo, permitir localhost
-else:
-    CSRF_TRUSTED_ORIGINS = [
-        'http://localhost:8000',
-        'http://127.0.0.1:8000',
-    ]
 
 # Configuración adicional de seguridad
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_TZ = True
-
-# CORS configuration
-CORS_ALLOW_ALL_ORIGINS = True  # Solo para desarrollo/testing
-CORS_ALLOW_CREDENTIALS = True

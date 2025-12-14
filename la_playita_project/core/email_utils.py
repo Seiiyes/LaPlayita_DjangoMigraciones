@@ -35,7 +35,7 @@ def send_email_with_fallback(subject, message, recipient_list, html_message=None
         return _send_with_console_backend(subject, message, recipient_list, html_message)
     
     # Validar configuración de correo
-    email_provider = getattr(settings, 'EMAIL_PROVIDER', 'resend')
+    email_provider = getattr(settings, 'EMAIL_PROVIDER', 'brevo')
     
     # Log de configuración para debugging
     logger.info(f"Enviando correo - Host: {getattr(settings, 'EMAIL_HOST', 'No definido')}, User: {getattr(settings, 'EMAIL_HOST_USER', 'No definido')}")

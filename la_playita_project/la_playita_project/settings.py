@@ -212,11 +212,10 @@ class DisableMigrations(dict):
 
 
 # =======================
-# =======================
 # Email Configuration
 # =======================
 
-# Siempre configurar valores por defecto primero
+# Configuración por defecto (Gmail)
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
@@ -227,46 +226,14 @@ EMAIL_HOST_PASSWORD = "mafqcymwowaxzvdb"
 DEFAULT_FROM_EMAIL = "soporte.laplayita@gmail.com"
 EMAIL_TIMEOUT = 30
 
-# Variables de entorno para producción
-_EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "").lower()
-_RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
-
-# Si hay Resend configurado, usarlo
-if _RESEND_API_KEY:
+# Si hay RESEND_API_KEY configurado, usar Resend en producción
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+if RESEND_API_KEY and not DEBUG:
     EMAIL_HOST = "smtp.resend.com"
     EMAIL_HOST_USER = "resend"
-    EMAIL_HOST_PASSWORD = _RESEND_API_KEY
+    EMAIL_HOST_PASSWORD = RESEND_API_KEY
     DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "onboarding@resend.dev")
     EMAIL_TIMEOUT = 60
-    if EMAIL_PROVIDER == "resend" and not RESEND_API_KEY:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.warning("⚠️  RESEND_API_KEY no configurado en Railway. Los correos se registrarán para envío manual.")
-
-# Config SMTP de Resend
-EMAIL_HOST = "smtp.resend.com"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_USE_SSL = False
-
-# Usuario SMTP de Resend siempre es 'resend'
-EMAIL_HOST_USER = "resend"
-
-# Password = API key de Resend, desde variable de entorno
-EMAIL_HOST_PASSWORD = os.environ.get("RESEND_API_KEY", "")
-
-# Remitente por defecto
-DEFAULT_FROM_EMAIL = os.environ.get(
-    "RESEND_FROM_EMAIL",
-    "Soporte La Playita <soporte.laplayita@gmail.com>",
-)
-
-# Timeout para conexiones de correo
-EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "30"))
-
-# En desarrollo siempre consola (no depende de RESEND_API_KEY)
-if DEBUG:
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 
 

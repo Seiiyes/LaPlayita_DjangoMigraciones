@@ -28,9 +28,11 @@
             font-display: swap;
         }
         
-        /* Background optimizado */
+        /* Background optimizado con fallback */
         body {
-            background-image: url("{% static 'core/images/bar-background.jpg.avif' %}");
+            background-color: #1a1a2e;
+            background-image: url("{% static 'core/images/bar-background.jpg.avif' %}"), 
+                              url("https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=1920&q=80");
             background-size: cover;
             background-repeat: no-repeat;
             background-position: center center;

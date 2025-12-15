@@ -213,7 +213,7 @@ def pqrs_create(request):
 @check_user_role(allowed_roles=['Administrador', 'Vendedor'])
 def pqrs_detail(request, pk):
     pqrs = get_object_or_404(Pqrs, pk=pk)
-    eventos = PqrsEvento.objects.filter(pqrs=pqrs)
+    eventos = PqrsEvento.objects.filter(pqrs=pqrs).order_by('-fecha_evento')
     adjuntos = PqrsAdjunto.objects.filter(pqrs=pqrs)
     form = PqrsUpdateForm(instance=pqrs)
     asignar_form = PqrsAsignarForm(instance=pqrs)
@@ -266,11 +266,7 @@ def pqrs_update(request, pk):
                     messages.error(request, 'Debe escribir una respuesta.')
                     return redirect('pqrs:pqrs_detail', pk=pk)
                 
-                # Guardar respuesta en el PQRS
-                pqrs.ultima_respuesta_enviada = respuesta
-                pqrs.save()
-                
-                # Crear evento
+                # Crear evento de respuesta
                 evento = PqrsEvento.objects.create(
                     pqrs=pqrs,
                     usuario=request.user,
@@ -279,12 +275,13 @@ def pqrs_update(request, pk):
                     es_visible_cliente=True
                 )
                 
+                # Actualizar fecha de primera respuesta si es la primera vez
+                if not pqrs.fecha_primera_respuesta:
+                    pqrs.fecha_primera_respuesta = timezone.now()
+                    pqrs.save()
+                
                 # Enviar correo al cliente
                 if enviar_correo_respuesta(pqrs, respuesta):
-                    pqrs.correo_enviado = True
-                    pqrs.fecha_ultimo_correo = timezone.now()
-                    pqrs.save()
-                    
                     evento.enviado_por_correo = True
                     evento.fecha_envio_correo = timezone.now()
                     evento.save()

@@ -1,0 +1,40 @@
+Estimado/a {{ pqrs.cliente.nombres }} {{ pqrs.cliente.apellidos }},
+
+Le informamos que el estado de su {{ pqrs.get_tipo_display|lower }} {{ pqrs.numero_caso }} ha sido actualizado.
+
+INFORMACIÓN DE SU CASO:
+- Número de caso: {{ pqrs.numero_caso }}
+- Tipo: {{ pqrs.get_tipo_display }}
+- Fecha de registro: {{ pqrs.fecha_creacion|date:"d/m/Y H:i" }}
+{% if pqrs.categoria %}- Categoría: {{ pqrs.get_categoria_display }}{% endif %}
+
+CAMBIO DE ESTADO:
+Estado anterior: {{ estado_anterior }}
+Estado actual: {{ pqrs.get_estado_display }}
+
+{% if pqrs.estado == 'en_proceso' %}
+SU CASO ESTÁ EN PROCESO:
+Nuestro equipo está trabajando activamente en su caso. Le mantendremos informado sobre cualquier progreso adicional.
+{% elif pqrs.estado == 'resuelto' %}
+SU CASO HA SIDO RESUELTO:
+Hemos completado el procesamiento de su caso. Si está satisfecho con la resolución, no necesita tomar ninguna acción adicional.
+Si tiene alguna pregunta sobre la resolución, no dude en contactarnos.
+{% elif pqrs.estado == 'cerrado' %}
+SU CASO HA SIDO CERRADO:
+Su caso ha sido cerrado exitosamente. Gracias por permitirnos servirle.
+Si necesita ayuda adicional en el futuro, no dude en contactarnos nuevamente.
+{% endif %}
+
+{% if observacion %}
+OBSERVACIONES ADICIONALES:
+{{ observacion }}
+{% endif %}
+
+Continuamos comprometidos en brindarle el mejor servicio posible.
+
+Atentamente,
+El equipo de Atención al Cliente de La Playita
+
+---
+© {% now "Y" %} La Playita. Todos los derechos reservados.
+Este es un correo automático, por favor no responder directamente a este mensaje.

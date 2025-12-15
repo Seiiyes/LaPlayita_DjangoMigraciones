@@ -413,26 +413,52 @@
                         {% for evento in eventos %}
                         <div class="timeline-item-modern">
                             <div class="timeline-dot-modern border-{% if evento.tipo_evento == 'creacion' %}success{% elif evento.tipo_evento == 'respuesta' %}primary{% elif evento.tipo_evento == 'estado' %}info{% else %}secondary{% endif %}"></div>
-                            <div class="card">
+                            <div class="card {% if evento.tipo_evento == 'respuesta' %}border-primary{% endif %}">
                                 <div class="card-body">
-                                    <div class="d-flex justify-content-between">
-                                        <h6 class="mb-1">
-                                            {% if evento.tipo_evento == 'creacion' %}
-                                                <span class="badge bg-success"><i class="bi bi-plus-circle"></i> Creación</span>
-                                            {% elif evento.tipo_evento == 'respuesta' %}
-                                                <span class="badge bg-primary"><i class="bi bi-chat-dots"></i> Respuesta</span>
-                                            {% elif evento.tipo_evento == 'estado' %}
-                                                <span class="badge bg-info"><i class="bi bi-arrow-repeat"></i> Cambio Estado</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary"><i class="bi bi-sticky"></i> Nota</span>
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">
+                                                {% if evento.tipo_evento == 'creacion' %}
+                                                    <span class="badge bg-success"><i class="bi bi-plus-circle"></i> Caso Creado</span>
+                                                {% elif evento.tipo_evento == 'respuesta' %}
+                                                    <span class="badge bg-primary"><i class="bi bi-chat-dots"></i> Respuesta al Cliente</span>
+                                                    {% if evento.enviado_por_correo %}
+                                                        <span class="badge bg-success ms-1"><i class="bi bi-envelope-check"></i> Enviado</span>
+                                                    {% else %}
+                                                        <span class="badge bg-warning ms-1"><i class="bi bi-envelope-x"></i> No enviado</span>
+                                                    {% endif %}
+                                                {% elif evento.tipo_evento == 'estado' %}
+                                                    <span class="badge bg-info"><i class="bi bi-arrow-repeat"></i> Cambio de Estado</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary"><i class="bi bi-sticky"></i> Nota Interna</span>
+                                                {% endif %}
+                                            </h6>
+                                            <p class="mb-1">
+                                                <strong>{{ evento.usuario.get_full_name|default:evento.usuario.username }}</strong>
+                                                {% if evento.tipo_evento == 'respuesta' and evento.enviado_por_correo and evento.fecha_envio_correo %}
+                                                    <small class="text-success">
+                                                        <i class="bi bi-clock"></i> Enviado el {{ evento.fecha_envio_correo|date:"d/m/Y H:i" }}
+                                                    </small>
+                                                {% endif %}
+                                            </p>
+                                            {% if evento.comentario %}
+                                                {% if evento.tipo_evento == 'respuesta' %}
+                                                    <div class="bg-light p-3 rounded mt-2">
+                                                        <h6 class="text-primary mb-2"><i class="bi bi-chat-quote"></i> Respuesta enviada:</h6>
+                                                        <p class="mb-0" style="white-space: pre-wrap;">{{ evento.comentario }}</p>
+                                                    </div>
+                                                {% else %}
+                                                    <p class="mb-0 text-muted" style="white-space: pre-wrap;">{{ evento.comentario }}</p>
+                                                {% endif %}
                                             {% endif %}
-                                        </h6>
-                                        <small class="text-muted">{{ evento.fecha_evento|date:"d/m/Y H:i" }}</small>
+                                        </div>
+                                        <div class="text-end">
+                                            <small class="text-muted">{{ evento.fecha_evento|date:"d/m/Y H:i" }}</small>
+                                            {% if evento.tipo_evento == 'respuesta' and evento.es_visible_cliente %}
+                                                <br><small class="text-primary"><i class="bi bi-eye"></i> Visible al cliente</small>
+                                            {% endif %}
+                                        </div>
                                     </div>
-                                    <p class="mb-1"><strong>{{ evento.usuario.get_full_name|default:evento.usuario.username }}</strong></p>
-                                    {% if evento.comentario %}
-                                    <p class="mb-0 text-muted">{{ evento.comentario }}</p>
-                                    {% endif %}
                                 </div>
                             </div>
                         </div>

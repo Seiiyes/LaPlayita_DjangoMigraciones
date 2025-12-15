@@ -1,0 +1,177 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actualización de Estado - {{ pqrs.numero_caso }} - La Playita</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #ffc107;
+            background: linear-gradient(135deg, #ffc107, #e0a800);
+            color: #212529;
+            margin: -20px -20px 20px -20px;
+            padding: 30px 20px 20px 20px;
+            border-radius: 8px 8px 0 0;
+        }
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 2em;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 1.2em;
+            font-weight: normal;
+        }
+        .content {
+            padding: 20px 0;
+        }
+        .caso-info {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border-left: 4px solid #ffc107;
+        }
+        .estado-change {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            border: 2px solid #dee2e6;
+        }
+        .estado-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 1em;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin: 0 10px;
+        }
+        .estado-nuevo { background-color: #ffc107; color: #212529; }
+        .estado-en_proceso { background-color: #17a2b8; color: white; }
+        .estado-resuelto { background-color: #28a745; color: white; }
+        .estado-cerrado { background-color: #6c757d; color: white; }
+        .arrow {
+            font-size: 2em;
+            color: #6c757d;
+            margin: 0 10px;
+        }
+        .progress-info {
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 4px solid #17a2b8;
+        }
+        .footer {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 0.9em;
+            color: #777;
+        }
+        .next-steps {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #155724;
+        }
+        .next-steps h4 {
+            margin-top: 0;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 La Playita</h1>
+            <h2>Actualización de Estado</h2>
+        </div>
+        <div class="content">
+            <p>Estimado/a <strong>{{ pqrs.cliente.nombres }} {{ pqrs.cliente.apellidos }}</strong>,</p>
+            
+            <p>Le informamos que el estado de su {{ pqrs.get_tipo_display|lower }} <strong>{{ pqrs.numero_caso }}</strong> ha sido actualizado.</p>
+            
+            <div class="caso-info">
+                <h4 style="margin-top: 0; color: #856404;">📋 Información de su caso:</h4>
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li style="margin-bottom: 8px;"><strong>Número de caso:</strong> {{ pqrs.numero_caso }}</li>
+                    <li style="margin-bottom: 8px;"><strong>Tipo:</strong> {{ pqrs.get_tipo_display }}</li>
+                    <li style="margin-bottom: 8px;"><strong>Fecha de registro:</strong> {{ pqrs.fecha_creacion|date:"d/m/Y H:i" }}</li>
+                    {% if pqrs.categoria %}
+                    <li style="margin-bottom: 8px;"><strong>Categoría:</strong> {{ pqrs.get_categoria_display }}</li>
+                    {% endif %}
+                </ul>
+            </div>
+            
+            <div class="estado-change">
+                <h3 style="margin-top: 0; color: #495057;">📊 Cambio de Estado:</h3>
+                <div style="display: flex; align-items: center; justify-content: center; flex-wrap: wrap;">
+                    <span class="estado-badge estado-{{ estado_anterior_key }}">{{ estado_anterior }}</span>
+                    <span class="arrow">→</span>
+                    <span class="estado-badge estado-{{ pqrs.estado }}">{{ pqrs.get_estado_display }}</span>
+                </div>
+            </div>
+            
+            {% if pqrs.estado == 'en_proceso' %}
+            <div class="progress-info">
+                <h4 style="margin-top: 0; color: #17a2b8;">🔄 Su caso está en proceso</h4>
+                <p>Nuestro equipo está trabajando activamente en su caso. Le mantendremos informado sobre cualquier progreso adicional.</p>
+            </div>
+            {% elif pqrs.estado == 'resuelto' %}
+            <div class="next-steps">
+                <h4>✅ Su caso ha sido resuelto</h4>
+                <p>Hemos completado el procesamiento de su caso. Si está satisfecho con la resolución, no necesita tomar ninguna acción adicional.</p>
+                <p>Si tiene alguna pregunta sobre la resolución, no dude en contactarnos.</p>
+            </div>
+            {% elif pqrs.estado == 'cerrado' %}
+            <div class="next-steps">
+                <h4>🔒 Su caso ha sido cerrado</h4>
+                <p>Su caso ha sido cerrado exitosamente. Gracias por permitirnos servirle.</p>
+                <p>Si necesita ayuda adicional en el futuro, no dude en contactarnos nuevamente.</p>
+            </div>
+            {% endif %}
+            
+            {% if observacion %}
+            <div class="progress-info">
+                <h4 style="margin-top: 0; color: #17a2b8;">📝 Observaciones adicionales:</h4>
+                <p style="white-space: pre-wrap;">{{ observacion }}</p>
+            </div>
+            {% endif %}
+            
+            <p>Continuamos comprometidos en brindarle el mejor servicio posible.</p>
+            
+            <p><strong>Atentamente,</strong><br>
+            <strong>El equipo de Atención al Cliente de La Playita</strong></p>
+        </div>
+        <div class="footer">
+            <p>&copy; {% now "Y" %} La Playita. Todos los derechos reservados.</p>
+            <p><small>Este es un correo automático, por favor no responder directamente a este mensaje.</small></p>
+        </div>
+    </div>
+</body>
+</html>

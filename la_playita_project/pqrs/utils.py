@@ -1,131 +1,109 @@
 """
 Utilidades para el módulo PQRS
 """
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def enviar_correo_respuesta(pqrs, respuesta):
     """
-    Envía un correo al cliente con la respuesta del PQRS
+    Envía un correo al cliente con la respuesta del PQRS usando templates HTML elegantes
     """
-    subject = f'Respuesta a su {pqrs.get_tipo_display()} - {pqrs.numero_caso}'
-    
-    html_message = f"""
-    <html>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
-            <h2 style="color: #0066cc; border-bottom: 2px solid #0066cc; padding-bottom: 10px;">
-                La Playita - Respuesta a su {pqrs.get_tipo_display()}
-            </h2>
-            
-            <p>Estimado/a <strong>{pqrs.cliente.nombres} {pqrs.cliente.apellidos}</strong>,</p>
-            
-            <p>Le informamos que hemos procesado su {pqrs.get_tipo_display().lower()} con número de caso <strong>{pqrs.numero_caso}</strong>.</p>
-            
-            <div style="background-color: #f5f5f5; padding: 15px; border-left: 4px solid #0066cc; margin: 20px 0;">
-                <h3 style="margin-top: 0; color: #0066cc;">Respuesta:</h3>
-                <p style="white-space: pre-wrap;">{respuesta}</p>
-            </div>
-            
-            <div style="margin-top: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 5px;">
-                <h4 style="margin-top: 0;">Detalles de su caso:</h4>
-                <ul style="list-style: none; padding: 0;">
-                    <li><strong>Número de caso:</strong> {pqrs.numero_caso}</li>
-                    <li><strong>Tipo:</strong> {pqrs.get_tipo_display()}</li>
-                    <li><strong>Estado:</strong> {pqrs.get_estado_display()}</li>
-                    <li><strong>Fecha de registro:</strong> {pqrs.fecha_creacion.strftime('%d/%m/%Y %H:%M')}</li>
-                </ul>
-            </div>
-            
-            <p style="margin-top: 20px;">Si tiene alguna pregunta adicional, no dude en contactarnos.</p>
-            
-            <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-            
-            <p style="font-size: 12px; color: #666;">
-                <strong>La Playita</strong><br>
-                Este es un correo automático, por favor no responda a este mensaje.
-            </p>
-        </div>
-    </body>
-    </html>
-    """
-    
-    plain_message = strip_tags(html_message)
-    
-    from_email = settings.DEFAULT_FROM_EMAIL
-    recipient_list = [pqrs.cliente.correo]
-    
     try:
-        send_mail(
-            subject,
-            plain_message,
-            from_email,
-            recipient_list,
-            html_message=html_message,
-            fail_silently=False,
+        # Preparar contexto para los templates
+        context = {
+            'pqrs': pqrs,
+            'respuesta': respuesta,
+        }
+        
+        # Renderizar templates
+        subject = f'Respuesta a su {pqrs.get_tipo_display()} - {pqrs.numero_caso}'
+        html_content = render_to_string('pqrs/emails/respuesta_cliente.html', context)
+        text_content = render_to_string('pqrs/emails/respuesta_cliente.txt', context)
+        
+        # Usar email verificado para mejor entregabilidad con Brevo
+        from_email = "michaeldaramirez117@gmail.com"
+        
+        # Crear email con contenido alternativo
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=text_content,
+            from_email=from_email,
+            to=[pqrs.cliente.correo]
         )
-        return True
+        email.attach_alternative(html_content, "text/html")
+        
+        # Enviar email
+        result = email.send(fail_silently=False)
+        
+        if result:
+            logger.info(f"[PQRS] ✓ Email de respuesta enviado exitosamente para caso {pqrs.numero_caso} a {pqrs.cliente.correo}")
+            return True
+        else:
+            logger.error(f"[PQRS] ✗ Error enviando email de respuesta para caso {pqrs.numero_caso}")
+            return False
+            
     except Exception as e:
-        print(f"Error al enviar correo: {e}")
+        logger.error(f"[PQRS] ✗ Error al enviar correo de respuesta para caso {pqrs.numero_caso}: {e}", exc_info=True)
         return False
 
 
-def enviar_correo_cambio_estado(pqrs, estado_anterior, estado_nuevo, observacion):
+def enviar_correo_cambio_estado(pqrs, estado_anterior, estado_nuevo, observacion=None):
     """
-    Envía un correo al cliente notificando el cambio de estado
+    Envía un correo al cliente notificando el cambio de estado usando templates HTML elegantes
     """
-    subject = f'Actualización de su {pqrs.get_tipo_display()} - {pqrs.numero_caso}'
-    
-    html_message = f"""
-    <html>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
-            <h2 style="color: #0066cc; border-bottom: 2px solid #0066cc; padding-bottom: 10px;">
-                La Playita - Actualización de Estado
-            </h2>
-            
-            <p>Estimado/a <strong>{pqrs.cliente.nombres} {pqrs.cliente.apellidos}</strong>,</p>
-            
-            <p>Le informamos que el estado de su {pqrs.get_tipo_display().lower()} <strong>{pqrs.numero_caso}</strong> ha sido actualizado.</p>
-            
-            <div style="background-color: #f5f5f5; padding: 15px; border-left: 4px solid #0066cc; margin: 20px 0;">
-                <p style="margin: 0;">
-                    <strong>Estado anterior:</strong> {estado_anterior}<br>
-                    <strong>Estado actual:</strong> <span style="color: #0066cc; font-weight: bold;">{estado_nuevo}</span>
-                </p>
-            </div>
-            
-            <p>Continuaremos trabajando en su caso para brindarle la mejor solución posible.</p>
-            
-            <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-            
-            <p style="font-size: 12px; color: #666;">
-                <strong>La Playita</strong><br>
-                Este es un correo automático, por favor no responda a este mensaje.
-            </p>
-        </div>
-    </body>
-    </html>
-    """
-    
-    plain_message = strip_tags(html_message)
-    
-    from_email = settings.DEFAULT_FROM_EMAIL
-    recipient_list = [pqrs.cliente.correo]
-    
     try:
-        send_mail(
-            subject,
-            plain_message,
-            from_email,
-            recipient_list,
-            html_message=html_message,
-            fail_silently=False,
+        # Mapear estados para obtener la clave
+        estado_map = {
+            'Nuevo': 'nuevo',
+            'En Proceso': 'en_proceso', 
+            'Resuelto': 'resuelto',
+            'Cerrado': 'cerrado'
+        }
+        
+        estado_anterior_key = estado_map.get(estado_anterior, 'nuevo')
+        
+        # Preparar contexto para los templates
+        context = {
+            'pqrs': pqrs,
+            'estado_anterior': estado_anterior,
+            'estado_anterior_key': estado_anterior_key,
+            'estado_nuevo': estado_nuevo,
+            'observacion': observacion,
+        }
+        
+        # Renderizar templates
+        subject = f'Actualización de su {pqrs.get_tipo_display()} - {pqrs.numero_caso}'
+        html_content = render_to_string('pqrs/emails/cambio_estado.html', context)
+        text_content = render_to_string('pqrs/emails/cambio_estado.txt', context)
+        
+        # Usar email verificado para mejor entregabilidad con Brevo
+        from_email = "michaeldaramirez117@gmail.com"
+        
+        # Crear email con contenido alternativo
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=text_content,
+            from_email=from_email,
+            to=[pqrs.cliente.correo]
         )
-        return True
+        email.attach_alternative(html_content, "text/html")
+        
+        # Enviar email
+        result = email.send(fail_silently=False)
+        
+        if result:
+            logger.info(f"[PQRS] ✓ Email de cambio de estado enviado exitosamente para caso {pqrs.numero_caso} a {pqrs.cliente.correo}")
+            return True
+        else:
+            logger.error(f"[PQRS] ✗ Error enviando email de cambio de estado para caso {pqrs.numero_caso}")
+            return False
+            
     except Exception as e:
-        print(f"Error al enviar correo: {e}")
+        logger.error(f"[PQRS] ✗ Error al enviar correo de cambio de estado para caso {pqrs.numero_caso}: {e}", exc_info=True)
         return False

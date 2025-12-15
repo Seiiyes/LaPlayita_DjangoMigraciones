@@ -1,0 +1,30 @@
+Estimado/a {{ pqrs.cliente.nombres }} {{ pqrs.cliente.apellidos }},
+
+Nos complace informarle que hemos procesado su {{ pqrs.get_tipo_display|lower }} y tenemos una respuesta para usted.
+
+INFORMACIÓN DE SU CASO:
+- Número de caso: {{ pqrs.numero_caso }}
+- Tipo: {{ pqrs.get_tipo_display }}
+- Estado actual: {{ pqrs.get_estado_display }}
+- Fecha de registro: {{ pqrs.fecha_creacion|date:"d/m/Y H:i" }}
+{% if pqrs.categoria %}- Categoría: {{ pqrs.get_categoria_display }}{% endif %}
+
+NUESTRA RESPUESTA:
+{{ respuesta }}
+
+{% if pqrs.estado == 'resuelto' %}
+SU CASO HA SIDO RESUELTO:
+Esperamos que nuestra respuesta haya sido satisfactoria. Si considera que su caso ha sido resuelto completamente, no es necesario que tome ninguna acción adicional.
+{% else %}
+¿NECESITA MÁS AYUDA?
+Si tiene preguntas adicionales o necesita más información sobre su caso, no dude en contactarnos. Estamos aquí para ayudarle.
+{% endif %}
+
+Agradecemos su confianza en La Playita y esperamos seguir brindándole el mejor servicio.
+
+Atentamente,
+El equipo de Atención al Cliente de La Playita
+
+---
+© {% now "Y" %} La Playita. Todos los derechos reservados.
+Este es un correo automático, por favor no responder directamente a este mensaje.

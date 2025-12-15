@@ -490,10 +490,17 @@
                     <div class="card action-card h-100">
                         <div class="card-body">
                             <h5><i class="bi bi-envelope text-success"></i> Responder al Cliente</h5>
-                            <form method="post" action="{% url 'pqrs:pqrs_update' pqrs.id %}">
+                            <form method="post" action="{% url 'pqrs:pqrs_update' pqrs.id %}" id="respuestaForm">
                                 {% csrf_token %}
-                                {{ form.respuesta }}
-                                <button type="submit" name="action" value="save_response" class="btn btn-success w-100 mt-2">Enviar Respuesta</button>
+                                <div class="mb-3">
+                                    <label for="id_respuesta" class="form-label">Respuesta para el Cliente</label>
+                                    <textarea name="respuesta" class="form-control" rows="5" 
+                                              placeholder="✍️ Escriba aquí la respuesta que se enviará por correo al cliente..." 
+                                              required id="id_respuesta"></textarea>
+                                </div>
+                                <button type="submit" name="action" value="save_response" class="btn btn-success w-100 mt-2" id="btnEnviarRespuesta">
+                                    <i class="bi bi-send"></i> Enviar Respuesta
+                                </button>
                             </form>
                         </div>
                     </div>
@@ -673,10 +680,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Prevenir múltiples envíos en otros formularios
+    // Formulario de respuesta funciona sin JavaScript adicional
+    
+    // Solo prevenir múltiples envíos en formularios específicos (NO en respuestaForm)
     const allForms = document.querySelectorAll('form');
     allForms.forEach(form => {
-        if (form.id !== 'estadoForm' && form.id !== 'uploadForm') {
+        // EXCLUIR explícitamente el formulario de respuesta
+        if (form.id !== 'estadoForm' && form.id !== 'uploadForm' && form.id !== 'respuestaForm') {
             let formSubmitting = false;
             form.addEventListener('submit', function(e) {
                 if (formSubmitting) {

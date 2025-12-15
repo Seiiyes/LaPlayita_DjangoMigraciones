@@ -253,7 +253,20 @@ def pqrs_detail(request, pk):
 def pqrs_update(request, pk):
     pqrs = get_object_or_404(Pqrs, pk=pk)
     if request.method == 'POST':
+        logger.info(f"[PQRS_UPDATE] POST recibido para PQRS {pqrs.numero_caso}")
+        logger.info(f"[PQRS_UPDATE] Datos POST: {dict(request.POST)}")
+        
         form = PqrsUpdateForm(request.POST)
+        
+        if form.is_valid():
+            action = request.POST.get('action')
+            logger.info(f"[PQRS_UPDATE] Formulario válido. Acción: {action}, Estado actual: {pqrs.estado}")
+        else:
+            logger.error(f"[PQRS_UPDATE] Formulario inválido: {form.errors}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{form.fields.get(field, field)}: {error}")
+            return redirect(reverse('pqrs:pqrs_detail', kwargs={'pk': pk}))
         
         if form.is_valid():
             action = request.POST.get('action')
@@ -261,12 +274,16 @@ def pqrs_update(request, pk):
 
             # 1. Handle Response Saving
             if action == 'save_response':
+                logger.info(f"[RESPUESTA] Procesando save_response para PQRS {pqrs.numero_caso}")
                 respuesta = form.cleaned_data.get('respuesta')
+                logger.info(f"[RESPUESTA] Respuesta extraída: {respuesta[:100] if respuesta else 'None'}...")
                 if not respuesta:
+                    logger.warning(f"[RESPUESTA] No se encontró respuesta en el formulario")
                     messages.error(request, 'Debe escribir una respuesta.')
                     return redirect('pqrs:pqrs_detail', pk=pk)
                 
                 # Crear evento de respuesta
+                logger.info(f"[RESPUESTA] Creando evento de respuesta...")
                 evento = PqrsEvento.objects.create(
                     pqrs=pqrs,
                     usuario=request.user,
@@ -274,6 +291,7 @@ def pqrs_update(request, pk):
                     comentario=respuesta,
                     es_visible_cliente=True
                 )
+                logger.info(f"[RESPUESTA] Evento creado con ID: {evento.id}")
                 
                 # Actualizar fecha de primera respuesta si es la primera vez
                 if not pqrs.fecha_primera_respuesta:
@@ -281,13 +299,15 @@ def pqrs_update(request, pk):
                     pqrs.save()
                 
                 # Enviar correo al cliente
+                logger.info(f"[RESPUESTA] Intentando enviar correo...")
                 if enviar_correo_respuesta(pqrs, respuesta):
                     evento.enviado_por_correo = True
                     evento.fecha_envio_correo = timezone.now()
                     evento.save()
-                    
+                    logger.info(f"[RESPUESTA] Correo enviado exitosamente")
                     messages.success(request, 'Respuesta guardada y correo enviado exitosamente.')
                 else:
+                    logger.warning(f"[RESPUESTA] Error al enviar correo")
                     messages.warning(request, 'Respuesta guardada, pero hubo un error al enviar el correo.')
 
             # 2. Handle State Changes

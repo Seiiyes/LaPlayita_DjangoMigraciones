@@ -41,7 +41,12 @@ class PqrsForm(forms.ModelForm):
 
 class PqrsUpdateForm(forms.ModelForm):
     respuesta = forms.CharField(
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': 'Escriba la respuesta que se enviará al cliente...'}),
+        widget=forms.Textarea(attrs={
+            'class': 'form-control', 
+            'rows': 5, 
+            'placeholder': '✍️ Escriba aquí la respuesta que se enviará por correo al cliente...\n\nEjemplo:\nEstimado cliente, hemos recibido su solicitud y estamos trabajando en una solución. Le mantendremos informado sobre el progreso.',
+            'required': True
+        }),
         label="Respuesta para el Cliente",
         required=False
     )

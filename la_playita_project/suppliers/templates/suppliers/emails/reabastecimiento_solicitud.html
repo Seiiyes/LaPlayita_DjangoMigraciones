@@ -25,11 +25,26 @@
         .header {
             text-align: center;
             padding-bottom: 20px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 2px solid #007bff;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            margin: -20px -20px 20px -20px;
+            padding: 30px 20px 20px 20px;
+            border-radius: 8px 8px 0 0;
         }
         .header img {
-            max-width: 150px;
+            max-width: 120px;
             height: auto;
+            margin-bottom: 10px;
+        }
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 2em;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 1.2em;
+            font-weight: normal;
         }
         .content {
             padding: 20px 0;
@@ -46,6 +61,20 @@
             padding: 0;
         }
         ul li {
+            margin-bottom: 8px;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-left: 3px solid #007bff;
+            border-radius: 4px;
+        }
+        .productos-list {
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .productos-list ul li {
+            background-color: white;
             margin-bottom: 5px;
         }
     </style>
@@ -53,8 +82,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="cid:logo" alt="La Playita Logo">
-            <h1>Solicitud de Reabastecimiento</h1>
+            <h1>🏪 La Playita</h1>
+            <h2>Solicitud de Reabastecimiento</h2>
         </div>
         <div class="content">
             <p>Estimado/a {{ proveedor_nombre }},</p>
@@ -65,12 +94,14 @@
                 <li><strong>Fecha de Solicitud:</strong> {{ reabastecimiento.fecha|date:"d/m/Y H:i" }}</li>
                 <li><strong>Observaciones:</strong> {{ reabastecimiento.observaciones|default:"N/A" }}</li>
             </ul>
-            <p><strong>Productos solicitados:</strong></p>
-            <ul>
-                {% for detalle in reabastecimiento.reabastecimientodetalle_set.all %}
-                    <li>{{ detalle.producto.nombre }}: {{ detalle.cantidad }} unidades</li>
-                {% endfor %}
-            </ul>
+            <div class="productos-list">
+                <p><strong>📦 Productos solicitados:</strong></p>
+                <ul>
+                    {% for detalle in reabastecimiento.reabastecimientodetalle_set.all %}
+                        <li><strong>{{ detalle.producto.nombre }}:</strong> {{ detalle.cantidad }} unidades</li>
+                    {% endfor %}
+                </ul>
+            </div>
             <p>Agradecemos su pronta atención a esta solicitud.</p>
             <p>Saludos cordiales,</p>
             <p>El equipo de La Playita</p>

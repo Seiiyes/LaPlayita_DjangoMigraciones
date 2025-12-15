@@ -151,20 +151,21 @@ def send_supply_request_email(reabastecimiento, request=None):
         )
         email.attach_alternative(html_content, "text/html")
 
-        # Adjuntar el logo
-        try:
-            logo_path = find_static('core/img/la-playita-logo.png')
-            if logo_path:
-                with open(logo_path, 'rb') as f:
-                    logo_data = f.read()
-                logo_mime = MIMEImage(logo_data)
-                logo_mime.add_header('Content-ID', '<logo>')
-                email.attach(logo_mime)
-                logger.info("[EMAIL] Logo adjuntado correctamente.")
-            else:
-                logger.warning("[EMAIL] No se encontró el archivo del logo.")
-        except Exception as logo_error:
-            logger.error(f"[EMAIL] Error al adjuntar el logo: {logo_error}", exc_info=True)
+        # Adjuntar el logo (comentado temporalmente - problema con formato en Brevo)
+        # try:
+        #     logo_path = find_static('core/img/la-playita-logo.png')
+        #     if logo_path:
+        #         with open(logo_path, 'rb') as f:
+        #             logo_data = f.read()
+        #         logo_mime = MIMEImage(logo_data)
+        #         logo_mime.add_header('Content-ID', '<logo>')
+        #         email.attach(logo_mime)
+        #         logger.info("[EMAIL] Logo adjuntado correctamente.")
+        #     else:
+        #         logger.warning("[EMAIL] No se encontró el archivo del logo.")
+        # except Exception as logo_error:
+        #     logger.error(f"[EMAIL] Error al adjuntar el logo: {logo_error}", exc_info=True)
+        logger.info("[EMAIL] Logo deshabilitado temporalmente (problema con formato en Brevo)")
 
         # Enviar correo
         email.send(fail_silently=False)
@@ -222,20 +223,21 @@ def send_discrepancy_email(reabastecimiento, discrepancias):
         )
         email.attach_alternative(html_content, "text/html")
 
-        # Adjuntar el logo
-        try:
-            logo_path = find_static('core/img/la-playita-logo.png')
-            if logo_path:
-                with open(logo_path, 'rb') as f:
-                    logo_data = f.read()
-                logo_mime = MIMEImage(logo_data)
-                logo_mime.add_header('Content-ID', '<logo>')
-                email.attach(logo_mime)
-                logger.info("[EMAIL] Logo adjuntado correctamente al correo de discrepancia.")
-            else:
-                logger.warning("[EMAIL] No se encontró el archivo del logo para el correo de discrepancia.")
-        except Exception as logo_error:
-            logger.error(f"[EMAIL] Error al adjuntar el logo al correo de discrepancia: {logo_error}", exc_info=True)
+        # Adjuntar el logo (comentado temporalmente - problema con formato en Brevo)
+        # try:
+        #     logo_path = find_static('core/img/la-playita-logo.png')
+        #     if logo_path:
+        #         with open(logo_path, 'rb') as f:
+        #             logo_data = f.read()
+        #         logo_mime = MIMEImage(logo_data)
+        #         logo_mime.add_header('Content-ID', '<logo>')
+        #         email.attach(logo_mime)
+        #         logger.info("[EMAIL] Logo adjuntado correctamente al correo de discrepancia.")
+        #     else:
+        #         logger.warning("[EMAIL] No se encontró el archivo del logo para el correo de discrepancia.")
+        # except Exception as logo_error:
+        #     logger.error(f"[EMAIL] Error al adjuntar el logo al correo de discrepancia: {logo_error}", exc_info=True)
+        logger.info("[EMAIL] Logo deshabilitado temporalmente (problema con formato en Brevo)")
 
         # Enviar correo
         email.send(fail_silently=False)

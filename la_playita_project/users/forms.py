@@ -80,7 +80,8 @@ class CustomPasswordResetForm(PasswordResetForm):
             # Email subject *must not* contain newlines
             subject = ''.join(subject.splitlines())
             
-            from_email = settings.DEFAULT_FROM_EMAIL
+            # Usar email verificado para mejor entregabilidad
+            from_email = "michaeldaramirez117@gmail.com"
             
             msg = EmailMultiAlternatives(subject, body, from_email, [email])
             
@@ -88,15 +89,14 @@ class CustomPasswordResetForm(PasswordResetForm):
                 html_body = render_to_string(html_email_template_name, context)
                 msg.attach_alternative(html_body, "text/html")
 
-                # Attach image
-                image_path = os.path.join(settings.BASE_DIR, 'core', 'static', 'core', 'img', 'la-playita-logo.png')
-                try:
-                    with open(image_path, 'rb') as f:
-                        logo_image = MIMEImage(f.read())
-                        logo_image.add_header('Content-ID', '<logo>')
-                        msg.attach(logo_image)
-                except FileNotFoundError:
-                    # Handle case where image is not found, maybe log it
-                    pass
+                # Logo deshabilitado temporalmente (problema con formato en Brevo)
+                # image_path = os.path.join(settings.BASE_DIR, 'core', 'static', 'core', 'img', 'la-playita-logo.png')
+                # try:
+                #     with open(image_path, 'rb') as f:
+                #         logo_image = MIMEImage(f.read())
+                #         logo_image.add_header('Content-ID', '<logo>')
+                #         msg.attach(logo_image)
+                # except FileNotFoundError:
+                #     pass
 
             msg.send()

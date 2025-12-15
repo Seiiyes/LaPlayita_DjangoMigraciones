@@ -7,7 +7,7 @@
     <!-- Encabezado -->
     <div class="row mb-4">
         <div class="col-md-8">
-            <h2>
+            <h2 style="color: #f8f9fa;">
                 <i class="fas fa-user-circle"></i>
                 {% if cliente %}
                     {{ cliente.nombres }}
@@ -16,7 +16,7 @@
                 {% endif %}
             </h2>
             {% if cliente %}
-                <p class="text-muted">Documento: {{ cliente.documento }}</p>
+                <p style="color: #adb5bd;">Documento: {{ cliente.documento }}</p>
             {% endif %}
         </div>
         <div class="col-md-4 text-right">

@@ -36,8 +36,9 @@
             background-size: cover;
             background-repeat: no-repeat;
             background-position: center center;
-            background-attachment: fixed;
+            background-attachment: scroll;
             min-height: 100vh;
+            scroll-behavior: auto;
         }
         
         /* Overlay para mejorar legibilidad */
@@ -55,6 +56,15 @@
         /* Prevenir CLS en el contenedor principal */
         main.container {
             min-height: calc(100vh - 200px);
+        }
+        
+        /* Optimizar scroll performance */
+        * {
+            scroll-behavior: auto !important;
+        }
+        
+        html {
+            scroll-behavior: auto !important;
         }
         
         /* Skeleton para carga inicial */

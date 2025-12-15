@@ -20,14 +20,12 @@
 }
 
 body {
-    /* background-color: var(--light-bg); */ /* Comentado para permitir imagen de fondo */
-    /* background-image: url('../images/background.jpg.jpg'); */ /* Ruta relativa desde el css */
-    /* background-size: cover; */
-    /* background-repeat: no-repeat; */
-    /* background-position: center center; */
-    /* background-attachment: fixed; */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-attachment: scroll;
     color: var(--text-color);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    scroll-behavior: auto;
 }
 
 /* --- Utilities --- */
@@ -212,7 +210,8 @@ body {
     align-items: center;
     justify-content: center;
     padding: 1rem;
-    background-color: var(--gray-light);
+    /* Fondo transparente para que se vea el fondo de la página */
+    background: transparent;
 }
 
 .auth-card {
@@ -220,9 +219,11 @@ body {
     max-width: 450px;
     border: none;
     border-radius: 0.75rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     overflow: hidden;
-    background-color: var(--white);
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .auth-card-header {
@@ -287,9 +288,9 @@ body {
 }
 
 .auth-card-footer {
-    background-color: var(--gray-light);
+    background-color: rgba(248, 249, 250, 0.8);
     padding: 1rem;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid rgba(222, 226, 230, 0.5);
 }
 
 .auth-card-footer a {

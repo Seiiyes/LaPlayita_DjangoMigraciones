@@ -20,10 +20,12 @@ class ProductoForm(forms.ModelForm):
     )
     stock_minimo = forms.IntegerField(
         label='Stock Mínimo',
+        initial=10,
         validators=[MinValueValidator(0)],
         widget=forms.NumberInput(attrs={
             'class': 'form-control',
-            'placeholder': '10'
+            'placeholder': '10',
+            'value': '10'
         })
     )
     stock_maximo = forms.IntegerField(
@@ -81,6 +83,13 @@ class ProductoForm(forms.ModelForm):
             'tasa_iva': 'Tasa IVA',
             'estado': 'Estado',
         }
+
+    def clean_codigo_barras(self):
+        """Convertir cadenas vacías a None para evitar problemas con unique=True"""
+        codigo_barras = self.cleaned_data.get('codigo_barras')
+        if codigo_barras == '' or codigo_barras is None:
+            return None
+        return codigo_barras.strip()
 
 
 class ProductoAjaxForm(forms.ModelForm):

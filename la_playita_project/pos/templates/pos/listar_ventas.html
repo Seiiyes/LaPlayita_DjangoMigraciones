@@ -243,7 +243,7 @@
                                     <td>
                                         {% if venta.cliente %}
                                             <i class="bi bi-person-check text-success me-1"></i>
-                                            {{ venta.cliente.nombres }} {{ venta.cliente.apellidos }}
+                                            <span style="color: #f8f9fa;">{{ venta.cliente.nombres }} {{ venta.cliente.apellidos }}</span>
                                         {% else %}
                                             <span class="text-muted"><i class="bi bi-person-x me-1"></i>Sin cliente</span>
                                         {% endif %}

@@ -697,9 +697,9 @@ class CarritoPOS {
             });
         });
 
-        // Calcular impuesto y total
+        // Calcular impuesto (solo informativo, no se suma al total)
         const impuesto = subtotal * this.impuesto;
-        const total = subtotal + impuesto;
+        const total = subtotal; // Total = Subtotal (impuesto incluido en precio)
 
         subtotalSpan.textContent = `$${this.formatearMoneda(subtotal)}`;
         impuestoSpan.textContent = `$${this.formatearMoneda(impuesto)}`;
@@ -819,7 +819,7 @@ class CarritoPOS {
             subtotal += item.precio * item.cantidad;
         });
         const impuesto = subtotal * this.impuesto;
-        const total = subtotal + impuesto;
+        const total = subtotal; // Total = Subtotal (impuesto incluido en precio)
 
         document.getElementById('modal-subtotal').textContent = this.formatearMoneda(subtotal);
         document.getElementById('modal-impuesto').textContent = this.formatearMoneda(impuesto);
@@ -1009,7 +1009,7 @@ class CarritoPOS {
     }
 
     calcularTotal() {
-        return this.calcularSubtotal() + this.calcularImpuestos();
+        return this.calcularSubtotal(); // Total = Subtotal (impuesto incluido en precio)
     }
 
     mostrarFormularioPago() {

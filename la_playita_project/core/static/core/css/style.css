@@ -8,7 +8,7 @@
  */
 
 :root {
-    --primary-color: #003366; /* Azul Oscuro Profesional */
+    --primary-color: #000000; /* Negro */
     --accent-color: #89CFF0;  /* Azul Claro Moderno */
     --light-bg: #FFFFFF;      /* Fondo Blanco */
     --text-color: #212529;    /* Texto oscuro para buen contraste */
@@ -77,7 +77,7 @@ body {
     left: -280px;
     width: 280px;
     height: calc(100vh - 60px);
-    background: linear-gradient(180deg, #4A90E2 0%, #357ABD 100%);
+    background: linear-gradient(180deg, #1a1a1a 0%, #000000 100%);
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
     transition: left 0.3s ease;
     z-index: 1020;

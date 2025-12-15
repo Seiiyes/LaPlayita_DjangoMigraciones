@@ -167,21 +167,23 @@
 
 {% block content %}
 <div class="container-fluid dashboard-container">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="mb-1"><i class="bi bi-house-door me-2"></i>Panel Principal</h2>
-            <p class="text-muted mb-0">
-                Bienvenido, {{ request.user.first_name|default:request.user.username }}
-                {% if es_vendedor %}
-                <span class="badge bg-info ms-2">Vendedor</span>
-                {% endif %}
-            </p>
-        </div>
-        <div>
-            <a href="{% url 'pos:pos_view' %}" class="btn btn-primary">
-                <i class="bi bi-cash-register me-2"></i>Nueva Venta
-            </a>
+    <!-- Header estilo POS -->
+    <div class="pos-header mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-1"><i class="bi bi-house-door me-2"></i>Panel Principal</h3>
+                <p class="text-muted mb-0">
+                    Bienvenido, {{ request.user.first_name|default:request.user.username }}
+                    {% if es_vendedor %}
+                    <span class="badge bg-info ms-2">Vendedor</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'pos:pos_view' %}" class="btn btn-outline-primary">
+                    <i class="bi bi-cash-register me-1"></i>Nueva Venta
+                </a>
+            </div>
         </div>
     </div>
 
@@ -197,7 +199,7 @@
         <div class="col-md-6 col-lg-3">
             <a href="{% url 'pos:pos_view' %}" class="card quick-access-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
                 <div class="card-body">
-                    <i class="bi bi-cash-register"></i>
+                    <i class="bi bi-cart3"></i>
                     <h5>Punto de Venta</h5>
                     <small>Iniciar nueva venta</small>
                 </div>

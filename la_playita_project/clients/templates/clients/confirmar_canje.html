@@ -104,10 +104,10 @@
           </div>
 
           <!-- Formulario de confirmación -->
-          <form method="POST" id="formCanje" onsubmit="return confirmarCanje();">
+          <form method="POST" id="formCanje">
             {% csrf_token %}
             <input type="hidden" name="cliente_id" value="{{ cliente.id }}">
-            <button type="submit" class="btn btn-success btn-canjear">
+            <button type="submit" class="btn btn-success btn-canjear" id="btnConfirmarCanje">
               <i class="bi bi-check-circle me-2"></i>Confirmar Canje
             </button>
             <a href="{% url 'clients:panel_puntos' cliente.id %}" class="btn btn-secondary btn-canjear">
@@ -154,9 +154,12 @@
 </div>
 
 <script>
-function confirmarCanje() {
-  return confirm('¿Estás seguro de que deseas canjear {{ producto.nombre }}?\n\nCliente: {{ cliente.nombres }} {{ cliente.apellidos }}\nSe descontarán {{ puntos_requeridos }} puntos de tu cuenta.');
-}
+// Mostrar spinner al enviar el formulario
+document.getElementById('formCanje')?.addEventListener('submit', function(e) {
+  const btn = document.getElementById('btnConfirmarCanje');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando canje...';
+});
 </script>
 
 {% endblock %}

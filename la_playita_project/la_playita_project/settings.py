@@ -155,8 +155,12 @@ AUTH_USER_MODEL = "users.Usuario"
 # Sesiones seguras
 # =======================
 
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-SESSION_COOKIE_AGE = 1800  # 30 minutos
+# Usar base de datos para sesiones (persistente)
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
+# Configuración de sesiones
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Las sesiones persisten al cerrar navegador
+SESSION_COOKIE_AGE = 86400 * 7  # 7 días
 SESSION_SAVE_EVERY_REQUEST = True
 
 # Solo usar cookies seguras en producción
